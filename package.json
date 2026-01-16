@@ -1,7 +1,7 @@
 {
   "name": "editable.ts",
   "description": "Friendly contenteditable API - A TypeScript library for block-level rich text editing with a clean, event-driven architecture",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "sideEffects": false,
   "devDependencies": {

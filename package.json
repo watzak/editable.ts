@@ -1,8 +1,9 @@
 {
   "name": "@watzak/editable.ts",
-  "description": "Friendly contenteditable API",
+  "description": "Friendly contenteditable API - A TypeScript library for block-level rich text editing with a clean, event-driven architecture",
   "version": "0.0.1",
   "type": "module",
+  "sideEffects": false,
   "devDependencies": {
     "@eslint/compat": "2.0.1",
     "@types/node": "25.0.3",
@@ -28,18 +29,38 @@
     "npm": ">=11"
   },
   "files": [
-    "src",
     "lib",
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "contenteditable",
-    "editable"
+    "editable",
+    "rich-text",
+    "editor",
+    "typescript",
+    "block-editor",
+    "wysiwyg",
+    "text-editing",
+    "selection",
+    "range"
   ],
   "license": "MIT",
-  "main": "lib/core.js",
-  "types": "lib/core.d.ts",
-  "module": "lib/core.js",
+  "main": "./lib/core.js",
+  "types": "./lib/core.d.ts",
+  "module": "./lib/core.js",
+  "exports": {
+    ".": {
+      "types": "./lib/core.d.ts",
+      "import": "./lib/core.js",
+      "default": "./lib/core.js"
+    },
+    "./dist/editable.umd.cjs": {
+      "default": "./dist/editable.umd.cjs"
+    },
+    "./package.json": "./package.json"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/watzak/editable.ts.git"
@@ -50,6 +71,7 @@
     "build:dist": "rimraf ./dist && vite build --config vite/vite.config.dist.mjs",
     "build:docs": "rimraf ./examples/dist && vite build --config vite/vite.config.docs.bundle.mjs && vite build --config vite/vite.config.docs.styles.mjs",
     "build": "npm run build:ts -s && npm run build:dist -s && npm run build:docs -s",
+    "prepublishOnly": "npm run build -s",
     "test:ci": "vitest run",
     "test": "vitest run",
     "posttest": "npm run lint -s",

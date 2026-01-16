@@ -1,5 +1,5 @@
 {
-  "name": "@watzak/editable.ts",
+  "name": "editable.ts",
   "description": "Friendly contenteditable API - A TypeScript library for block-level rich text editing with a clean, event-driven architecture",
   "version": "0.0.1",
   "type": "module",

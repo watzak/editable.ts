@@ -1,0 +1,64 @@
+{
+  "name": "@watzak/editable.ts",
+  "description": "Friendly contenteditable API",
+  "version": "0.0.1",
+  "type": "module",
+  "devDependencies": {
+    "@eslint/compat": "2.0.1",
+    "@types/node": "25.0.3",
+    "@preact/preset-vite": "2.10.2",
+    "@vitest/ui": "4.0.17",
+    "@vitest/coverage-v8": "4.0.17",
+    "eslint": "9.39.2",
+    "globals": "17.0.0",
+    "jsdom": "27.4.0",
+    "normalize.css": "8.0.1",
+    "prismjs": "1.30.0",
+    "preact": "10.28.2",
+    "prop-types": "15.8.1",
+    "rimraf": "6.1.2",
+    "terser": "5.46.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.1",
+    "vite-plugin-css-injected-by-js": "3.5.2",
+    "vitest": "4.0.17"
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=11"
+  },
+  "files": [
+    "src",
+    "lib",
+    "dist"
+  ],
+  "keywords": [
+    "contenteditable",
+    "editable"
+  ],
+  "license": "MIT",
+  "main": "lib/core.js",
+  "types": "lib/core.d.ts",
+  "module": "lib/core.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/watzak/editable.ts.git"
+  },
+  "scripts": {
+    "start": "vite --config vite/vite.config.docs.mjs",
+    "build:ts": "rimraf ./lib && tsc",
+    "build:dist": "rimraf ./dist && vite build --config vite/vite.config.dist.mjs",
+    "build:docs": "rimraf ./examples/dist && vite build --config vite/vite.config.docs.bundle.mjs && vite build --config vite/vite.config.docs.styles.mjs",
+    "build": "npm run build:ts -s && npm run build:dist -s && npm run build:docs -s",
+    "test:ci": "vitest run",
+    "test": "vitest run",
+    "posttest": "npm run lint -s",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint"
+  },
+  "overrides": {
+    "rimraf": "6.1.2"
+  }
+}

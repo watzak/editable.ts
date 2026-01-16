@@ -65,6 +65,7 @@
     "type": "git",
     "url": "https://github.com/watzak/editable.ts.git"
   },
+  "homepage": "https://watzak.github.io/editable.ts/examples/",
   "scripts": {
     "start": "vite --config vite/vite.config.docs.mjs",
     "build:ts": "rimraf ./lib && tsc",

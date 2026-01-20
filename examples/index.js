@@ -617,8 +617,9 @@ function setupInlineToolbar () {
   const toolbar = document.createElement('div')
   toolbar.className = 'text-diff-toolbar'
   toolbar.innerHTML = `
-    <button class="text-diff-accept">Accept</button>
     <button class="text-diff-reject">Reject</button>
+    <button class="text-diff-accept">Accept</button>
+    
   `
   toolbar.style.display = 'none'
   document.body.appendChild(toolbar)
@@ -630,7 +631,9 @@ function setupInlineToolbar () {
   function showToolbar (element) {
     currentHighlight = element
     currentPair = findRelatedPair(element)
-    if (currentPair.deleted.length === 0 && currentPair.inserted.length === 0) return
+    // Toolbar should always show when hovering over deleted or inserted text
+    // Accept: keeps inserted text, removes deleted text
+    // Reject: keeps deleted text, removes inserted text
 
     if (hideTimeout) clearTimeout(hideTimeout)
     const rect = element.getBoundingClientRect()
@@ -712,24 +715,49 @@ function setupSidePanel () {
   const panel = document.querySelector('.text-diff-side-panel-ui')
   if (!wrapper || !container || !panel) return
 
-  let changes = []
+  let pairs = []
 
   function updatePanel () {
     const allHighlights = container.querySelectorAll('.highlight-diff-deleted, .highlight-diff-inserted')
-    changes = Array.from(allHighlights).map(el => ({
-      element: el,
-      pair: findRelatedPair(el),
-      type: el.classList.contains('highlight-diff-deleted') ? 'deleted' : 'inserted',
-      text: el.textContent
-    }))
+    const processedElements = new Set()
+    const uniquePairs = []
 
-    panel.innerHTML = changes.length > 0 ? `
-      <div class="side-panel-header">Changes (${changes.length})</div>
-      ${changes.map((change, idx) => `
+    // Group highlights into unique pairs
+    Array.from(allHighlights).forEach(el => {
+      // Skip if this element was already processed as part of another pair
+      if (processedElements.has(el)) return
+
+      const pair = findRelatedPair(el)
+      const deletedText = pair.deleted.map(e => e.textContent).join('')
+      const insertedText = pair.inserted.map(e => e.textContent).join('')
+
+      // Skip if pair has no changes
+      if (pair.deleted.length === 0 && pair.inserted.length === 0) return
+
+      // Mark all elements in this pair as processed
+      pair.deleted.forEach(e => processedElements.add(e))
+      pair.inserted.forEach(e => processedElements.add(e))
+
+      // Use first element as representative for acceptChange/rejectChange
+      const representativeElement = pair.deleted[0] || pair.inserted[0]
+
+      uniquePairs.push({
+        pair,
+        representativeElement,
+        deletedText,
+        insertedText
+      })
+    })
+
+    pairs = uniquePairs
+
+    panel.innerHTML = pairs.length > 0 ? `
+      <div class="side-panel-header">Changes (${pairs.length})</div>
+      ${pairs.map((pairData, idx) => `
         <div class="side-panel-item" data-index="${idx}">
           <div class="side-panel-text">
-            <span class="side-panel-type ${change.type}">${change.type === 'deleted' ? '−' : '+'}</span>
-            <span class="side-panel-content">${change.text}</span>
+            ${pairData.deletedText ? `<div class="side-panel-deleted"><span class="side-panel-label">Deleted:</span> <span class="side-panel-content">${pairData.deletedText}</span></div>` : ''}
+            ${pairData.insertedText ? `<div class="side-panel-inserted"><span class="side-panel-label">Inserted:</span> <span class="side-panel-content">${pairData.insertedText}</span></div>` : ''}
           </div>
           <div class="side-panel-actions">
             <button class="text-diff-accept" data-index="${idx}">Accept</button>
@@ -742,9 +770,9 @@ function setupSidePanel () {
     panel.querySelectorAll('.text-diff-accept').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.target.dataset.index)
-        const change = changes[idx]
-        if (change) {
-          acceptChange(change.pair, change.element)
+        const pairData = pairs[idx]
+        if (pairData) {
+          acceptChange(pairData.pair, pairData.representativeElement)
           updatePanel()
         }
       })
@@ -753,9 +781,9 @@ function setupSidePanel () {
     panel.querySelectorAll('.text-diff-reject').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.target.dataset.index)
-        const change = changes[idx]
-        if (change) {
-          rejectChange(change.pair, change.element)
+        const pairData = pairs[idx]
+        if (pairData) {
+          rejectChange(pairData.pair, pairData.representativeElement)
           updatePanel()
         }
       })

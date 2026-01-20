@@ -283,6 +283,24 @@ editable.setupHighlighting({
 })
 </code></pre>
 
+<h2 class="example-title">Setup Text Diff</h2>
+
+<pre><code class="language-javascript">
+editable.setupTextDiff({
+  // control when the text diff is triggered
+  enabled: true,
+  checkOnInit: true,
+  checkOnFocus: false,
+
+  // debounce calls to the diff service
+  throttle: 300,
+
+  // markers for deleted and inserted text
+  markerDeleted: '&lt;span class="highlight-diff-deleted"&gt;&lt;/span&gt;',
+  markerInserted: '&lt;span class="highlight-diff-inserted"&gt;&lt;/span&gt;'
+})
+</code></pre>
+
       </div>
     </section>
 

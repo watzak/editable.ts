@@ -8,6 +8,7 @@ import Dispatcher from './dispatcher.js'
 import Cursor from './cursor.js'
 import highlightSupport from './highlight-support.js'
 import MonitoredHighlighting from './monitored-highlighting.js'
+import TextDiff from './plugins/text-diff/text-diff.js'
 import createDefaultEvents from './create-default-events.js'
 import {textNodesUnder, getTextNodeAndRelativeOffset} from './util/element.js'
 import {binaryCursorSearch, BinaryCursorSearchResult} from './util/binary_search.js'
@@ -38,6 +39,15 @@ export interface HighlightOptions {
   }
   raiseEvents?: boolean
   type?: string
+}
+
+export interface TextDiffOptions {
+  enabled?: boolean
+  checkOnInit?: boolean
+  checkOnFocus?: boolean
+  markerDeleted?: string
+  markerInserted?: string
+  throttle?: number
 }
 
 export interface TextRange {
@@ -72,6 +82,7 @@ export class Editable {
   public editableSelector: string
   public dispatcher: Dispatcher
   public highlighting?: MonitoredHighlighting
+  public textDiff?: TextDiff
   public spellcheck?: {
     checkSpelling: (elem: HTMLElement) => void
   }
@@ -292,6 +303,11 @@ export class Editable {
         this.highlighting?.highlight(elem)
       }
     }
+    return this
+  }
+
+  setupTextDiff(config?: TextDiffOptions): this {
+    this.textDiff = new TextDiff(this, config || {})
     return this
   }
 

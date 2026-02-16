@@ -82,11 +82,11 @@ export const getNodes = (range: Range, nodeTypes: number[], filterFunc?: ((node:
 }
 
 export const normalizeBoundaries = (range: Range): void => {
-  if (range.startContainer.compareDocumentPosition(range.endContainer) === Node.DOCUMENT_POSITION_FOLLOWING) {
+  if (range.startContainer.compareDocumentPosition(range.endContainer) & Node.DOCUMENT_POSITION_FOLLOWING) {
     range.setStartBefore(range.endContainer)
   }
 
-  if (range.endContainer.compareDocumentPosition(range.startContainer) === Node.DOCUMENT_POSITION_PRECEDING) {
+  if (range.endContainer.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_PRECEDING) {
     range.setEndAfter(range.startContainer)
   }
 }

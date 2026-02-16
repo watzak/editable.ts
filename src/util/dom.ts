@@ -99,7 +99,7 @@ export const containsRange = (containerRange: Range, testRange: Range): boolean 
 }
 
 export const containsNodeText = (range: Range, node: Node): boolean => {
-  const nodeRange = document.createRange()
+  const nodeRange = (node.ownerDocument || document).createRange()
   nodeRange.selectNodeContents(node)
   const comparisonStart = range.compareBoundaryPoints(Range.START_TO_START, nodeRange)
   const comparisonEnd = range.compareBoundaryPoints(Range.END_TO_END, nodeRange)
@@ -107,7 +107,7 @@ export const containsNodeText = (range: Range, node: Node): boolean => {
 }
 
 export const nodeContainsRange = (node: Node, range: Range): boolean => {
-  const nodeRange = document.createRange()
+  const nodeRange = (node.ownerDocument || document).createRange()
   nodeRange.selectNodeContents(node)
   const comparisonStart = range.compareBoundaryPoints(Range.START_TO_START, nodeRange)
   const comparisonEnd = range.compareBoundaryPoints(Range.END_TO_END, nodeRange)
@@ -202,7 +202,8 @@ export const getSelectionCoordinates = (selection: Selection): Coordinates[] => 
 }
 
 export const createRangeFromCharacterRange = (element: Node, actualStartIndex: number, actualEndIndex: number): Range => {
-  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null)
+  const doc = element.ownerDocument || document
+  const walker = doc.createTreeWalker(element, NodeFilter.SHOW_TEXT, null)
   let currentIndex = 0
   let startNode: Text | null = null
   let endNode: Text | null = null

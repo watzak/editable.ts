@@ -31,62 +31,43 @@ export function tidyHtml (element: HTMLElement): void {
 // @method normalizeTags
 // @param  {HTMLElement} element The element to process.
 export function normalizeTags (element: HTMLElement): void {
-  const fragment = document.createDocumentFragment()
-
   // Remove line breaks at the beginning of a content block
   removeWhitespaces(element, 'firstChild')
 
   // Remove line breaks at the end of a content block
   removeWhitespaces(element, 'lastChild')
 
-  const nodesToProcess = Array.from(element.childNodes)
-  const processedIndices = new Set<number>()
-
-  for (let i = 0; i < nodesToProcess.length; i++) {
-    if (processedIndices.has(i)) continue
-    
-    const node = nodesToProcess[i]
-    
-    // skip empty tags, so they'll get removed
-    if (node.nodeName !== 'BR' && !node.textContent) continue
+  let node = element.firstChild
+  while (node) {
+    // Remove empty tags and empty text nodes, but keep <br> tags.
+    if (node.nodeName !== 'BR' && !node.textContent) {
+      const nextNode = node.nextSibling
+      node.remove()
+      node = nextNode
+      continue
+    }
 
     if (node.nodeType === nodeType.elementNode && node.nodeName !== 'BR') {
-      // Create a merged node starting with this node
-      const mergedNode = node.cloneNode(false) as HTMLElement
-      
-      // Copy children from the first node
-      for (const child of Array.from(node.childNodes)) {
-        mergedNode.appendChild(child.cloneNode(true))
-      }
-      
-      // Merge consecutive same tags
-      let j = i + 1
-      while (j < nodesToProcess.length) {
-        const sibling = nodesToProcess[j]
-        if (!parser.isSameNode(sibling, node)) break
-        
-        // Copy children from the consecutive sibling
-        for (const siblingChild of Array.from(sibling.childNodes)) {
-          mergedNode.appendChild(siblingChild.cloneNode(true))
+      const mergedNode = node as HTMLElement
+      let sibling = mergedNode.nextSibling
+
+      while (sibling && parser.isSameNode(sibling, mergedNode)) {
+        const nextSibling = sibling.nextSibling
+        while (sibling.firstChild) {
+          mergedNode.appendChild(sibling.firstChild)
         }
-        
-        processedIndices.add(j)
         sibling.remove()
-        j++
+        sibling = nextSibling
       }
-      
-      // Recursively normalize the merged node
+
+      // Only normalize subtrees that have actually been touched.
       normalizeTags(mergedNode)
-      
-      fragment.appendChild(mergedNode)
-    } else {
-      fragment.appendChild(node.cloneNode(true))
+      node = mergedNode.nextSibling
+      continue
     }
+
+    node = node.nextSibling
   }
-
-  while (element.firstChild) element.removeChild(element.firstChild)
-
-  element.appendChild(fragment)
 }
 
 export function normalizeWhitespace (text: string): string {

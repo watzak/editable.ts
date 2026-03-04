@@ -127,12 +127,14 @@ const highlightSupport = {
     const markers = editableHost.querySelectorAll(findMarkersQuery)
     if (!markers.length) return undefined
 
-    const groups: Record<string, NodeListOf<Element>> = {}
+    const groups: Record<string, Element[]> = {}
     for (const marker of Array.from(markers)) {
       const highlightId = marker.getAttribute('data-word-id')
-      if (highlightId && !groups[highlightId]) {
-        groups[highlightId] = editableHost.querySelectorAll(`[data-word-id="${highlightId}"]`)
+      if (!highlightId) continue
+      if (!groups[highlightId]) {
+        groups[highlightId] = []
       }
+      groups[highlightId].push(marker)
     }
 
     const res: Record<string, {start: number, end: number, text: string, nativeRange: Range}> = {}
@@ -144,15 +146,16 @@ const highlightSupport = {
     return res
   },
 
-  extractMarkerNodePosition (editableHost: HTMLElement, markers: NodeListOf<Element>): {start: number, end: number, text: string, nativeRange: Range} | undefined {
+  extractMarkerNodePosition (editableHost: HTMLElement, markers: Element[] | NodeListOf<Element>): {start: number, end: number, text: string, nativeRange: Range} | undefined {
     if (markers.length === 0) return undefined
 
+    const markerArray = Array.isArray(markers) ? markers : Array.from(markers)
     const range = createRange()
-    if (markers.length > 1) {
-      range.setStartBefore(markers[0])
-      range.setEndAfter(markers[markers.length - 1])
+    if (markerArray.length > 1) {
+      range.setStartBefore(markerArray[0])
+      range.setEndAfter(markerArray[markerArray.length - 1])
     } else {
-      range.selectNode(markers[0])
+      range.selectNode(markerArray[0])
     }
 
     const textRange = toCharacterRange(range, editableHost)

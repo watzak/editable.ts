@@ -1,10 +1,13 @@
 import {getTotalCharCount, textNodesUnder, getTextNodeAndRelativeOffset} from './element.js'
-import {createRange} from './dom.js'
 
 interface BinarySearchData {
   currentOffset: number
   leftLimit: number
   rightLimit: number
+}
+
+interface RectLikeTarget {
+  getBoundingClientRect: () => DOMRect
 }
 
 export interface BinaryCursorSearchResult {
@@ -37,24 +40,7 @@ export function binaryCursorSearch({
 }): BinaryCursorSearchResult {
   const hostRange = host.ownerDocument.createRange()
   hostRange.selectNodeContents(host)
-  // JSDOM doesn't support getBoundingClientRect on Range, use element instead
-  let hostCoords: DOMRect
-  try {
-    hostCoords = hostRange.getBoundingClientRect()
-  } catch (e) {
-    // Fallback for JSDOM
-    hostCoords = host.getBoundingClientRect() || {
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      width: 0,
-      height: 0,
-      x: 0,
-      y: 0,
-      toJSON: () => ({})
-    } as DOMRect
-  }
+  const hostCoords = getRect(hostRange, host.getBoundingClientRect())
   const totalCharCount = getTotalCharCount(host)
   const textNodes = textNodesUnder(host)
 
@@ -68,31 +54,25 @@ export function binaryCursorSearch({
   }
 
   let offset = data.currentOffset
-  let distance = 0
+  let distance = Number.POSITIVE_INFINITY
+  let bestOffset = data.currentOffset
+  let bestDistance = Number.POSITIVE_INFINITY
+  let stagnantIterations = 0
   let safety = 20
   while (data.leftLimit < data.rightLimit && safety > 0) {
     safety = safety - 1
     offset = data.currentOffset
     const range = createRangeAtCharacterOffset({textNodes, offset: data.currentOffset})
-    // JSDOM doesn't support getBoundingClientRect on Range
-    let coords: DOMRect
-    try {
-      coords = range.getBoundingClientRect()
-    } catch (e) {
-      // Fallback for JSDOM - use a mock DOMRect
-      coords = {
-        left: 0,
-        top: 0,
-        right: 0,
-        bottom: 0,
-        width: 0,
-        height: 0,
-        x: 0,
-        y: 0,
-        toJSON: () => ({})
-      } as DOMRect
-    }
+    const coords = getRect(range)
     distance = Math.abs(coords.left - positionX)
+    if (distance < bestDistance) {
+      bestDistance = distance
+      bestOffset = offset
+      stagnantIterations = 0
+    } else {
+      stagnantIterations++
+    }
+    if (stagnantIterations >= 3) break
 
     // up / down axis
     if (requiredOnFirstLine && hostCoords.top !== coords.top) {
@@ -109,33 +89,24 @@ export function binaryCursorSearch({
     } else {
       moveRight(data)
     }
+
+    // Avoid spinning if binary bounds stop progressing.
+    if (data.currentOffset === offset) break
   }
 
   const range = createRangeAtCharacterOffset({textNodes, offset: data.currentOffset})
-  // JSDOM doesn't support getBoundingClientRect on Range
-  let coords: DOMRect
-  try {
-    coords = range.getBoundingClientRect()
-  } catch (e) {
-    // Fallback for JSDOM
-    coords = {
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      width: 0,
-      height: 0,
-      x: 0,
-      y: 0,
-      toJSON: () => ({})
-    } as DOMRect
-  }
+  const coords = getRect(range)
   const finalDistance = Math.abs(coords.left - positionX)
 
   // Decide if last or second last offset is closest
   if (finalDistance < distance) {
     distance = finalDistance
     offset = data.currentOffset
+  }
+
+  if (bestDistance < distance) {
+    distance = bestDistance
+    offset = bestOffset
   }
 
   return {distance, offset, wasFound: true}
@@ -165,5 +136,27 @@ function createRangeAtCharacterOffset({textNodes, offset}: {
   newRange.collapse(true)
 
   return newRange
+}
+
+function fallbackRect(): DOMRect {
+  return {
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 0,
+    height: 0,
+    x: 0,
+    y: 0,
+    toJSON: () => ({})
+  } as DOMRect
+}
+
+function getRect(target: RectLikeTarget, fallback?: DOMRect): DOMRect {
+  try {
+    return target.getBoundingClientRect()
+  } catch (e) {
+    return fallback || fallbackRect()
+  }
 }
 

@@ -1,24 +1,19 @@
 import NodeIterator from '../node-iterator.js'
 import {textNode} from '../node-type.js'
 
-export const domArray = (target: HTMLElement | HTMLElement[] | string | NodeList, documentOrHost: Document | HTMLElement, host?: HTMLElement): HTMLElement[] => {
+export const domArray = (target: HTMLElement | HTMLElement[] | string | NodeList, doc: Document, scope?: HTMLElement): HTMLElement[] => {
   if (typeof target === 'string') {
-    const doc = (documentOrHost as Document).querySelectorAll ? documentOrHost as Document : (documentOrHost as HTMLElement).ownerDocument!
-    const container = host || documentOrHost as HTMLElement
-    return Array.from(container.querySelectorAll ? container.querySelectorAll(target) : doc.querySelectorAll(target)) as HTMLElement[]
+    const container = scope || doc
+    return Array.from(container.querySelectorAll(target)) as HTMLElement[]
   }
-  if ((target as HTMLElement).tagName) return [target as HTMLElement]
+  if (target instanceof Element) return [target as HTMLElement]
   if (Array.isArray(target)) return target
-  // Support NodeList and jQuery arrays
   return Array.from(target as NodeList) as HTMLElement[]
 }
 
-export const domSelector = (target: HTMLElement | string | NodeList | HTMLElement[], document: Document): HTMLElement | null => {
-  if (typeof target === 'string') return document.querySelector(target)
-  if ((target as HTMLElement).tagName) return target as HTMLElement
-  // Support NodeList and jQuery arrays
-  if ((target as any)[0]) return (target as any)[0]
-  return target as HTMLElement
+export const domSelector = (target: HTMLElement | string, doc: Document): HTMLElement | null => {
+  if (typeof target === 'string') return doc.querySelector(target)
+  return target
 }
 
 export const createElement = (html: string, win: Window = window): HTMLElement | null => {
@@ -29,15 +24,10 @@ export const createElement = (html: string, win: Window = window): HTMLElement |
 
 export const closest = (elem: Node | null | undefined, selector: string): HTMLElement | undefined => {
   if (!elem) return undefined
-  // For text nodes or other nodes without closest, traverse to parent element
-  let currentNode: Node | null = elem
-  while (currentNode && !(currentNode as any).closest) {
-    currentNode = currentNode.parentNode
-  }
-  if (currentNode && (currentNode as any).closest) {
-    return (currentNode as any).closest(selector)
-  }
-  return undefined
+  const element = elem.nodeType === Node.ELEMENT_NODE
+    ? elem as Element
+    : elem.parentElement
+  return element?.closest<HTMLElement>(selector) ?? undefined
 }
 
 export const createRange = (win: Window = window): Range => {
@@ -50,10 +40,11 @@ export const getSelection = (win: Window = window): Selection | null => {
   return win.getSelection ? win.getSelection() : null
 }
 
-export const getNodes = (range: Range, nodeTypes: number[], filterFunc?: ((node: Node) => boolean) | null, win: Window = window): Node[] => {
+export const getNodes = (range: Range, nodeTypes: number[], filterFunc?: ((node: Node) => boolean) | null): Node[] => {
   const nodes: Node[] = []
+  const doc = range.commonAncestorContainer.ownerDocument || document
 
-  const nodeIterator = win.document.createNodeIterator(
+  const nodeIterator = doc.createNodeIterator(
     range.commonAncestorContainer,
     NodeFilter.SHOW_ALL,
     {
@@ -101,17 +92,13 @@ export const containsRange = (containerRange: Range, testRange: Range): boolean 
 export const containsNodeText = (range: Range, node: Node): boolean => {
   const nodeRange = (node.ownerDocument || document).createRange()
   nodeRange.selectNodeContents(node)
-  const comparisonStart = range.compareBoundaryPoints(Range.START_TO_START, nodeRange)
-  const comparisonEnd = range.compareBoundaryPoints(Range.END_TO_END, nodeRange)
-  return comparisonStart <= 0 && comparisonEnd >= 0
+  return containsRange(range, nodeRange)
 }
 
 export const nodeContainsRange = (node: Node, range: Range): boolean => {
   const nodeRange = (node.ownerDocument || document).createRange()
   nodeRange.selectNodeContents(node)
-  const comparisonStart = range.compareBoundaryPoints(Range.START_TO_START, nodeRange)
-  const comparisonEnd = range.compareBoundaryPoints(Range.END_TO_END, nodeRange)
-  return comparisonStart >= 0 && comparisonEnd <= 0
+  return containsRange(nodeRange, range)
 }
 
 const isCharacterDataNode = (node: Node): boolean => {
@@ -181,24 +168,10 @@ export interface Coordinates {
 }
 
 export const getSelectionCoordinates = (selection: Selection): Coordinates[] => {
-  const range = selection.getRangeAt(0) // Assuming you want coordinates of the first range
-
-  const rects = range.getClientRects()
-  const coordinates: Coordinates[] = []
-
-  for (let i = 0; i < rects.length; i++) {
-    const rect = rects[i]
-    coordinates.push({
-      top: rect.top,
-      left: rect.left,
-      bottom: rect.bottom,
-      right: rect.right,
-      width: rect.width,
-      height: rect.height
-    })
-  }
-
-  return coordinates
+  const range = selection.getRangeAt(0)
+  return Array.from(range.getClientRects(), ({top, left, bottom, right, width, height}) => ({
+    top, left, bottom, right, width, height
+  }))
 }
 
 export const createRangeFromCharacterRange = (element: Node, actualStartIndex: number, actualEndIndex: number): Range => {
@@ -249,42 +222,39 @@ export function findStartExcludingWhitespace({root, startContainer, startOffset,
   startOffset: number
   whitespacesOnTheLeft: number
 }): [Text, number] {
-  const isTextNode = startContainer.nodeType === textNode
-  if (!isTextNode) {
-    return findStartExcludingWhitespace({
-      root,
-      startContainer: startContainer.childNodes[startOffset],
-      startOffset: 0,
-      whitespacesOnTheLeft
-    })
+  let container: Node = startContainer
+  let offset = startOffset
+  let remaining = whitespacesOnTheLeft
+
+  while (true) {
+    // Resolve non-text nodes to their child at the given offset
+    if (container.nodeType !== textNode) {
+      container = container.childNodes[offset]
+      offset = 0
+      continue
+    }
+
+    const offsetAfterWhitespace = offset + remaining
+    if ((container as Text).length > offsetAfterWhitespace) {
+      return [container as Text, offsetAfterWhitespace]
+    }
+
+    // Need to continue into the next text node
+    remaining = offsetAfterWhitespace - (container as Text).length
+    const iterator = new NodeIterator(root)
+    iterator.nextNode = container as Text
+    iterator.getNextTextNode() // skip self
+
+    const next = iterator.getNextTextNode()
+    if (!next) {
+      const previousTextNode = iterator.getPreviousTextNode()
+      if (!previousTextNode) throw new Error('No previous text node found')
+      return [previousTextNode, previousTextNode.length]
+    }
+
+    container = next
+    offset = 0
   }
-
-  const offsetAfterWhitespace = startOffset + whitespacesOnTheLeft
-  if ((startContainer as Text).length > offsetAfterWhitespace) {
-    return [startContainer as Text, offsetAfterWhitespace]
-  }
-
-  // Pass the root so that the iterator can traverse to siblings
-  const iterator = new NodeIterator(root)
-  // Set the position to the node which is selected
-  iterator.nextNode = startContainer as Text
-  // Iterate once to avoid returning self
-  iterator.getNextTextNode()
-
-  const container = iterator.getNextTextNode()
-  if (!container) {
-    // No more text nodes - use the end of the last text node
-    const previousTextNode = iterator.getPreviousTextNode()
-    if (!previousTextNode) throw new Error('No previous text node found')
-    return [previousTextNode, previousTextNode.length]
-  }
-
-  return findStartExcludingWhitespace({
-    root,
-    startContainer: container,
-    startOffset: 0,
-    whitespacesOnTheLeft: offsetAfterWhitespace - (startContainer as Text).length
-  })
 }
 
 export function findEndExcludingWhitespace({root, endContainer, endOffset, whitespacesOnTheRight}: {
@@ -293,51 +263,48 @@ export function findEndExcludingWhitespace({root, endContainer, endOffset, white
   endOffset: number
   whitespacesOnTheRight: number
 }): [Text, number] {
-  const isTextNode = endContainer.nodeType === textNode
-  if (!isTextNode) {
-    const isFirstNode = !endContainer.childNodes[endOffset - 1]
-    const container = isFirstNode
-      ? endContainer.childNodes[endOffset]
-      : endContainer.childNodes[endOffset - 1]
-    let offset = 0
-    if (!isFirstNode) {
-      offset = container.nodeType === textNode
-        ? (container as Text).length
-        : container.childNodes.length
+  let container: Node = endContainer
+  let offset = endOffset
+  let remaining = whitespacesOnTheRight
+
+  while (true) {
+    // Resolve non-text nodes to their child at the given offset
+    if (container.nodeType !== textNode) {
+      const isFirstNode = !container.childNodes[offset - 1]
+      const child = isFirstNode
+        ? container.childNodes[offset]
+        : container.childNodes[offset - 1]
+      if (!isFirstNode) {
+        offset = child.nodeType === textNode
+          ? (child as Text).length
+          : child.childNodes.length
+      } else {
+        offset = 0
+      }
+      container = child
+      continue
     }
-    return findEndExcludingWhitespace({
-      root,
-      endContainer: container,
-      endOffset: offset,
-      whitespacesOnTheRight
-    })
+
+    const offsetBeforeWhitespace = offset - remaining
+    if (offsetBeforeWhitespace > 0) {
+      return [container as Text, offsetBeforeWhitespace]
+    }
+
+    // Need to continue into the previous text node
+    remaining = remaining - offset
+    const iterator = new NodeIterator(root)
+    iterator.previous = container as Text
+    iterator.getPreviousTextNode() // skip self
+
+    const prev = iterator.getPreviousTextNode()
+    if (!prev) {
+      const nextNode = iterator.getNextTextNode()
+      if (!nextNode) throw new Error('No next text node found')
+      return [nextNode, 0]
+    }
+
+    container = prev
+    offset = prev.length
   }
-
-  const offsetBeforeWhitespace = endOffset - whitespacesOnTheRight
-  if (offsetBeforeWhitespace > 0) {
-    return [endContainer as Text, offsetBeforeWhitespace]
-  }
-
-  // Pass the root so that the iterator can traverse to siblings
-  const iterator = new NodeIterator(root)
-  // Set the position to the node which is selected
-  iterator.previous = endContainer as Text
-  // Iterate once to avoid returning self
-  iterator.getPreviousTextNode()
-
-  const container = iterator.getPreviousTextNode()
-  if (!container) {
-    // No more text nodes - use the start of the first text node
-    const nextNode = iterator.getNextTextNode()
-    if (!nextNode) throw new Error('No next text node found')
-    return [nextNode, 0]
-  }
-
-  return findEndExcludingWhitespace({
-    root,
-    endContainer: container,
-    endOffset: container.length,
-    whitespacesOnTheRight: whitespacesOnTheRight - endOffset
-  })
 }
 

@@ -119,12 +119,10 @@ export default function createDefaultBehavior (editable: Editable) {
       const targetContent = content.extractContent(target as HTMLElement, false)
       const elementContent = content.extractContent(element, false)
 
-      // Calculate text lengths before merging to position cursor correctly
-      const tempDiv = document.createElement('div')
-      tempDiv.innerHTML = targetContent
-      const targetTextLength = tempDiv.textContent?.length || 0
-      tempDiv.innerHTML = elementContent
-      const elementTextLength = tempDiv.textContent?.length || 0
+      // Calculate text lengths before merging to position cursor correctly.
+      // Reuse one parse operation per content string.
+      const targetTextLength = content.createFragmentFromString(targetContent).textContent?.length || 0
+      const elementTextLength = content.createFragmentFromString(elementContent).textContent?.length || 0
 
       const mergedContent = direction === 'before'
         ? targetContent + elementContent

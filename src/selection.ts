@@ -14,20 +14,11 @@ import {
 import type {HtmlAttributes} from './config.js'
 
 /**
- * The Selection module provides a cross-browser abstraction layer for range
- * and selection.
+ * Represents an active text selection inside an editable host.
  *
- * @module core
- * @submodule selection
+ * `Selection` extends `Cursor` with helpers for reading, trimming, wrapping
+ * and formatting a non-collapsed range.
  */
-/**
- * Class that represents a selection and provides functionality to access or
- * modify the selection.
- *
- * @class Selection
- * @constructor
- */
-
 export default class Selection extends Cursor {
   constructor (editableHost: HTMLElement, range: Range) {
     super(editableHost, range)

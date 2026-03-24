@@ -11,12 +11,11 @@ import {closest, getSelection, rangesAreEqual} from './util/dom.js'
 import {unwrapElement, type MaybeWrapped} from './dom-compat.js'
 
 /**
- * The Cursor module provides a cross-browser abstraction layer for cursor.
+ * Represents a caret or range anchored in a specific editable host.
  *
- * @module core
- * @submodule cursor
+ * The class provides DOM-aware helpers for reading and mutating the current
+ * caret position, selection boundaries and surrounding markup.
  */
-
 export default class Cursor {
   public host!: HTMLElement
   public range!: Range
@@ -29,12 +28,6 @@ export default class Cursor {
     return closest(elem, selector)
   }
 
-  /**
-  * Class for the Cursor module.
-  *
-  * @class Cursor
-  * @constructor
-  */
   constructor (editableHost: HTMLElement, range: Range) {
     this.setHost(editableHost)
     this.range = range

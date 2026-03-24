@@ -6,13 +6,8 @@ import {getSelection} from './util/dom.js'
 import type Dispatcher from './dispatcher.js'
 
 /**
- * The SelectionWatcher module watches for selection changes inside
- * of editable blocks.
- *
- * @module core
- * @submodule selectionWatcher
+ * Tracks the browser selection and maps it back to editable block state.
  */
-
 export default class SelectionWatcher {
   public dispatcher: Dispatcher
   public win: Window

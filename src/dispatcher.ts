@@ -19,10 +19,8 @@ import type {
 import type Selection from './selection.js'
 
 /**
- * The Dispatcher module is responsible for dealing with events and their handlers.
- *
- * @module core
- * @submodule dispatcher
+ * Coordinates DOM events, keyboard shortcuts and selection updates for an
+ * `Editable` instance.
  */
 export default class Dispatcher {
   public document: Document
@@ -255,8 +253,8 @@ export default class Dispatcher {
   }
 
   /**
-  * Sets up handlers for the keyboard events.
-  * Keyboard definitions are in {{#crossLink "Keyboard"}}{{/crossLink}}.
+  * Registers keyboard handlers that translate low-level key presses into
+  * semantic editor events.
   *
   * @method setupKeyboardEvents
   */

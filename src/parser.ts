@@ -231,10 +231,10 @@ export function lastChild (container: Node): Node {
 }
 
 /**
- * Obsolete version of {{#crossLink "lastChild"}}{{/crossLink}}.
+ * Backward-compatible alias for `lastChild()`.
  */
 export function latestChild (container: Node): Node {
-  console.warn('Editable.js: Using obsolete function parser.latestCild(), use lastChild() instead')
+  console.warn('editable.ts: Using obsolete function parser.latestCild(), use lastChild() instead')
   return lastChild(container)
 }
 

@@ -26,36 +26,41 @@
 // Unsubscribe all listeners of all channels:
 // obj.off()
 
-interface EventableObject {
-  on(event: string, listener: (...args: any[]) => any): this
-  on(events: Record<string, (...args: any[]) => any>): this
-  off(event?: string, listener?: (...args: any[]) => any): void
-  notify(context: any, event: string, ...args: any[]): void
-  notify(event: string, ...args: any[]): void
-  switchContext?: {
-    events: string[]
-    positionX?: number
-  }
+import type {
+  EventableObject,
+  EventHandler,
+  EventHandlerMap,
+  EventKey,
+  EventMap
+} from './event-types.js'
+
+export default function eventable<
+  TObject extends object,
+  TContext = unknown,
+  TEventMap extends EventMap = Record<string, unknown[]>
+>(obj: TObject, notifyContext?: TContext): void {
+  const events = getEventableModule<TContext, TEventMap>(notifyContext)
+  const target = obj as TObject & EventableObject<TEventMap, TContext, TObject>
+  target.on = events.on as EventableObject<TEventMap, TContext, TObject>['on']
+  target.off = events.off as EventableObject<TEventMap, TContext, TObject>['off']
+  target.notify = events.notify as EventableObject<TEventMap, TContext, TObject>['notify']
 }
 
-export default function eventable(obj: any, notifyContext?: any): void {
-  const events = getEventableModule(notifyContext)
-  obj.on = events.on
-  obj.off = events.off
-  obj.notify = events.notify
-}
+function getEventableModule<
+  TContext,
+  TEventMap extends EventMap = Record<string, unknown[]>
+>(notifyContext?: TContext): EventableObject<TEventMap, TContext, EventableObject<TEventMap, TContext, any>> {
+  const listeners: Record<string, Array<EventHandler<TContext, any[]>>> = {}
 
-function getEventableModule(notifyContext?: any) {
-  const listeners: Record<string, Array<(...args: any[]) => any>> = {}
-
-  function addListener(events: string, listener: (...args: any[]) => any): void {
+  function addListener(events: string, listener: EventHandler<TContext, any[]>): void {
     events.split(' ').forEach(event => {
       listeners[event] = listeners[event] || []
       listeners[event].unshift(listener)
     })
   }
 
-  function removeListener(event: string, listener: (...args: any[]) => any): void {
+  function removeListener(event: string, listener?: EventHandler<TContext, any[]>): void {
+    if (!listener) return
     const eventListeners = listeners[event]
     if (!eventListeners) return
 
@@ -66,19 +71,28 @@ function getEventableModule(notifyContext?: any) {
   }
 
   // Public Methods
-  const result: any = {
-    on(eventOrEvents: string | Record<string, (...args: any[]) => any>, listener?: (...args: any[]) => any): any {
+  const result: EventableObject<TEventMap, TContext, EventableObject<TEventMap, TContext, any>> = {
+    on<TEventName extends EventKey<TEventMap>>(
+      eventOrEvents: TEventName | EventHandlerMap<TEventMap, TContext>,
+      listener?: EventHandler<TContext, TEventMap[TEventName]>
+    ) {
       if (arguments.length === 2 && typeof eventOrEvents === 'string') {
-        addListener(eventOrEvents, listener!)
+        addListener(eventOrEvents, listener as EventHandler<TContext, any[]>)
       } else if (arguments.length === 1 && typeof eventOrEvents === 'object') {
-        for (const eventType in eventOrEvents) addListener(eventType, eventOrEvents[eventType])
+        for (const eventType in eventOrEvents) {
+          const eventListener = eventOrEvents[eventType]
+          if (eventListener) addListener(eventType, eventListener)
+        }
       }
       return result
     },
 
-    off(event?: string, listener?: (...args: any[]) => any): void {
+    off<TEventName extends EventKey<TEventMap>>(
+      event?: TEventName,
+      listener?: EventHandler<TContext, TEventMap[TEventName]>
+    ): void {
       if (arguments.length === 2) {
-        removeListener(event!, listener!)
+        removeListener(event!, listener as EventHandler<TContext, any[]> | undefined)
       } else if (arguments.length === 1) {
         listeners[event!] = []
       } else {
@@ -86,20 +100,24 @@ function getEventableModule(notifyContext?: any) {
       }
     },
 
-    notify(context: any, event: string, ...args: any[]): void {
+    notify<TEventName extends EventKey<TEventMap>>(
+      context: TContext | TEventName,
+      event?: TEventName,
+      ...args: TEventMap[TEventName]
+    ): void {
       const allArgs = Array.from(arguments)
 
-      let actualContext: any
+      let actualContext: TContext | undefined
       let actualEvent: string
-      let actualArgs: any[]
+      let actualArgs: unknown[]
 
       if (notifyContext) {
-        actualEvent = context
+        actualEvent = context as string
         actualContext = notifyContext
         actualArgs = allArgs.slice(1)
       } else {
-        actualContext = context
-        actualEvent = event
+        actualContext = context as TContext
+        actualEvent = event as string
         actualArgs = allArgs.slice(2)
       }
 
@@ -119,4 +137,3 @@ function getEventableModule(notifyContext?: any) {
 
   return result
 }
-

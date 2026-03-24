@@ -14,6 +14,12 @@ import {textNodesUnder, getTextNodeAndRelativeOffset} from './util/element.js'
 import {binaryCursorSearch, BinaryCursorSearchResult} from './util/binary_search.js'
 import {domArray, createRange, nodeContainsRange} from './util/dom.js'
 import type {Config} from './config.js'
+import type {
+  EditableEvent,
+  EditableEventHandler,
+  EditableEventMap,
+  EventOff
+} from './event-types.js'
 
 export interface EditableConfig {
   window?: Window
@@ -55,26 +61,6 @@ export interface TextRange {
   end: number
   text?: string
 }
-
-export type EditableEvent = 
-  | 'focus' 
-  | 'blur' 
-  | 'flow' 
-  | 'selection' 
-  | 'cursor' 
-  | 'newline'
-  | 'insert' 
-  | 'split' 
-  | 'merge' 
-  | 'empty' 
-  | 'change' 
-  | 'switch'
-  | 'move' 
-  | 'clipboard' 
-  | 'paste' 
-  | 'spellcheckUpdated' 
-  | 'selectToBoundary'
-  | 'init'
 
 export class Editable {
   public config: Required<EditableConfig>
@@ -354,15 +340,15 @@ export class Editable {
     highlightSupport.updateHighlight(editableHost, highlightId, addCssClass, removeCssClass)
   }
 
-  on(event: EditableEvent, handler: (...args: any[]) => any): this {
+  on<TEventName extends EditableEvent>(event: TEventName, handler: EditableEventHandler<TEventName>): this {
     this.dispatcher.on(event, handler)
     return this
   }
 
-  off(...args: any[]): this {
-    this.dispatcher.off.apply(this.dispatcher, args)
+  off: EventOff<EditableEventMap, Editable> = ((...args: Parameters<EventOff<EditableEventMap, Editable>>) => {
+    this.dispatcher.off(...args)
     return this
-  }
+  }) as EventOff<EditableEventMap, Editable>
 
   unload(): this {
     this.dispatcher.unload()
@@ -404,8 +390,7 @@ const eventNames: EditableEvent[] = ['focus', 'blur', 'flow', 'selection', 'curs
 
 eventNames.forEach((name) => {
   // Generate a callback function to subscribe to an event.
-  (Editable.prototype as any)[name] = function (handler: (...args: any[]) => any) {
+  (Editable.prototype as any)[name] = function (handler: EditableEventHandler<typeof name>) {
     return this.on(name, handler)
   }
 })
-

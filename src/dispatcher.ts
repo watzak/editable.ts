@@ -9,6 +9,13 @@ import {closest} from './util/dom.js'
 import {replaceLast, endsWithSingleSpace} from './util/string.js'
 import {applySmartQuotes, shouldApplySmartQuotes} from './smartQuotes.js'
 import type {Editable} from './core.js'
+import type {
+  DispatcherEventMap,
+  EventNotify,
+  EventOff,
+  EventOn
+} from './event-types.js'
+import type Selection from './selection.js'
 
 /**
  * The Dispatcher module is responsible for dealing with events and their handlers.
@@ -30,13 +37,13 @@ export default class Dispatcher {
     positionX?: number
   }
   public getEditableBlockByEvent: (evt: Event) => HTMLElement | undefined
-  public notify!: (event: string, ...args: any[]) => void
-  public off!: (...args: any[]) => void
-  public on!: (event: string, handler: (...args: any[]) => any) => this | ((events: Record<string, (...args: any[]) => any>) => this)
+  public notify!: EventNotify<DispatcherEventMap, Editable>
+  public off!: EventOff<DispatcherEventMap, Editable>
+  public on!: EventOn<DispatcherEventMap, Editable, this>
 
   constructor (editable: Editable) {
     const win = editable.win
-    eventable(this, editable)
+    eventable<Dispatcher, Editable, DispatcherEventMap>(this, editable)
     this.document = win.document
     this.config = editable.config
     this.editable = editable
@@ -131,7 +138,7 @@ export default class Dispatcher {
         if (!block) return
         const selection = this.selectionWatcher.getFreshSelection()
         if (selection && selection.isSelection) {
-          this.notify('clipboard', block, 'copy', selection)
+          this.notify('clipboard', block, 'copy', selection as Selection)
         }
       })
       .setupDocumentListener('cut', function cutListener (this: Dispatcher, evt: Event) {
@@ -139,7 +146,7 @@ export default class Dispatcher {
         if (!block) return
         const selection = this.selectionWatcher.getFreshSelection()
         if (selection && selection.isSelection) {
-          this.notify('clipboard', block, 'cut', selection)
+          this.notify('clipboard', block, 'cut', selection as Selection)
         }
       })
       .setupDocumentListener('paste', function pasteListener (this: Dispatcher, evt: Event) {
@@ -322,7 +329,7 @@ export default class Dispatcher {
         event.stopPropagation()
         const selection = self.selectionWatcher.getFreshSelection()
         if (selection && selection.isSelection) {
-          self.notify('toggleBold', selection)
+          self.notify('toggleBold', selection as Selection)
         }
       })
 
@@ -331,7 +338,7 @@ export default class Dispatcher {
         event.stopPropagation()
         const selection = self.selectionWatcher.getFreshSelection()
         if (selection && selection.isSelection) {
-          self.notify('toggleEmphasis', selection)
+          self.notify('toggleEmphasis', selection as Selection)
         }
       })
 

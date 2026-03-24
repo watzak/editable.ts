@@ -2,6 +2,7 @@ import createDefaultBehavior from './create-default-behavior.js'
 import type {Editable} from './core.js'
 import type Cursor from './cursor.js'
 import type Selection from './selection.js'
+import type {EventHandlerMap, DispatcherEventMap} from './event-types.js'
 
 export default function createDefaultEvents (editable: Editable) {
   const behavior = createDefaultBehavior(editable)
@@ -197,5 +198,5 @@ export default function createDefaultEvents (editable: Editable) {
     toggleEmphasis (selection: Selection): void {
       behavior.toggleEmphasis(selection)
     }
-  }
+  } as EventHandlerMap<DispatcherEventMap, Editable>
 }

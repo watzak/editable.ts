@@ -3,6 +3,12 @@ import {contenteditableSpanBug} from './feature-detection.js'
 import * as nodeType from './node-type.js'
 import eventable from './eventable.js'
 import type SelectionWatcher from './selection-watcher.js'
+import type {
+  EventNotify,
+  EventOff,
+  EventOn,
+  KeyboardEventMap
+} from './event-types.js'
 
 interface KeyCodes {
   left: number
@@ -27,13 +33,13 @@ interface KeyCodes {
 
 export default class Keyboard {
   public key: KeyCodes
-  public notify!: (event: string, ...args: any[]) => void
-  public on!: ((event: string, handler: (...args: any[]) => any) => this) & ((events: Record<string, (...args: any[]) => any>) => this)
-  public off!: (...args: any[]) => void
+  public notify!: EventNotify<KeyboardEventMap, HTMLElement>
+  public on!: EventOn<KeyboardEventMap, HTMLElement, this>
+  public off!: EventOff<KeyboardEventMap, HTMLElement>
   public selectionWatcher: SelectionWatcher
 
   constructor (selectionWatcher: SelectionWatcher) {
-    eventable(this)
+    eventable<Keyboard, HTMLElement, KeyboardEventMap>(this)
     this.selectionWatcher = selectionWatcher
     this.key = (Keyboard as any).key
   }

@@ -131,8 +131,9 @@ export default class SelectionWatcher {
         this.currentSelection = new Cursor(this.currentRange.host, this.currentRange.range)
         this.dispatcher.notify('cursor', this.currentSelection.host, this.currentSelection)
       } else if (this.currentRange.isSelection && this.currentRange.host && this.currentRange.range) {
-        this.currentSelection = new Selection(this.currentRange.host, this.currentRange.range)
-        this.dispatcher.notify('selection', this.currentSelection.host, this.currentSelection)
+        const selection = new Selection(this.currentRange.host, this.currentRange.range)
+        this.currentSelection = selection
+        this.dispatcher.notify('selection', selection.host, selection)
       } else {
         this.currentSelection = undefined
       }

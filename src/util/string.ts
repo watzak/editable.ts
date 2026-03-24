@@ -20,12 +20,12 @@ export function trim(text: string): string {
   return text.replace(/^\s+|\s+$/g, '')
 }
 
-export function isString(obj: any): obj is string {
+export function isString(obj: unknown): obj is string {
   return toString.call(obj) === '[object String]'
 }
 
 /**
- * Turn any string into a regular expression.
+ * Turn a string into a regular expression.
  * This can be used to search or replace a string conveniently.
  */
 export function regexp(str: string, flags?: string): RegExp {
@@ -77,4 +77,3 @@ export function replaceLast(text: string | null | undefined, searchValue: string
 export function endsWithSingleSpace(text: string): boolean {
   return /\S+\s{1}$/.test(text)
 }
-

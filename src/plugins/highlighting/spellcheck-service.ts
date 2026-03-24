@@ -1,4 +1,9 @@
 import * as content from '../../content.js'
+import type {
+  SpellcheckCheckCallback,
+  SpellcheckResult,
+  SpellcheckServiceHandler
+} from '../../plugin-types.js'
 
 /**
 * Spellcheck class.
@@ -7,18 +12,18 @@ import * as content from '../../content.js'
 * @constructor
 */
 export default class SpellcheckService {
-  private spellcheckService: (text: string, callback: (misspelledWords: string[] | null) => void) => void
+  private spellcheckService: SpellcheckServiceHandler
 
-  constructor (spellcheckService: (text: string, callback: (misspelledWords: string[] | null) => void) => void) {
+  constructor (spellcheckService: SpellcheckServiceHandler) {
     this.spellcheckService = spellcheckService
   }
 
-  check (text: string, callback: (error: null, misspelledWords?: string[] | null) => void): void {
+  check (text: string, callback: SpellcheckCheckCallback): void {
     if (!text) return callback(null)
 
     const condensedText = content.normalizeWhitespace(text)
 
-    this.spellcheckService(condensedText, (misspelledWords) => {
+    this.spellcheckService(condensedText, (misspelledWords?: SpellcheckResult) => {
       if (misspelledWords && misspelledWords.length > 0) {
         return callback(null, misspelledWords)
       }

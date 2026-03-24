@@ -27,6 +27,10 @@ interface KeyCodes {
   i: number
 }
 
+interface KeyboardConstructor {
+  key: KeyCodes
+}
+
 /**
  * The Keyboard module defines an event API for key events.
  */
@@ -41,10 +45,10 @@ export default class Keyboard {
   constructor (selectionWatcher: SelectionWatcher) {
     eventable<Keyboard, HTMLElement, KeyboardEventMap>(this)
     this.selectionWatcher = selectionWatcher
-    this.key = (Keyboard as any).key
+    this.key = (Keyboard as unknown as KeyboardConstructor).key
   }
 
-  dispatchKeyEvent (event: KeyboardEvent, target: any, notifyCharacterEvent?: boolean): void {
+  dispatchKeyEvent (event: KeyboardEvent, target: HTMLElement, notifyCharacterEvent?: boolean): void {
     switch (event.keyCode) {
       case this.key.left:
         return this.notify(target, 'left', event)
@@ -219,7 +223,7 @@ export default class Keyboard {
   }
 }
 
-(Keyboard as any).key = Keyboard.prototype.key = {
+const keyCodes: KeyCodes = {
   left: 37,
   up: 38,
   right: 39,
@@ -235,3 +239,6 @@ export default class Keyboard {
   b: 66,
   i: 73
 }
+
+Keyboard.prototype.key = keyCodes
+;(Keyboard as unknown as KeyboardConstructor).key = keyCodes

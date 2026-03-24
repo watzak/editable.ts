@@ -52,17 +52,20 @@ function findMatches (text: string, searchTexts: string[], matchMode: 'text' | '
   })
 }
 
-function isElement (obj: any): obj is HTMLElement {
+function isElement (obj: unknown): obj is HTMLElement {
   try {
     if (!obj) return false
-    return obj instanceof obj.ownerDocument?.defaultView.HTMLElement
+    if (!(obj instanceof Node)) return false
+    return obj instanceof (obj.ownerDocument?.defaultView?.HTMLElement || HTMLElement)
   } catch (e) {
     // Browsers not supporting W3 DOM2 don't have HTMLElement and
     // an exception is thrown and we end up here. Testing some
     // properties that all elements have (works on IE7)
-    return (typeof obj === 'object') &&
-      (obj.nodeType === 1) && (typeof obj.style === 'object') &&
-      (typeof obj.ownerDocument === 'object')
+    if (!obj || typeof obj !== 'object') return false
+    const candidate = obj as {nodeType?: unknown, style?: unknown, ownerDocument?: unknown}
+    return candidate.nodeType === 1 &&
+      typeof candidate.style === 'object' &&
+      typeof candidate.ownerDocument === 'object'
   }
 }
 

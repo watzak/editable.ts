@@ -4,6 +4,7 @@ import * as parser from './parser.js'
 import * as string from './util/string.js'
 import {createElement, createRange, getNodes, normalizeBoundaries, splitBoundaries, containsNodeText} from './util/dom.js'
 import config from './config.js'
+import {unwrapElement, type MaybeWrapped} from './dom-compat.js'
 
 function restoreRange (host: HTMLElement, range: Range, func: () => void): Range | undefined {
   const savedRange = rangeSaveRestore.save(range)
@@ -314,14 +315,15 @@ function intersectsRange (range1: Range, range2: Range): boolean {
 //
 // @param visible: Only compare visible text. That way it does not
 //   matter if the user selects an additional whitespace or not.
-export function isExactSelection (range: Range, elem: HTMLElement | any, visible?: boolean): boolean {
+export function isExactSelection (range: Range, elem: MaybeWrapped<Node>, visible?: boolean): boolean {
+  const unwrappedElem = unwrapElement(elem)
   const elemRange = createRange()
-  elemRange.selectNodeContents(elem)
+  elemRange.selectNodeContents(unwrappedElem)
 
   if (!intersectsRange(range, elemRange)) return false
 
   let rangeText = range.toString()
-  let elemText = (elem.jquery ? elem[0] : elem).textContent
+  let elemText = unwrappedElem.textContent || ''
 
   if (visible) {
     rangeText = string.trim(rangeText)
@@ -391,12 +393,12 @@ export function wrap (range: Range, elem: HTMLElement | string): void {
   range.surroundContents(element)
 }
 
-export function unwrap (elem: HTMLElement | any): void {
-  elem = (elem as any).jquery ? (elem as any)[0] : elem
-  const parent = elem.parentNode
+export function unwrap (elem: MaybeWrapped<Element>): void {
+  const unwrappedElem = unwrapElement(elem)
+  const parent = unwrappedElem.parentNode
   if (!parent) return
-  while (elem.firstChild) parent.insertBefore(elem.firstChild, elem)
-  parent.removeChild(elem)
+  while (unwrappedElem.firstChild) parent.insertBefore(unwrappedElem.firstChild, unwrappedElem)
+  parent.removeChild(unwrappedElem)
 }
 
 export function removeFormattingElem (host: HTMLElement, range: Range, elem: HTMLElement): Range | undefined {

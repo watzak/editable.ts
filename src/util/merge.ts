@@ -2,34 +2,35 @@
  * Deep merge objects, creating a new object with merged properties.
  * Arrays are replaced (not merged).
  */
-export function deepMerge<T extends Record<string, any>>(target: T, ...sources: Partial<T>[]): T {
-  const result = {...target} as any
+type PlainObject = Record<string, unknown>
+
+function isPlainObject(value: unknown): value is PlainObject {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+export function deepMerge<T extends object>(target: T, ...sources: Array<Partial<T> | undefined>): T {
+  const result = {...target} as T
   
   for (const source of sources) {
-    if (!source || typeof source !== 'object') continue
+    if (!isPlainObject(source)) continue
     
-    for (const key in source) {
+    for (const key of Object.keys(source) as Array<keyof T>) {
       if (!Object.prototype.hasOwnProperty.call(source, key)) continue
       
       const sourceValue = source[key]
       const targetValue = result[key]
       
       // Deep merge if both are plain objects
-      if (
-        sourceValue &&
-        typeof sourceValue === 'object' &&
-        !Array.isArray(sourceValue) &&
-        targetValue &&
-        typeof targetValue === 'object' &&
-        !Array.isArray(targetValue)
-      ) {
-        result[key] = deepMerge({}, targetValue, sourceValue)
+      if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
+        result[key] = deepMerge<PlainObject>(
+          targetValue,
+          sourceValue
+        ) as T[keyof T]
       } else {
-        result[key] = sourceValue
+        result[key] = sourceValue as T[keyof T]
       }
     }
   }
   
   return result as T
 }
-

@@ -9,6 +9,13 @@ import MatchCollection from './plugins/highlighting/match-collection.js'
 import highlightSupport from './highlight-support.js'
 import {domArray, domSelector} from './util/dom.js'
 import type {Editable} from './core.js'
+import type {
+  MonitoredHighlightingConfig,
+  PendingEditableTimeout,
+  ResolvedMonitoredHighlightingConfig,
+  SpellcheckCheckCallback,
+  SpellcheckServiceHandler
+} from './plugin-types.js'
 
 // Spellcheck and Whitespace Highlighting
 // --------------------------------------
@@ -23,20 +30,21 @@ export default class MonitoredHighlighting {
   public win: Window
   public focusedEditableHost: HTMLElement | undefined
   public currentlyCheckedEditableHost: HTMLElement | undefined
-  public timeout: Record<string, any>
-  public config: any
+  public timeout: PendingEditableTimeout
+  public config: ResolvedMonitoredHighlightingConfig
   public spellcheckMarkerNode: HTMLElement
   public spellcheckService: SpellcheckService
   public whitespace: typeof WhitespaceHighlighting.prototype
 
-  constructor (editable: Editable, configuration: any, spellcheckConfig: any) {
+  constructor (editable: Editable, configuration: MonitoredHighlightingConfig = {}) {
     this.editable = editable
     this.win = editable.win
     this.focusedEditableHost = undefined
     this.currentlyCheckedEditableHost = undefined
-    this.timeout = {}
+    this.timeout = {} as PendingEditableTimeout
 
-    const defaultConfig = {
+    const noopSpellcheckService: SpellcheckServiceHandler = (_text, callback) => callback()
+    const defaultConfig: ResolvedMonitoredHighlightingConfig = {
       checkOnInit: false,
       checkOnFocus: false,
       checkOnChange: true,
@@ -47,14 +55,18 @@ export default class MonitoredHighlighting {
       spellcheck: {
         marker: '<span class="highlight-spellcheck"></span>',
         throttle: 1000,
-        spellcheckService: function () {}
+        spellcheckService: noopSpellcheckService
       },
       whitespace: {
         marker: '<span class="highlight-whitespace"></span>'
       }
     }
 
-    this.config = deepMerge({}, defaultConfig, configuration)
+    this.config = deepMerge<ResolvedMonitoredHighlightingConfig>(
+      {} as ResolvedMonitoredHighlightingConfig,
+      defaultConfig,
+      configuration as Partial<ResolvedMonitoredHighlightingConfig>
+    )
 
     const spellcheckService = this.config.spellcheck.spellcheckService
     const spellcheckMarker = this.config.spellcheck.marker
@@ -128,7 +140,7 @@ export default class MonitoredHighlighting {
     const timeoutId = setTimeout(() => {
       this.highlight(editableHost)
 
-      this.timeout = {}
+      this.timeout = {} as PendingEditableTimeout
     }, throttle || 0)
 
     this.timeout = {
@@ -141,7 +153,10 @@ export default class MonitoredHighlighting {
     const textBefore = highlightText.extractText(editableHost)
 
     // getSpellcheck
-    this.spellcheckService.check(textBefore, (err: null, misspelledWords?: string[] | null) => {
+    this.spellcheckService.check(textBefore, ((
+      err: null,
+      misspelledWords?: string[] | null
+    ) => {
       if (err || !editableHost.isConnected) { return } // return in case the host was removed from the dom
 
       // refresh the text
@@ -167,7 +182,7 @@ export default class MonitoredHighlighting {
       }
 
       this.safeHighlightMatches(editableHost, matchCollection.matches)
-    })
+    }) as SpellcheckCheckCallback)
   }
 
   // Calls highlightMatches internally but ensures
@@ -211,20 +226,26 @@ export default class MonitoredHighlighting {
     editableHost = host
     const selection = this.editable.getSelection(editableHost)
     if (selection && selection.isCursor) {
-      let elementAtCursor = selection.range.startContainer
+      let elementAtCursor: Node | null = selection.range.startContainer
       if (elementAtCursor.nodeType === nodeType.textNode) {
         elementAtCursor = elementAtCursor.parentNode
       }
 
       let wordId
-      do {
+      while (elementAtCursor) {
         if (elementAtCursor === editableHost) return
-        const highlightType = elementAtCursor.getAttribute('data-highlight')
+        if (elementAtCursor.nodeType !== nodeType.elementNode) {
+          elementAtCursor = elementAtCursor.parentNode
+          continue
+        }
+        const highlightElement = elementAtCursor as Element
+        const highlightType = highlightElement.getAttribute('data-highlight')
         if (highlightType === 'spellcheck' || highlightType === 'whitespace') {
-          wordId = elementAtCursor.getAttribute('data-word-id')
+          wordId = highlightElement.getAttribute('data-word-id')
           break
         }
-      } while ((elementAtCursor = elementAtCursor.parentNode))
+        elementAtCursor = elementAtCursor.parentNode
+      }
 
       if (wordId) {
         selection.retainVisibleSelection(() => {

@@ -11,6 +11,7 @@ import {
   findStartExcludingWhitespace,
   findEndExcludingWhitespace
 } from './util/dom.js'
+import type {HtmlAttributes} from './config.js'
 
 /**
  * The Selection module provides a cross-browser abstraction layer for range
@@ -188,13 +189,13 @@ export default class Selection extends Cursor {
     }
   }
 
-  toggleCustom ({tagName, attributes, trim = false}: {tagName: string, attributes: Record<string, any>, trim?: boolean}): void {
+  toggleCustom ({tagName, attributes, trim = false}: {tagName: string, attributes: HtmlAttributes, trim?: boolean}): void {
     const customElem = this.createElement(tagName, attributes)
     if (trim) this.trimRange()
     this.toggle(customElem)
   }
 
-  makeCustom ({tagName, attributes, trim = false}: {tagName: string, attributes: Record<string, any>, trim?: boolean}): void {
+  makeCustom ({tagName, attributes, trim = false}: {tagName: string, attributes: HtmlAttributes, trim?: boolean}): void {
     const customElem = this.createElement(tagName, attributes)
     if (trim) this.trimRange()
     this.forceWrap(customElem)
@@ -345,7 +346,7 @@ export default class Selection extends Cursor {
     return new Cursor(this.host, this.range)
   }
 
-  // Wrap the selection with the specified tag. If any other tag with
+  // Wrap the selection with the specified tag. If another tag with
   // the same tagName is affecting the selection this tag will be
   // remove first.
   forceWrap (elem: Node): void {

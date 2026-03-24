@@ -1,6 +1,7 @@
 import Cursor from './cursor.js'
 import Selection from './selection.js'
 import {rangesAreEqual} from './util/dom.js'
+import {unwrapElement, type MaybeWrapped} from './dom-compat.js'
 
 /** RangeContainer
  *
@@ -17,10 +18,8 @@ export default class RangeContainer {
   public isCursor: boolean
   public isSelection: boolean
 
-  constructor (editableHost?: HTMLElement | any, range?: Range) {
-    this.host = editableHost && (editableHost as any).jquery
-      ? (editableHost as any)[0]
-      : editableHost
+  constructor (editableHost?: MaybeWrapped<HTMLElement>, range?: Range) {
+    this.host = editableHost ? unwrapElement(editableHost) : undefined
     // Safari 17 seems to modify the range instance on the fly which breaks later comparisons.
     // We clone the range at the time of the RangeContainer creation.
     // https://developer.apple.com/documentation/safari-release-notes/safari-17-release-notes#New-Features

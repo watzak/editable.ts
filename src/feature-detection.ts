@@ -1,3 +1,5 @@
+import type {SelectionChangeDocument} from './dom-compat.js'
+
 /**
 * Check for contenteditable support
 *
@@ -11,7 +13,7 @@ export const contenteditable = typeof document.documentElement.contentEditable !
 // Detect webkit browser engine
 // That way we can detect the contenteditable span bug on safari, but exclude chrome
 // Regex taken from: https://github.com/lancedikson/bowser/blob/f09411489ced05811c91cc6670a8e4ca9cbe39a7/src/parser-engines.js#L93-L106
-// Attention, this might be error prone as any engine version change breaks this.
+// Attention, this might be error prone because engine version changes can break this.
 const isBlink = /(apple)?webkit\/537\.36/i.test(window.navigator.userAgent)
 const isWebkit = /(apple)?webkit/i.test(window.navigator.userAgent)
 const webKit = !isBlink && isWebkit
@@ -22,16 +24,16 @@ const webKit = !isBlink && isWebkit
  * Opera has no support as of 2021.
  */
 const hasNativeSelectionchangeSupport = (document: Document): boolean => {
-  const doc = document
-  const osc = (doc as any).onselectionchange
+  const doc = document as SelectionChangeDocument
+  const osc = doc.onselectionchange
   if (osc !== undefined) {
     try {
-      (doc as any).onselectionchange = 0
-      return (doc as any).onselectionchange === null
+      doc.onselectionchange = null
+      return doc.onselectionchange === null
     } catch (e) {
       // ignore
     } finally {
-      (doc as any).onselectionchange = osc
+      doc.onselectionchange = osc
     }
   }
   return false
@@ -41,4 +43,3 @@ export const selectionchange = hasNativeSelectionchangeSupport(document)
 
 // See Keyboard.prototype.preventContenteditableBug for more information.
 export const contenteditableSpanBug = !!webKit
-

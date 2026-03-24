@@ -9,6 +9,7 @@ import {closest} from './util/dom.js'
 import {replaceLast, endsWithSingleSpace} from './util/string.js'
 import {applySmartQuotes, shouldApplySmartQuotes} from './smartQuotes.js'
 import type {Editable} from './core.js'
+import type {QuotePair} from './smartQuotes.js'
 import type {
   DispatcherEventMap,
   EventNotify,
@@ -25,7 +26,7 @@ import type Selection from './selection.js'
  */
 export default class Dispatcher {
   public document: Document
-  public config: any
+  public config: Editable['config']
   public editable: Editable
   public editableSelector: string
   public selectionWatcher: SelectionWatcher
@@ -186,7 +187,10 @@ export default class Dispatcher {
           // Save offset of new input, to reset cursor correctly after timeout delay
           currentInput.offset = selection.range.startOffset
           const inputEvent = evt as InputEvent
-          const quotesConfig = this.config.quotes || {quotes: [], singleQuotes: []}
+          const quotesConfig = {
+            quotes: this.config.quotes as QuotePair | string[],
+            singleQuotes: this.config.singleQuotes as QuotePair | string[]
+          }
           setTimeout(() => {
             if (inputEvent.data) {
               applySmartQuotes(selection.range!, quotesConfig, inputEvent.data, target, currentInput.offset)

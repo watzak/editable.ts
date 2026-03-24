@@ -49,17 +49,17 @@ export default function eventable<
 function getEventableModule<
   TContext,
   TEventMap extends EventMap = Record<string, unknown[]>
->(notifyContext?: TContext): EventableObject<TEventMap, TContext, EventableObject<TEventMap, TContext, any>> {
-  const listeners: Record<string, Array<EventHandler<TContext, any[]>>> = {}
+>(notifyContext?: TContext): EventModule<TContext, TEventMap> {
+  const listeners: Record<string, Array<EventHandler<TContext, unknown[]>>> = {}
 
-  function addListener(events: string, listener: EventHandler<TContext, any[]>): void {
+  function addListener(events: string, listener: EventHandler<TContext, unknown[]>): void {
     events.split(' ').forEach(event => {
       listeners[event] = listeners[event] || []
       listeners[event].unshift(listener)
     })
   }
 
-  function removeListener(event: string, listener?: EventHandler<TContext, any[]>): void {
+  function removeListener(event: string, listener?: EventHandler<TContext, unknown[]>): void {
     if (!listener) return
     const eventListeners = listeners[event]
     if (!eventListeners) return
@@ -71,17 +71,17 @@ function getEventableModule<
   }
 
   // Public Methods
-  const result: EventableObject<TEventMap, TContext, EventableObject<TEventMap, TContext, any>> = {
+  const result: EventModule<TContext, TEventMap> = {
     on<TEventName extends EventKey<TEventMap>>(
       eventOrEvents: TEventName | EventHandlerMap<TEventMap, TContext>,
       listener?: EventHandler<TContext, TEventMap[TEventName]>
     ) {
       if (arguments.length === 2 && typeof eventOrEvents === 'string') {
-        addListener(eventOrEvents, listener as EventHandler<TContext, any[]>)
+        addListener(eventOrEvents, listener as EventHandler<TContext, unknown[]>)
       } else if (arguments.length === 1 && typeof eventOrEvents === 'object') {
         for (const eventType in eventOrEvents) {
           const eventListener = eventOrEvents[eventType]
-          if (eventListener) addListener(eventType, eventListener)
+          if (eventListener) addListener(eventType, eventListener as EventHandler<TContext, unknown[]>)
         }
       }
       return result
@@ -92,7 +92,7 @@ function getEventableModule<
       listener?: EventHandler<TContext, TEventMap[TEventName]>
     ): void {
       if (arguments.length === 2) {
-        removeListener(event!, listener as EventHandler<TContext, any[]> | undefined)
+        removeListener(event!, listener as EventHandler<TContext, unknown[]> | undefined)
       } else if (arguments.length === 1) {
         listeners[event!] = []
       } else {
@@ -137,3 +137,9 @@ function getEventableModule<
 
   return result
 }
+
+type EventModule<TContext, TEventMap extends EventMap> = EventableObject<
+  TEventMap,
+  TContext,
+  EventModule<TContext, TEventMap>
+>

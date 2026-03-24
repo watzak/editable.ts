@@ -6,13 +6,13 @@ export type EventMap = Record<string, unknown[]>
 
 export type EventKey<TEventMap extends EventMap> = Extract<keyof TEventMap, string>
 
-export type EventHandler<TContext, TArgs extends unknown[]> = (this: TContext, ...args: TArgs) => any
+export type EventHandler<TContext, TArgs extends unknown[]> = (this: TContext, ...args: TArgs) => unknown
 
 export type EventHandlerMap<TEventMap extends EventMap, TContext> = {
   [TEventName in EventKey<TEventMap>]?: EventHandler<TContext, TEventMap[TEventName]>
 }
 
-export type GenericEventHandlerMap<TContext> = Record<string, EventHandler<TContext, any[]> | undefined>
+export type GenericEventHandlerMap<TContext> = Record<string, EventHandler<TContext, unknown[]> | undefined>
 
 export interface EventOn<TEventMap extends EventMap, TContext, TSelf> {
   <TEventName extends EventKey<TEventMap>>(

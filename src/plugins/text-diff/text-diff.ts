@@ -4,32 +4,25 @@ import {computeDiff, type DiffOperation} from './diff-algorithm.js'
 import {domArray, domSelector} from '../../util/dom.js'
 import * as content from '../../content.js'
 import type {Editable} from '../../core.js'
-
-export interface TextDiffConfig {
-  enabled?: boolean
-  checkOnInit?: boolean
-  checkOnFocus?: boolean
-  markerDeleted?: string
-  markerInserted?: string
-  throttle?: number
-}
+import type {PendingEditableTimeout} from '../../plugin-types.js'
+import type {TextDiffOptions} from '../../core.js'
 
 export default class TextDiff {
   public editable: Editable
   public win: Window
-  public config: Required<TextDiffConfig>
+  public config: Required<TextDiffOptions>
   public originalTexts: Map<HTMLElement, string>
-  public timeout: Record<string, any>
+  public timeout: PendingEditableTimeout
   public deletedMarkerNode: HTMLElement
   public insertedMarkerNode: HTMLElement
   private isApplyingDiff: boolean = false
 
-  constructor(editable: Editable, configuration: Partial<TextDiffConfig>) {
+  constructor(editable: Editable, configuration: Partial<TextDiffOptions>) {
     this.editable = editable
     this.win = editable.win
     this.originalTexts = new Map()
 
-    const defaultConfig: Required<TextDiffConfig> = {
+    const defaultConfig: Required<TextDiffOptions> = {
       enabled: true,
       checkOnInit: true,
       checkOnFocus: false,
@@ -197,15 +190,13 @@ export default class TextDiff {
     const deletions = operations.filter(op => op.type === 'delete').reverse()
     
     for (const op of deletions) {
+      if (currentText.length === 0) continue
       const highlightId = `diff-deleted-${highlightIdCounter++}`
       const insertPosition = this.mapOriginalToCurrentPosition(operations, op.oldStart)
       
       if (insertPosition !== null) {
         try {
-          const cursor = this.editable.createCursorAtCharacterOffset({
-            element: editableHost,
-            offset: insertPosition
-          })
+          const cursor = this.createDeletionCursor(editableHost, insertPosition, currentText)
           
           if (cursor) {
             cursor.retainVisibleSelection(() => {
@@ -225,6 +216,13 @@ export default class TextDiff {
         }
       }
     }
+  }
+
+  createDeletionCursor(editableHost: HTMLElement, insertPosition: number, currentText: string) {
+    return this.editable.createCursorAtCharacterOffset({
+      element: editableHost,
+      offset: insertPosition
+    })
   }
 
   mapOriginalToCurrentPosition(operations: DiffOperation[], originalPosition: number): number | null {

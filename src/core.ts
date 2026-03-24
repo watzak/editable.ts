@@ -14,18 +14,26 @@ import {textNodesUnder, getTextNodeAndRelativeOffset} from './util/element.js'
 import {binaryCursorSearch, BinaryCursorSearchResult} from './util/binary_search.js'
 import {domArray, createRange, nodeContainsRange} from './util/dom.js'
 import type {Config} from './config.js'
+import type {SmartQuotesConfig} from './smartQuotes.js'
 import type {
   EditableEvent,
   EditableEventHandler,
   EditableEventMap,
   EventOff
 } from './event-types.js'
+import type {
+  MonitoredHighlightingConfig,
+  SpellcheckSetupConfig
+} from './plugin-types.js'
 
 export interface EditableConfig {
   window?: Window
   defaultBehavior?: boolean
   mouseMoveSelectionChanges?: boolean
   browserSpellcheck?: boolean
+  smartQuotes?: boolean
+  quotes?: SmartQuotesConfig['quotes']
+  singleQuotes?: SmartQuotesConfig['singleQuotes']
 }
 
 export interface EnableOptions {
@@ -80,7 +88,10 @@ export class Editable {
       window: window,
       defaultBehavior: true,
       mouseMoveSelectionChanges: false,
-      browserSpellcheck: true
+      browserSpellcheck: true,
+      smartQuotes: false,
+      quotes: [],
+      singleQuotes: []
     }
 
     this.config = Object.assign(defaultInstanceConfig, instanceConfig)
@@ -89,7 +100,7 @@ export class Editable {
 
     this.dispatcher = new Dispatcher(this)
     if (this.config.defaultBehavior === true) {
-      (this.dispatcher.on as any)(createDefaultEvents(this))
+      this.dispatcher.on(createDefaultEvents(this))
     }
   }
 
@@ -252,7 +263,7 @@ export class Editable {
     return cursor
   }
 
-  getSelection(editableHost?: HTMLElement): Cursor | any | undefined {
+  getSelection(editableHost?: HTMLElement): Cursor | import('./selection.js').default | undefined {
     const selection = this.dispatcher.selectionWatcher.getFreshSelection()
     if (!editableHost || !selection) return selection
 
@@ -264,12 +275,12 @@ export class Editable {
     return undefined
   }
 
-  setupHighlighting(hightlightingConfig: any): this {
-    this.highlighting = new MonitoredHighlighting(this, hightlightingConfig, undefined)
+  setupHighlighting(hightlightingConfig: MonitoredHighlightingConfig = {}): this {
+    this.highlighting = new MonitoredHighlighting(this, hightlightingConfig)
     return this
   }
 
-  setupSpellcheck(conf: any): this {
+  setupSpellcheck(conf: SpellcheckSetupConfig): this {
     let marker: string | undefined
 
     if (conf.markerNode) {
@@ -390,7 +401,9 @@ const eventNames: EditableEvent[] = ['focus', 'blur', 'flow', 'selection', 'curs
 
 eventNames.forEach((name) => {
   // Generate a callback function to subscribe to an event.
-  (Editable.prototype as any)[name] = function (handler: EditableEventHandler<typeof name>) {
-    return this.on(name, handler)
-  }
+  Object.defineProperty(Editable.prototype, name, {
+    value: function (handler: EditableEventHandler<typeof name>) {
+      return this.on(name, handler)
+    }
+  })
 })

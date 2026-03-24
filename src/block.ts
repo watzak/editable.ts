@@ -2,7 +2,7 @@ import config from './config.js'
 import * as content from './content.js'
 
 let nextBlockId = 1
-const state: Record<string, any> = {}
+const state: Record<string, unknown> = {}
 
 export const next = getSibling('nextElementSibling')
 export const previous = getSibling('previousElementSibling')
@@ -44,15 +44,15 @@ export function setBlockId (elem: HTMLElement): void {
 }
 
 
-export function getState (elem: HTMLElement): any {
+export function getState<T = unknown> (elem: HTMLElement): T | undefined {
   if (elem.hasAttribute('data-editable')) {
     const id = elem.getAttribute('data-editable')
-    if (id) return state[id]
+    if (id) return state[id] as T | undefined
   }
 }
 
 
-export function setState (elem: HTMLElement, data: any): void {
+export function setState<T = unknown> (elem: HTMLElement, data: T): void {
   if (elem.hasAttribute('data-editable')) {
     const id = elem.getAttribute('data-editable')
     if (id) state[id] = data

@@ -1,7 +1,9 @@
+export type HtmlAttributes = Record<string, string>
+
 export interface MarkupConfig {
   type: 'tag'
   name: string
-  attribs: Record<string, any>
+  attribs: HtmlAttributes
   trim: boolean
 }
 
@@ -99,4 +101,3 @@ const config: Config = {
 }
 
 export default config
-

@@ -1,6 +1,17 @@
-const isValidQuotePairConfig = (quotePair: any): boolean => Array.isArray(quotePair) && quotePair.length === 2
+export type QuotePair = [string, string]
+export type SmartQuotesConfig = {
+  smartQuotes?: boolean
+  quotes?: QuotePair | string[]
+  singleQuotes?: QuotePair | string[]
+}
 
-export const shouldApplySmartQuotes = (config: {smartQuotes?: boolean, quotes?: any, singleQuotes?: any}, target: HTMLElement): boolean => {
+const isValidQuotePairConfig = (quotePair: unknown): quotePair is QuotePair =>
+  Array.isArray(quotePair) &&
+  quotePair.length === 2 &&
+  typeof quotePair[0] === 'string' &&
+  typeof quotePair[1] === 'string'
+
+export const shouldApplySmartQuotes = (config: SmartQuotesConfig, target: HTMLElement): boolean => {
   const {smartQuotes, quotes, singleQuotes} = config
   return !!smartQuotes && isValidQuotePairConfig(quotes) && isValidQuotePairConfig(singleQuotes) && target.isContentEditable
 }
@@ -44,7 +55,13 @@ const hasSingleOpeningQuote = (textArr: string[], offset: number, singleOpeningQ
   return false
 }
 
-export const applySmartQuotes = (range: Range, config: {quotes: string[], singleQuotes: string[]}, char: string, target: HTMLElement, cursorOffset?: number): void => {
+export const applySmartQuotes = (
+  range: Range,
+  config: {quotes: QuotePair | string[], singleQuotes: QuotePair | string[]},
+  char: string,
+  target: HTMLElement,
+  cursorOffset?: number
+): void => {
   const isCharSingleQuote = isSingleQuote(char)
   const isCharDoubleQuote = isDoubleQuote(char)
 
@@ -96,4 +113,3 @@ export const applySmartQuotes = (range: Range, config: {quotes: string[], single
   if (!selection) return
   selection.collapse(newTextNode, cursorOffset ?? offset)
 }
-

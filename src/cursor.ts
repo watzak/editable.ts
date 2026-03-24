@@ -8,6 +8,7 @@ import error from './util/error.js'
 import * as rangeSaveRestore from './range-save-restore.js'
 import type {RangeInfo} from './range-save-restore.js'
 import {closest, getSelection, rangesAreEqual} from './util/dom.js'
+import {unwrapElement, type MaybeWrapped} from './dom-compat.js'
 
 /**
  * The Cursor module provides a cross-browser abstraction layer for cursor.
@@ -294,16 +295,19 @@ export default class Cursor {
     }
   }
 
-  setHost (element: HTMLElement | any): void {
-    if ((element as any).jquery) element = (element as any)[0]
-    this.host = element
-    const doc = element.ownerDocument
-    this.win = (element === undefined || element === null || !doc) ? window : (doc.defaultView || window)
+  setHost (element: MaybeWrapped<HTMLElement>): void {
+    const unwrappedElement = unwrapElement(element)
+    this.host = unwrappedElement
+    const doc = unwrappedElement.ownerDocument
+    this.win = !doc ? window : (doc.defaultView || window)
   }
 
   updateHost (element: Node): void {
     const host = parser.getHost(element)
-    if (!host) error('Can not set cursor outside of an editable block')
+    if (!host) {
+      error('Can not set cursor outside of an editable block')
+      return
+    }
     this.setHost(host)
   }
 
@@ -384,7 +388,7 @@ export default class Cursor {
 * Get position of the range or cursor
 *
 * Can be used to reliably get the boundingClientRect without
-* some any of the drawbacks that the native range has.
+* some of the drawbacks that the native range has.
 *
 * With the native range.getClientBoundingRect(), newlines are
 * not considered when calculating the position

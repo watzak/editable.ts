@@ -50,12 +50,14 @@ describe('TextDiff Edge Cases:', function () {
     it('handles removing all text', function () {
       context = setupEdgeCaseEnv('hello')
       vi.useFakeTimers()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       context.editable.textDiff.captureOriginalText(context.div)
       context.div.textContent = ''
       context.editable.dispatcher.notify('change', context.div)
       vi.advanceTimersByTime(100)
       // Should not throw
       expect(context.div.textContent).toBe('')
+      expect(warnSpy).not.toHaveBeenCalled()
       vi.useRealTimers()
     })
   })

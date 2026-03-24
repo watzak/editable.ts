@@ -7,3 +7,5 @@ coverage
 hmr.js
 hmr.js.map
 /docs   
+.autopilot.json
+.cursor

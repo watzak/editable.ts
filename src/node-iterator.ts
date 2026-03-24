@@ -11,9 +11,9 @@ export default class NodeIterator {
   public root: Node
   private iteratorFunc: () => Node | undefined
 
-  constructor(root: Node, method?: string) {
+  constructor(root: Node, method?: 'getNext' | 'getPrevious' | 'getNextTextNode' | 'getPreviousTextNode') {
     this.current = this.previous = this.nextNode = this.root = root
-    this.iteratorFunc = (this as any)[method || 'getNext']
+    this.iteratorFunc = this[method || 'getNext'].bind(this) as () => Node | undefined
   }
 
   [Symbol.iterator](): this {
@@ -36,7 +36,7 @@ export default class NodeIterator {
     return undefined
   }
 
-  next(): IteratorResult<Node | undefined, any> {
+  next(): IteratorResult<Node | undefined, undefined> {
     const value = this.iteratorFunc()
     return value ? {value} : {done: true, value: undefined}
   }
@@ -106,4 +106,3 @@ export default class NodeIterator {
     }
   }
 }
-

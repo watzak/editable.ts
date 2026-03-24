@@ -22,12 +22,12 @@ const apostrophe = [
   `'` // default
 ]
 const quotesRegex = /([‘’‹›‚'«»"“”„])(?![^<]*?>)/g
-// whitespace end of tag, or any dash (normal, en or em-dash)
-// or any opening double quote
+// whitespace end of tag, or a dash (normal, en or em-dash)
+// or an opening double quote
 const beforeOpeningQuote = /\s|[>\-–—«»”"“„]/
 
-// whitespace begin of tag, or any dash (normal, en or em-dash)
-// or any closing quote, or any punctuation
+// whitespace begin of tag, or a dash (normal, en or em-dash)
+// or a closing quote, or punctuation
 const afterClosingQuote = /\s|[<\-–—«»”"“‘’‹›'.;?:,]/
 
 interface QuoteMatch {
@@ -38,8 +38,8 @@ interface QuoteMatch {
 }
 
 interface Replacements {
-  quotes?: string[]
-  singleQuotes?: string[]
+  quotes?: Array<string | undefined>
+  singleQuotes?: Array<string | undefined>
   apostrophe?: string
 }
 
@@ -47,8 +47,8 @@ let replacements: Replacements
 
 export function replaceAllQuotes (str: string, replaceQuotesRules?: Replacements): string {
   replacements = replaceQuotesRules || {}
-  replacements.quotes = replacements.quotes || [undefined as any, undefined as any]
-  replacements.singleQuotes = replacements.singleQuotes || [undefined as any, undefined as any]
+  replacements.quotes = replacements.quotes || [undefined, undefined]
+  replacements.singleQuotes = replacements.singleQuotes || [undefined, undefined]
 
   const matches = getAllQuotes(str)
   if (matches.length > 0) {

@@ -2,6 +2,7 @@ import * as string from './util/string.js'
 import * as nodeType from './node-type.js'
 import config from './config.js'
 import {closest} from './util/dom.js'
+import {unwrapElement, type MaybeWrapped} from './dom-compat.js'
 
 /**
  * The parser module provides helper methods to parse html-chunks
@@ -19,8 +20,8 @@ import {closest} from './util/dom.js'
  * @param {DOM Node}
  * @return {DOM Node}
  */
-export function getHost (node: Node | any): HTMLElement | null {
-  node = (node.jquery ? node[0] : node)
+export function getHost (node: MaybeWrapped<Node>): HTMLElement | null {
+  node = unwrapElement(node)
   // Check if the node itself is an editable element
   if (node && (node as Element).classList && (node as Element).classList.contains(config.editableClass)) {
     return node as HTMLElement
@@ -260,7 +261,8 @@ export function isDocumentFragmentWithoutChildren (fragment: Node | null | undef
  * Determine if an element behaves like an inline element.
  */
 export function isInlineElement (window: Window, element: HTMLElement): boolean {
-  const styles = (element as any).currentStyle || window.getComputedStyle(element, '')
+  const legacyElement = element as HTMLElement & {currentStyle?: CSSStyleDeclaration}
+  const styles = legacyElement.currentStyle || window.getComputedStyle(element, '')
   const display = styles.display
   switch (display) {
     case 'inline':

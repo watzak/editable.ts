@@ -68,7 +68,7 @@ export default class Dispatcher {
   }
 
   /**
-  * Sets up all events that Editable.JS is catching.
+  * Sets up all DOM and keyboard listeners used by the dispatcher.
   *
   * @method setup
   */

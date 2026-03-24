@@ -104,9 +104,15 @@ describe('highlight-support:', function () {
   })
 
   describe('editable.highlight()', function () {
+    let errorSpy
 
     beforeEach(function () {
       context = setupHighlightEnv('People Make The <br> World Go Round')
+      errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    })
+
+    afterEach(function () {
+      errorSpy?.mockRestore()
     })
 
     it('skips and warns if an invalid range object was passed', function () {
@@ -660,4 +666,3 @@ Make The&nbsp;<br>&nbsp;W<span class="highlight-spellcheck" data-editable="ui-un
     })
   })
 })
-

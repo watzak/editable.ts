@@ -10,7 +10,8 @@ export default function createDefaultEvents (editable: Editable) {
   return {
     /**
      * The focus event is triggered when an element gains focus.
-     * The default behavior is to... TODO
+     * The default behavior is to append a zero-width space to empty or void
+     * elements so they stay visible and can keep a caret position.
      *
      * @event focus
      * @param {HTMLElement} element The element triggering the event.
@@ -20,8 +21,9 @@ export default function createDefaultEvents (editable: Editable) {
     },
 
     /**
-     * The blur event is triggered when an element looses focus.
-     * The default behavior is to... TODO
+     * The blur event is triggered when an element loses focus.
+     * The default behavior is to clean internal helper nodes once the element
+     * actually lost focus.
      *
      * @event blur
      * @param {HTMLElement} element The element triggering the event.
@@ -33,7 +35,7 @@ export default function createDefaultEvents (editable: Editable) {
     /**
      * The selection event is triggered after the user has selected some
      * content.
-     * The default behavior is to... TODO
+     * The default behavior is to leave the DOM unchanged.
      *
      * @event selection
      * @param {HTMLElement} element The element triggering the event.
@@ -45,7 +47,7 @@ export default function createDefaultEvents (editable: Editable) {
 
     /**
      * The cursor event is triggered after cursor position has changed.
-     * The default behavior is to... TODO
+     * The default behavior is to leave the DOM unchanged.
      *
      * @event cursor
      * @param {HTMLElement} element The element triggering the event.
@@ -71,7 +73,9 @@ export default function createDefaultEvents (editable: Editable) {
     /**
      * The split event is triggered when a block should be split into two
      * blocks. This happens when ENTER is pressed within a non-empty block.
-     * The default behavior is to... TODO
+     * The default behavior is to clone the current block, move the content
+     * before the cursor into the new block, keep the remaining content in the
+     * current block, tidy both blocks and restore the caret.
      *
      * @event split
      * @param {HTMLElement} element The element triggering the event.
@@ -87,7 +91,9 @@ export default function createDefaultEvents (editable: Editable) {
      * The insert event is triggered when a new block should be inserted. This
      * happens when ENTER key is pressed at the beginning of a block (should
      * insert before) or at the end of a block (should insert after).
-     * The default behavior is to... TODO
+     * The default behavior is to clone the current block without its content,
+     * insert it before or after the current block, and move the caret into the
+     * new block.
      *
      * @event insert
      * @param {HTMLElement} element The element triggering the event.
@@ -99,11 +105,13 @@ export default function createDefaultEvents (editable: Editable) {
     },
 
     /**
-     * The merge event is triggered when two needs to be merged. This happens
+     * The merge event is triggered when two blocks need to be merged. This happens
      * when BACKSPACE is pressed at the beginning of a block (should merge with
      * the preceding block) or DEL is pressed at the end of a block (should
      * merge with the following block).
-     * The default behavior is to... TODO
+     * The default behavior is to merge the current block with its neighbor in
+     * the requested direction, remove the merged sibling and place the caret at
+     * the merge boundary.
      *
      * @event merge
      * @param {HTMLElement} element The element triggering the event.
@@ -116,7 +124,7 @@ export default function createDefaultEvents (editable: Editable) {
 
     /**
      * The empty event is triggered when a block is emptied.
-     * The default behavior is to... TODO
+     * The default behavior is to leave the DOM unchanged.
      *
      * @event empty
      * @param {HTMLElement} element The element triggering the event.
@@ -128,7 +136,8 @@ export default function createDefaultEvents (editable: Editable) {
     /**
      * The switch event is triggered when the user switches to another block.
      * This happens when an ARROW key is pressed near the boundaries of a block.
-     * The default behavior is to... TODO
+     * The default behavior is to move the caret to the previous block's end or
+     * the next block's beginning.
      *
      * @event switch
      * @param {HTMLElement} element The element triggering the event.
@@ -143,7 +152,7 @@ export default function createDefaultEvents (editable: Editable) {
      * The move event is triggered when the user moves a selection in a block.
      * This happens when the user selects some (or all) content in a block and
      * an ARROW key is pressed (up: drag before, down: drag after).
-     * The default behavior is to... TODO
+     * The default behavior is to leave the DOM unchanged.
      *
      * @event move
      * @param {HTMLElement} element The element triggering the event.

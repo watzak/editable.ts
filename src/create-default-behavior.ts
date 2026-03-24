@@ -8,23 +8,14 @@ import type Cursor from './cursor.js'
 import type Selection from './selection.js'
 
 /**
- * The Behavior module defines the behavior triggered in response to the Editable.JS
- * events (see {{#crossLink "Editable"}}{{/crossLink}}).
- * The behavior can be overwritten by a user with Editable.init() or on
- * Editable.add() per element.
+ * Creates the default behavior implementations for dispatcher events.
  *
- * @module core
- * @submodule behavior
+ * These handlers define how an `Editable` instance reacts when no custom
+ * per-instance or per-element behavior overrides are registered.
  */
 
 export default function createDefaultBehavior (editable: Editable) {
   const document = editable.win.document
-  /**
-  * Factory for the default behavior.
-  * Provides default behavior of the Editable.JS API.
-  *
-  * @static
-  */
 
   return {
     /** @param {HTMLElement} element */
@@ -40,7 +31,7 @@ export default function createDefaultBehavior (editable: Editable) {
     blur (element: HTMLElement): void {
       // Note: there is a special case when the tab is changed where
       // we can get a blur event even if the cursor is still in the editable.
-      // This blur would cause us to loose the cursor position (cause of cleanInternals()).
+      // This blur would cause us to lose the cursor position (because of cleanInternals()).
       // To prevent this we check if the activeElement is still the editable.
       // (Note: document.getSelection() did not work reliably in this case.)
       if (document.activeElement === element) return
@@ -187,7 +178,7 @@ export default function createDefaultBehavior (editable: Editable) {
         currentElement = newElement
       })
 
-      // focus last element
+      // Focus the last inserted element after distributing all pasted blocks.
       const lastCursor = editable.createCursorAtEnd(currentElement)
       if (lastCursor) lastCursor.setVisibleSelection()
     },

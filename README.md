@@ -1,10 +1,10 @@
-# editable.ts
+# editable.ts (Date: 24.03.2026)
 
-A TypeScript library that provides a friendly and browser-consistent API for `contenteditable` elements. Built for block-level rich text editing with a clean, event-driven architecture. It is a fork of [https://github.com/livingdocsIO/editable.js](https://github.com/livingdocsIO/editable.js) but written in typescript.
+A TypeScript library that provides a friendly and browser-consistent API for `contenteditable` elements. Built for block-level rich text editing with a clean, event-driven architecture. It started as a fork of [https://github.com/livingdocsIO/editable.js](https://github.com/livingdocsIO/editable.js) and has since been modernized around TypeScript, Vitest, Vite, and typed internal APIs.
 
 ## Summary
 
-**editable.ts** is a modern TypeScript rewrite of editable.js, offering a robust abstraction layer over the browser's native `contenteditable` API. It handles cross-browser inconsistencies, provides a structured event system, and enables building rich text editors with minimal boilerplate.
+**editable.ts** is a modern TypeScript rewrite of editable.js, offering a robust abstraction layer over the browser's native `contenteditable` API. It handles cross-browser inconsistencies, provides a typed event system, and enables building rich text editors with minimal boilerplate.
 
 ### Key Features
 
@@ -29,7 +29,7 @@ Check out the [original editable.js live demo](https://livingdocsio.github.io/ed
 
 ## What is it about?
 
-A JavaScript API that defines a friendly and browser-consistent content editable interface.
+A typed API that defines a friendly and browser-consistent content editable interface.
 
 Editable is built for block level elements containing only phrasing content. This normally means `p`, `h1`-`h6`, `blockquote` etc. elements. This allows editable to be lean and mean since it is only concerned with formatting and not with layouting.
 
@@ -190,6 +190,17 @@ Comprehensive highlighting support including:
 - Range-based highlighting
 - Highlight persistence during editing
 - Custom highlight types
+- Text diff overlays for inserted and deleted content
+
+### TypeScript Notes
+
+The current codebase uses TypeScript types as architectural boundaries rather than just annotations:
+
+- `src/event-types.ts` centralizes public and internal event payloads
+- `src/plugin-types.ts` defines configuration contracts for highlighting, spellcheck, and text diff
+- `src/dom-compat.ts` isolates legacy DOM/jQuery-like compatibility helpers
+
+This keeps browser-facing code flexible while making the main editing pipeline easier to evolve safely.
 
 ### Data Flow Examples
 
@@ -273,11 +284,14 @@ import { Editable } from 'editable.ts'
 
 const editable = new Editable({
   defaultBehavior: true,
-  browserSpellcheck: true
+  browserSpellcheck: true,
+  smartQuotes: true,
+  quotes: ['“', '”'],
+  singleQuotes: ['‘', '’']
 })
 
 // Add editable functionality to elements
-editable.add(document.querySelectorAll('.editable-block'))
+editable.add('.editable-block')
 ```
 
 ## Examples
@@ -364,14 +378,14 @@ editable.on('change', (element: HTMLElement) => {
 })
 
 // Handle block splits (Enter key in middle of block)
-editable.on('split', (element: HTMLElement, cursor: Cursor) => {
-  console.log('Block split at:', cursor)
+editable.on('split', (element: HTMLElement, before: string, after: string, cursor: Cursor) => {
+  console.log('Block split:', { before, after, cursor })
   // Custom split behavior
 })
 
 // Handle block merges (Backspace/Delete at boundaries)
-editable.on('merge', (element: HTMLElement, cursor: Cursor) => {
-  console.log('Blocks merged at:', cursor)
+editable.on('merge', (element: HTMLElement, direction: 'before' | 'after', cursor: Cursor) => {
+  console.log('Blocks merged:', { direction, cursor })
   // Custom merge behavior
 })
 ```
@@ -382,7 +396,7 @@ Add text highlighting and spellcheck:
 
 ```typescript
 // Highlight specific text
-const highlightId = editable.highlight({
+const startIndex = editable.highlight({
   editableHost: element,
   text: 'search term',
   highlightId: 'search-1',
@@ -401,10 +415,16 @@ editable.highlight({
 // Setup spellcheck
 editable.setupSpellcheck({
   throttle: 300,
-  spellcheckService: (text: string) => {
+  spellcheckService: (text: string, callback) => {
     // Your spellcheck service
-    return checkSpelling(text)
+    callback(checkSpelling(text))
   }
+})
+
+// Setup text diff markers
+editable.setupTextDiff({
+  checkOnInit: true,
+  throttle: 0
 })
 
 // Remove highlight
@@ -424,13 +444,10 @@ const editable = new Editable({
   defaultBehavior: false
 })
 
-// Custom Enter key handling
-editable.on('keydown', (element: HTMLElement, event: KeyboardEvent) => {
-  if (event.key === 'Enter') {
-    event.preventDefault()
-    // Custom Enter behavior
-    insertCustomBlock(element)
-  }
+// Custom Enter handling via semantic events
+editable.on('insert', (element: HTMLElement, direction, cursor) => {
+  console.log('Insert requested:', direction)
+  insertCustomBlock(element, direction, cursor)
 })
 ```
 
@@ -454,9 +471,6 @@ editable.ts emits a comprehensive set of events for all user interactions:
 
 - **change**  
   Fired when the user has made a change.
-
-- **input**  
-  Fired on user input.
 
 ### Content Modification Events
 
@@ -506,6 +520,9 @@ interface EditableConfig {
   defaultBehavior?: boolean
   mouseMoveSelectionChanges?: boolean
   browserSpellcheck?: boolean
+  smartQuotes?: boolean
+  quotes?: string[]
+  singleQuotes?: string[]
 }
 
 interface HighlightOptions {
@@ -515,6 +532,15 @@ interface HighlightOptions {
   textRange?: { start: number; end: number }
   raiseEvents?: boolean
   type?: string
+}
+
+interface TextDiffOptions {
+  enabled?: boolean
+  checkOnInit?: boolean
+  checkOnFocus?: boolean
+  markerDeleted?: string
+  markerInserted?: string
+  throttle?: number
 }
 ```
 

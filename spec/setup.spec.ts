@@ -1,5 +1,15 @@
+import {vi} from 'vitest'
+
 // Vitest setup - no configuration needed
 // Vitest has better default assertion truncation than Chai
+
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'scrollTo', {
+    configurable: true,
+    writable: true,
+    value: vi.fn()
+  })
+}
 
 // Polyfill DataTransfer and ClipboardEvent for JSDOM (not available by default)
 if (typeof globalThis.DataTransfer === 'undefined') {

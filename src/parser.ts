@@ -5,12 +5,7 @@ import {closest} from './util/dom.js'
 import {unwrapElement, type MaybeWrapped} from './dom-compat.js'
 
 /**
- * The parser module provides helper methods to parse html-chunks
- * manipulations and helpers for common tasks.
- * Provides DOM lookup helpers
- *
- * @module core
- * @submodule parser
+ * Parser and DOM traversal helpers used throughout the editor core.
  */
 
 /**

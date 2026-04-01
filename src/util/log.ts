@@ -6,7 +6,7 @@ import config from '../config.js'
 export default function log(...args: unknown[]): void {
   if (config.log === false) return
 
-  if (!global.console) return
+  if (!globalThis.console) return
 
   const logArgs = args.length === 1 ? args[0] : [...args]
 

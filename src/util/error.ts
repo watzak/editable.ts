@@ -7,7 +7,7 @@ export default function error(...args: unknown[]): void {
 
   const errorArgs: unknown = args.length === 1 ? args[0] : args
 
-  if (!global.console) return
+  if (!globalThis.console) return
 
   if (typeof console.error === 'function') {
     console.error(errorArgs)

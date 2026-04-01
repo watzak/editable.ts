@@ -1,4 +1,4 @@
-# editable.ts (Date: 24.03.2026)
+# editable.ts (Date: 01.04.2026)
 
 A TypeScript library that provides a friendly and browser-consistent API for `contenteditable` elements. Built for block-level rich text editing with a clean, event-driven architecture. It started as a fork of [https://github.com/livingdocsIO/editable.js](https://github.com/livingdocsIO/editable.js) and has since been modernized around TypeScript, Vitest, Vite, and typed internal APIs.
 
@@ -259,6 +259,18 @@ You can either `import` the module or find a prebuilt file in the npm bundle `di
 ```typescript
 import { Editable } from 'editable.ts'
 ```
+
+### Dateigröße (Bundle)
+
+Die npm-Paketinhalte umfassen das ESM-Build unter `lib/` und optional das vorgebaute UMD-Bundle unter `dist/`.
+
+| Artefakt | Größe (ca.) | Hinweis |
+| -------- | ------------- | ------- |
+| `dist/editable.umd.cjs` | ~67 KB (~20 KB gzip) | Einzeldatei für `<script>` / Legacy-Bundler; Werte nach `npm run build` |
+| `lib/core.js` (ESM-Einstieg) | ~11 KB (~3 KB gzip) | Einstiegsmodul; der Rest liegt in weiteren Modulen unter `lib/` |
+| `lib/` (gesamt, ungepackt) | ~1 MB | Alle `.js`- und `.d.ts`-Dateien; Bundler tree-shaken typischerweise nur genutzte Teile |
+
+Die exakten Byte-Werte ändern sich mit der Version. Nach einem Build kannst du sie lokal mit `ls -la dist/ lib/core.js` bzw. `gzip -c dist/editable.umd.cjs | wc -c` prüfen.
 
 ## Quick Start
 

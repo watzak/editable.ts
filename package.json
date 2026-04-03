@@ -67,7 +67,7 @@
   },
   "homepage": "https://watzak.github.io/editable.ts/examples/",
   "scripts": {
-    "start": "vite --config vite/vite.config.docs.mjs",
+    "dev": "vite --config vite/vite.config.docs.mjs",
     "build:ts": "rimraf ./lib && tsc",
     "build:dist": "rimraf ./dist && vite build --config vite/vite.config.dist.mjs",
     "build:docs": "rimraf ./examples/dist && vite build --config vite/vite.config.docs.bundle.mjs && vite build --config vite/vite.config.docs.styles.mjs",

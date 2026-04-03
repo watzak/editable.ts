@@ -1,7 +1,7 @@
 {
   "name": "editable.ts",
   "description": "Friendly contenteditable API - A TypeScript library for block-level rich text editing with a clean, event-driven architecture",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "type": "module",
   "sideEffects": false,
   "devDependencies": {
@@ -67,7 +67,7 @@
   },
   "homepage": "https://watzak.github.io/editable.ts/examples/",
   "scripts": {
-    "start": "vite --config vite/vite.config.docs.mjs",
+    "dev": "vite --config vite/vite.config.docs.mjs",
     "build:ts": "rimraf ./lib && tsc",
     "build:dist": "rimraf ./dist && vite build --config vite/vite.config.dist.mjs",
     "build:docs": "rimraf ./examples/dist && vite build --config vite/vite.config.docs.bundle.mjs && vite build --config vite/vite.config.docs.styles.mjs",

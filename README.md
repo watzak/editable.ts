@@ -1,4 +1,4 @@
-# editable.ts (Date: 01.04.2026)
+# editable.ts
 
 A TypeScript library that provides a friendly and browser-consistent API for `contenteditable` elements. Built for block-level rich text editing with a clean, event-driven architecture. It started as a fork of [https://github.com/livingdocsIO/editable.js](https://github.com/livingdocsIO/editable.js) and has since been modernized around TypeScript, Vitest, Vite, and typed internal APIs.
 
@@ -307,6 +307,8 @@ editable.add('.editable-block')
 ```
 
 ## Examples
+
+The interactive demo is published at [GitHub Pages](https://watzak.github.io/editable.ts/examples/). **Privacy:** that page includes a Matomo image tracker (requests to `matomo.kamod.ch`) for anonymous usage statistics. The library code published to npm does not contain analytics or tracking.
 
 ### Selection Changes with Toolbar
 

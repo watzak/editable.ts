@@ -1,13 +1,16 @@
 {
   "name": "editable.ts",
   "description": "Friendly contenteditable API - A TypeScript library for block-level rich text editing with a clean, event-driven architecture",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "author": "Klaus Zahiragic <watzak>",
   "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/watzak/editable.ts.git"
+    "url": "git+https://github.com/watzak/editable.ts.git"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "homepage": "https://watzak.github.io/editable.ts/examples/",
   "keywords": [

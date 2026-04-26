@@ -56,3 +56,30 @@ export interface SpellcheckSetupConfig {
   throttle?: number
   spellcheckService: SpellcheckServiceHandler
 }
+
+export interface HighlightOptions {
+  editableHost: HTMLElement
+  text: string
+  highlightId: string
+  textRange?: {
+    start: number
+    end: number
+  }
+  raiseEvents?: boolean
+  type?: string
+}
+
+export interface TextRange {
+  start: number
+  end: number
+  text?: string
+}
+
+export interface TextDiffOptions {
+  enabled?: boolean
+  checkOnInit?: boolean
+  checkOnFocus?: boolean
+  markerDeleted?: string
+  markerInserted?: string
+  throttle?: number
+}

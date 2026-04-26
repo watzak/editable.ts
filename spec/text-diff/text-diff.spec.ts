@@ -1,5 +1,5 @@
 import {vi} from 'vitest'
-import {Editable} from '../../src/core.js'
+import {Editable} from '../../src/features.js'
 import TextDiff from '../../src/plugins/text-diff/text-diff.js'
 import {createElement} from '../../src/util/dom.js'
 import highlightText from '../../src/highlight-text.js'

@@ -6,9 +6,6 @@ import * as content from './content.js'
 import * as clipboard from './clipboard.js'
 import Dispatcher from './dispatcher.js'
 import Cursor from './cursor.js'
-import highlightSupport from './highlight-support.js'
-import MonitoredHighlighting from './monitored-highlighting.js'
-import TextDiff from './plugins/text-diff/text-diff.js'
 import createDefaultEvents from './create-default-events.js'
 import {textNodesUnder, getTextNodeAndRelativeOffset} from './util/element.js'
 import {binaryCursorSearch, BinaryCursorSearchResult} from './util/binary_search.js'
@@ -21,9 +18,12 @@ import type {
   EditableEventMap,
   EventOff
 } from './event-types.js'
-import type {
+export type {
+  HighlightOptions,
   MonitoredHighlightingConfig,
-  SpellcheckSetupConfig
+  SpellcheckSetupConfig,
+  TextDiffOptions,
+  TextRange
 } from './plugin-types.js'
 
 export interface EditableConfig {
@@ -43,43 +43,11 @@ export interface EnableOptions {
 
 export type CursorPosition = 'beginning' | 'end' | 'before' | 'after'
 
-export interface HighlightOptions {
-  editableHost: HTMLElement
-  text: string
-  highlightId: string
-  textRange?: {
-    start: number
-    end: number
-  }
-  raiseEvents?: boolean
-  type?: string
-}
-
-export interface TextDiffOptions {
-  enabled?: boolean
-  checkOnInit?: boolean
-  checkOnFocus?: boolean
-  markerDeleted?: string
-  markerInserted?: string
-  throttle?: number
-}
-
-export interface TextRange {
-  start: number
-  end: number
-  text?: string
-}
-
 export class Editable {
   public config: Required<EditableConfig>
   public win: Window
   public editableSelector: string
   public dispatcher: Dispatcher
-  public highlighting?: MonitoredHighlighting
-  public textDiff?: TextDiff
-  public spellcheck?: {
-    checkSpelling: (elem: HTMLElement) => void
-  }
   static parser: typeof parser
   static content: typeof content
 
@@ -273,82 +241,6 @@ export class Editable {
       return selection
     }
     return undefined
-  }
-
-  setupHighlighting(hightlightingConfig: MonitoredHighlightingConfig = {}): this {
-    this.highlighting = new MonitoredHighlighting(this, hightlightingConfig)
-    return this
-  }
-
-  setupSpellcheck(conf: SpellcheckSetupConfig): this {
-    let marker: string | undefined
-
-    if (conf.markerNode) {
-      marker = conf.markerNode.outerHTML
-    }
-
-    this.setupHighlighting({
-      throttle: conf.throttle,
-      spellcheck: {
-        marker: marker,
-        spellcheckService: conf.spellcheckService
-      }
-    })
-
-    this.spellcheck = {
-      checkSpelling: (elem: HTMLElement) => {
-        this.highlighting?.highlight(elem)
-      }
-    }
-    return this
-  }
-
-  setupTextDiff(config?: TextDiffOptions): this {
-    this.textDiff = new TextDiff(this, config || {})
-    return this
-  }
-
-  highlight({editableHost, text, highlightId, textRange, raiseEvents, type = 'comment'}: HighlightOptions): number {
-    if (!textRange) {
-      const result = highlightSupport.highlightText(editableHost, text, highlightId, type, raiseEvents ? this.dispatcher : undefined, this.win)
-      return result || -1
-    }
-    if (typeof textRange.start !== 'number' || typeof textRange.end !== 'number') {
-      error(
-        'Error in Editable.highlight: You passed a textRange object with invalid keys. Expected shape: { start: Number, end: Number }'
-      )
-      return -1
-    }
-    if (textRange.start === textRange.end) {
-      error(
-        'Error in Editable.highlight: You passed a textRange object with equal start and end offsets, which is considered a cursor and therefore unfit to create a highlight.'
-      )
-      return -1
-    }
-    return highlightSupport.highlightRange(editableHost, text, highlightId, textRange.start, textRange.end, raiseEvents ? this.dispatcher : undefined, this.win, type)
-  }
-
-  getHighlightPositions({editableHost, type}: {editableHost: HTMLElement, type?: string}): Record<string, TextRange> {
-    const result = highlightSupport.extractHighlightedRanges(
-      editableHost,
-      type
-    )
-    if (!result) return {}
-    // Convert the result to TextRange format (without nativeRange)
-    const textRanges: Record<string, TextRange> = {}
-    for (const highlightId in result) {
-      const {start, end, text} = result[highlightId]
-      textRanges[highlightId] = {start, end, text}
-    }
-    return textRanges
-  }
-
-  removeHighlight({editableHost, highlightId, raiseEvents}: {editableHost: HTMLElement, highlightId: string, raiseEvents?: boolean}): void {
-    highlightSupport.removeHighlight(editableHost, highlightId, raiseEvents ? this.dispatcher : undefined)
-  }
-
-  decorateHighlight({editableHost, highlightId, addCssClass, removeCssClass}: {editableHost: HTMLElement, highlightId: string, addCssClass?: string, removeCssClass?: string}): void {
-    highlightSupport.updateHighlight(editableHost, highlightId, addCssClass, removeCssClass)
   }
 
   on<TEventName extends EditableEvent>(event: TEventName, handler: EditableEventHandler<TEventName>): this {

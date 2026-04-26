@@ -5,7 +5,7 @@ import {domArray, domSelector} from '../../util/dom.js'
 import * as content from '../../content.js'
 import type {Editable} from '../../core.js'
 import type {PendingEditableTimeout} from '../../plugin-types.js'
-import type {TextDiffOptions} from '../../core.js'
+import type {TextDiffOptions} from '../../plugin-types.js'
 
 export default class TextDiff {
   public editable: Editable

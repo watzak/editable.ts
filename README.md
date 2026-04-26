@@ -44,7 +44,8 @@ editable.ts follows a layered architecture that separates concerns and provides 
 ```mermaid
 graph TB
     subgraph PublicAPI["Public API Layer"]
-        Editable[Editable Class]
+        Editable[Editable Class — core entry]
+        FeaturesEntry["features.ts — optional entry"]
     end
     
     subgraph EventSystem["Event System Layer"]
@@ -67,7 +68,7 @@ graph TB
         RangeContainer[Range Container]
     end
     
-    subgraph Highlighting["Highlighting System"]
+    subgraph Highlighting["Highlighting System (optional)"]
         HighlightSupport[Highlight Support]
         MonitoredHighlighting[Monitored Highlighting]
         Plugins[Highlighting Plugins]
@@ -82,7 +83,8 @@ graph TB
     Editable --> Dispatcher
     Editable --> Block
     Editable --> Content
-    Editable --> HighlightSupport
+    FeaturesEntry -.->|extends prototype| Editable
+    FeaturesEntry --> HighlightSupport
     
     Dispatcher --> Eventable
     Dispatcher --> SelectionWatcher
@@ -109,22 +111,24 @@ graph TB
 
 #### 1. Editable Class (`core.ts`)
 
-The main entry point and public API. Provides a clean, chainable interface for all operations.
+The main npm entry (`editable.ts`) and the lean public API: block editing, events, cursor/selection, and content extraction. Optional APIs (highlighting, monitored spellcheck overlays, text-diff) live behind a separate entry — import `editable.ts/features` once if you need those methods (they register on the same `Editable` class).
 
-**Key Responsibilities:**
+**Key Responsibilities (core entry):**
 - Exposes the public API for end users
 - Manages instance-specific configuration
 - Delegates to specialized modules
 - Provides cursor/selection creation utilities
-- Handles highlighting operations
 
-**Key Methods:**
+**Key Methods (core entry):**
 - `add()` / `remove()` - Enable/disable editable functionality
 - `enable()` / `disable()` - Control editable state
 - `on()` / `off()` - Event subscription
 - `getSelection()` - Get current selection/cursor
-- `highlight()` - Text highlighting functionality
 - `getContent()` - Extract clean content
+
+**Additional methods when using `editable.ts/features`:**
+- `highlight()`, `getHighlightPositions()`, `removeHighlight()`, `decorateHighlight()`
+- `setupHighlighting()`, `setupSpellcheck()`, `setupTextDiff()`
 
 #### 2. Dispatcher (`dispatcher.ts`)
 
@@ -260,14 +264,32 @@ You can either `import` the module or find a prebuilt file in the npm bundle `di
 import { Editable } from 'editable.ts'
 ```
 
+### Paket-Exports: Core vs. Features
+
+| Import | Zweck |
+| ------ | ----- |
+| `editable.ts` | Schlanker Einstieg: `Editable`, Events, Cursor, Content — **ohne** statisches Laden von Highlighting-/TextDiff-Implementierung |
+| `editable.ts/features` | Zusätzliche Methoden auf derselben `Editable`-Klasse: `highlight`, `setupHighlighting`, `setupSpellcheck`, `setupTextDiff`, … (einmal importieren, Side-Effect registriert die Prototyp-Methoden) |
+
+Typen wie `HighlightOptions` oder `TextDiffOptions` werden aus dem Core-Modul weiterhin type-only re-exportiert (`export type { … } from 'editable.ts'`), damit bestehende Typ-Imports funktionieren.
+
+```typescript
+// Nur Kern-Editor (kleineres Bundle bei Tree-Shaking)
+import { Editable } from 'editable.ts'
+
+// Oder: gleiche Klasse inkl. Highlighting / Spellcheck-Overlays / Text-Diff
+import { Editable } from 'editable.ts/features'
+```
+
 ### Dateigröße (Bundle)
 
 Die npm-Paketinhalte umfassen das ESM-Build unter `lib/` und optional das vorgebaute UMD-Bundle unter `dist/`.
 
 | Artefakt | Größe (ca.) | Hinweis |
 | -------- | ------------- | ------- |
-| `dist/editable.umd.cjs` | ~67 KB (~20 KB gzip) | Einzeldatei für `<script>` / Legacy-Bundler; Werte nach `npm run build` |
-| `lib/core.js` (ESM-Einstieg) | ~11 KB (~3 KB gzip) | Einstiegsmodul; der Rest liegt in weiteren Modulen unter `lib/` |
+| `dist/editable.umd.cjs` | ~58 KB (~17 KB gzip) | Einzeldatei für `<script>` / Legacy-Bundler; Werte nach `npm run build` |
+| `lib/core.js` (ESM-Einstieg) | ~8 KB (~2 KB gzip) | Kern-API; weitere Logik liegt in weiteren Modulen unter `lib/` |
+| `lib/features.js` | ~3 KB (~1 KB gzip) | Nur der optionale Einstieg; zieht Highlighting/TextDiff-Code erst bei diesem Import |
 | `lib/` (gesamt, ungepackt) | ~1 MB | Alle `.js`- und `.d.ts`-Dateien; Bundler tree-shaken typischerweise nur genutzte Teile |
 
 Die exakten Byte-Werte ändern sich mit der Version. Nach einem Build kannst du sie lokal mit `ls -la dist/ lib/core.js` bzw. `gzip -c dist/editable.umd.cjs | wc -c` prüfen.
@@ -406,9 +428,14 @@ editable.on('merge', (element: HTMLElement, direction: 'before' | 'after', curso
 
 ### Highlighting
 
-Add text highlighting and spellcheck:
+Add text highlighting and spellcheck. **Import the feature entry** (`editable.ts/features`) so these methods exist on `Editable`:
 
 ```typescript
+import { Editable } from 'editable.ts/features'
+
+const editable = new Editable()
+// … editable.add(element) etc.
+
 // Highlight specific text
 const startIndex = editable.highlight({
   editableHost: element,
@@ -520,13 +547,16 @@ editable.ts emits a comprehensive set of events for all user interactions:
 
 For detailed API documentation, see the source files:
 
-- **[core.ts](src/core.ts)** - Main Editable class and public API
+- **[core.ts](src/core.ts)** - Main `Editable` class (npm entry `editable.ts`; lean bundle path)
+- **[features.ts](src/features.ts)** - Optional npm entry `editable.ts/features`: adds highlighting, spellcheck overlays, and text-diff APIs on `Editable`
 - **[cursor.ts](src/cursor.ts)** - Cursor manipulation API
 - **[selection.ts](src/selection.ts)** - Selection manipulation API
 - **[dispatcher.ts](src/dispatcher.ts)** - Event system internals
 - **[create-default-behavior.ts](src/create-default-behavior.ts)** - Default behavior implementation
 
 ### Type Definitions
+
+`HighlightOptions`, `TextRange`, and `TextDiffOptions` are declared in [`plugin-types.ts`](src/plugin-types.ts) and re-exported from the core module for convenience.
 
 ```typescript
 interface EditableConfig {

@@ -1,7 +1,7 @@
 
 import {vi} from 'vitest'
 
-import {Editable} from '../src/core.js'
+import {Editable} from '../src/features.js'
 import highlightSupport from '../src/highlight-support.js'
 import {createElement, createRange, toCharacterRange} from '../src/util/dom.js'
 import Selection from '../src/selection.js'

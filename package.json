@@ -83,6 +83,11 @@
       "import": "./lib/core.js",
       "default": "./lib/core.js"
     },
+    "./features": {
+      "types": "./lib/features.d.ts",
+      "import": "./lib/features.js",
+      "default": "./lib/features.js"
+    },
     "./dist/editable.umd.cjs": {
       "default": "./dist/editable.umd.cjs"
     },

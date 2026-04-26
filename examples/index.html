@@ -236,9 +236,13 @@ editable.add('.example', {plainText: true})
       <div class="section-content">
         <h2 class="example-title">Setup</h2>
 
+        <p>The npm package exposes a lean core (<code>editable.ts</code>) and an optional entry (<code>editable.ts/features</code>) that adds <code>setupHighlighting</code>, <code>setupSpellcheck</code>, <code>setupTextDiff</code>, and <code>highlight</code> APIs on the same <code>Editable</code> class. This demo uses the features entry.</p>
+
 <pre><code class="language-javascript">
+import { Editable } from 'editable.ts/features'
+
 // create a new Editable object, and configure it as needed
-var editable = new Editable({
+const editable = new Editable({
   // here you can pass an iframe window if required (default: main window)
   window: window,
 
@@ -257,6 +261,8 @@ editable.add(elem)
 </code></pre>
 
 <h2 class="example-title">Setup Highlighting</h2>
+
+        <p>Uses the same <code>editable</code> instance from the features import above.</p>
 
 <pre><code class="language-javascript">
 editable.setupHighlighting({
@@ -285,6 +291,8 @@ editable.setupHighlighting({
 </code></pre>
 
 <h2 class="example-title">Setup Text Diff</h2>
+
+        <p>Also requires <code>editable.ts/features</code> (see Setup).</p>
 
 <pre><code class="language-javascript">
 editable.setupTextDiff({

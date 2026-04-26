@@ -1,6 +1,6 @@
 import Prism from 'prismjs'
 
-import {Editable} from '../src/core.ts'
+import {Editable} from '../src/features.ts'
 import eventList from './events.jsx'
 import {getSelectionCoordinates} from '../src/util/dom.ts'
 import * as content from '../src/content.ts'

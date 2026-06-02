@@ -1,16 +1,13 @@
 # Changelog
 
-All notable changes to this project are documented in this file.
+All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.1.0](https://github.com/watzak/editable.ts/compare/v1.0.0...v1.1.0) (2026-06-02)
 
-## [Unreleased]
 
-### Added
+### Features
 
-- README demo GIF and screenshot (`.github/assets/demo.gif`, `.github/assets/demo.png`)
-- `npm run capture:readme` script to regenerate demo assets from the examples build
+* end2end tests init ([658e511](https://github.com/watzak/editable.ts/commit/658e511b48d4e2833d7b080e680044cef295e70c))
 
 ## [1.0.0] - 2026-06-02
 

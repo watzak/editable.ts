@@ -31,7 +31,7 @@ First stable release. The public API is considered stable; future 1.x releases w
 ### Changed
 
 - Modernized fork of editable.js with ESM-first package exports (`lib/core.js`, `lib/features.js`)
-- Core/features package export split for smaller default bundles (~2 KB gzip core entry)
+- Core/features package export split for smaller default bundles (~2 KB gzip core entry).
 - Cross-browser Selection/Range handling and event-driven block editing API
 
 ## [0.0.13] - 2025-06-02

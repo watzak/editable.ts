@@ -1,23 +1,22 @@
-import type {Match} from './text-search.js'
+import type { Match } from './text-search.js'
 
 export default class MatchCollection {
   public matches: Match[]
 
-  constructor () {
+  constructor() {
     this.matches = []
   }
 
-  addMatches (matches: Match[]): void {
+  addMatches(matches: Match[]): void {
     if (!matches?.length) return
     this.matches = mergeMatches(this.matches, matches)
   }
-
 }
 
 // Private Helpers
 // ---------------
 
-function mergeMatches (matches1: Match[], matches2: Match[]): Match[] {
+function mergeMatches(matches1: Match[], matches2: Match[]): Match[] {
   let next: Match | undefined
   const length1 = matches1.length
   const length2 = matches2.length
@@ -51,7 +50,7 @@ interface MergeState {
   i2: number
 }
 
-function pickNext (state: MergeState): Match | undefined {
+function pickNext(state: MergeState): Match | undefined {
   const i1 = state.i1
   const i2 = state.i2
   const item1 = state.a1[i1]

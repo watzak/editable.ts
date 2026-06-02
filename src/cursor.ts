@@ -3,12 +3,12 @@ import * as viewport from './util/viewport.js'
 import * as content from './content.js'
 import * as parser from './parser.js'
 import * as string from './util/string.js'
-import {elementNode, documentFragmentNode} from './node-type.js'
+import { elementNode, documentFragmentNode } from './node-type.js'
 import error from './util/error.js'
 import * as rangeSaveRestore from './range-save-restore.js'
-import type {RangeInfo} from './range-save-restore.js'
-import {closest, getSelection, rangesAreEqual} from './util/dom.js'
-import {unwrapElement, type MaybeWrapped} from './dom-compat.js'
+import type { RangeInfo } from './range-save-restore.js'
+import { closest, getSelection, rangesAreEqual } from './util/dom.js'
+import { unwrapElement, type MaybeWrapped } from './dom-compat.js'
 
 /**
  * Represents a caret or range anchored in a specific editable host.
@@ -22,13 +22,13 @@ export default class Cursor {
   public win!: Window
   public isCursor?: boolean
   public isSelection?: boolean
-  private savedRangeInfo?: RangeInfo & {host?: HTMLElement}
+  private savedRangeInfo?: RangeInfo & { host?: HTMLElement }
 
-  static findHost (elem: Node, selector: string): HTMLElement | undefined {
+  static findHost(elem: Node, selector: string): HTMLElement | undefined {
     return closest(elem, selector)
   }
 
-  constructor (editableHost: HTMLElement, range: Range) {
+  constructor(editableHost: HTMLElement, range: Range) {
     this.setHost(editableHost)
     this.range = range
     this.isCursor = true
@@ -40,7 +40,7 @@ export default class Cursor {
   // @param {Function filter(node)} [Optional] Method to filter the returned
   //   DOM Nodes.
   // @return {Array of DOM Nodes}
-  getTags (filterFunc?: ((node: Node) => boolean) | null): Node[] {
+  getTags(filterFunc?: ((node: Node) => boolean) | null): Node[] {
     return content.getTags(this.host, this.range, filterFunc)
   }
 
@@ -50,7 +50,7 @@ export default class Cursor {
   // @param {Function filter(node)} [Optional] Method to filter the DOM
   //   Nodes whose names are returned.
   // @return {Array<String> of tag names}
-  getTagNames (filterFunc?: ((node: Node) => boolean) | null): string[] {
+  getTagNames(filterFunc?: ((node: Node) => boolean) | null): string[] {
     const tags: Node[] = this.getTags(filterFunc)
     return (content.getTagNames as (elements: Node[]) => string[])(tags)
   }
@@ -60,42 +60,34 @@ export default class Cursor {
   // @method getTagsByName
   // @param {String} tagName. E.g. 'a' to get all links.
   // @return {Array of DOM Nodes}
-  getTagsByName (tagName: string): Node[] {
+  getTagsByName(tagName: string): Node[] {
     return content.getTagsByName(this.host, this.range, tagName) as Node[]
   }
 
   // Get all tags that are completely within the current selection.
-  getInnerTags (filterFunc?: ((node: Node) => boolean) | null): Node[] {
+  getInnerTags(filterFunc?: ((node: Node) => boolean) | null): Node[] {
     return content.getInnerTags(this.range, filterFunc)
   }
 
   // Get all tags whose text is completely within the current selection.
-  getContainedTags (filterFunc?: (node: Node) => boolean) {
+  getContainedTags(filterFunc?: (node: Node) => boolean) {
     return content.getContainedTags(this.range, filterFunc)
   }
 
   // Get all tags that surround the current selection.
-  getAncestorTags (filterFunc?: (node: Node) => boolean) {
+  getAncestorTags(filterFunc?: (node: Node) => boolean) {
     return content.getAncestorTags(this.host, this.range, filterFunc)
   }
 
-  isAtEnd () {
-    return parser.isEndOfHost(
-      this.host,
-      this.range.endContainer,
-      this.range.endOffset
-    )
+  isAtEnd() {
+    return parser.isEndOfHost(this.host, this.range.endContainer, this.range.endOffset)
   }
 
-  isAtTextEnd () {
-    return parser.isTextEndOfHost(
-      this.host,
-      this.range.endContainer,
-      this.range.endOffset
-    )
+  isAtTextEnd() {
+    return parser.isTextEndOfHost(this.host, this.range.endContainer, this.range.endOffset)
   }
 
-  isAtLastLine () {
+  isAtLastLine() {
     const hostRange = this.win.document.createRange()
     hostRange.selectNodeContents(this.host)
     hostRange.collapse(false)
@@ -104,7 +96,7 @@ export default class Cursor {
     return isCloseTo(hostCoords.bottom, cursorCoords.bottom)
   }
 
-  isAtFirstLine () {
+  isAtFirstLine() {
     const hostRange = this.win.document.createRange()
     hostRange.selectNodeContents(this.host)
     hostRange.collapse(true)
@@ -113,18 +105,14 @@ export default class Cursor {
     return isCloseTo(hostCoords.top, cursorCoords.top)
   }
 
-  isAtBeginning () {
-    return parser.isBeginningOfHost(
-      this.host,
-      this.range.startContainer,
-      this.range.startOffset
-    )
+  isAtBeginning() {
+    return parser.isBeginningOfHost(this.host, this.range.startContainer, this.range.startOffset)
   }
 
   // Insert content before the cursor
   //
   // @param {String, DOM node or document fragment}
-  insertBefore (element: Node | string): void {
+  insertBefore(element: Node | string): void {
     if (string.isString(element)) element = content.createFragmentFromString(element)
     if (parser.isDocumentFragmentWithoutChildren(element)) return
 
@@ -145,7 +133,7 @@ export default class Cursor {
   // Insert content after the cursor
   //
   // @param {String, DOM node or document fragment}
-  insertAfter (element: Node): void {
+  insertAfter(element: Node): void {
     if (string.isString(element)) element = content.createFragmentFromString(element)
     if (parser.isDocumentFragmentWithoutChildren(element)) return
 
@@ -159,13 +147,13 @@ export default class Cursor {
   }
 
   // Alias for #setVisibleSelection()
-  setSelection () {
+  setSelection() {
     this.setVisibleSelection()
   }
 
-  setVisibleSelection () {
+  setVisibleSelection() {
     if (this.win.document.activeElement !== this.host) {
-      const {x, y} = viewport.getScrollPosition(this.win)
+      const { x, y } = viewport.getScrollPosition(this.win)
       this.win.scrollTo(x, y)
     }
 
@@ -182,14 +170,14 @@ export default class Cursor {
   // before() will return a document fragment containing a text node 'fo'.
   //
   // @returns {Document Fragment} content before the cursor or selection.
-  before () {
+  before() {
     const range = this.range.cloneRange()
     range.collapse(true)
     range.setStartBefore(this.host)
     return content.cloneRangeContents(range)
   }
 
-  textBefore () {
+  textBefore() {
     const range = this.range.cloneRange()
     range.collapse(true)
     range.setStartBefore(this.host)
@@ -197,7 +185,7 @@ export default class Cursor {
   }
 
   // Same as before() but returns a string.
-  beforeHtml () {
+  beforeHtml() {
     return content.getInnerHtmlOfFragment(this.before())
   }
 
@@ -208,14 +196,14 @@ export default class Cursor {
   // after() will return a document fragment containing a text node 'o'.
   //
   // @returns {Document Fragment} content after the cursor or selection.
-  after () {
+  after() {
     const range = this.range.cloneRange()
     range.collapse(false)
     range.setEndAfter(this.host)
     return content.cloneRangeContents(range)
   }
 
-  textAfter () {
+  textAfter() {
     const range = this.range.cloneRange()
     range.collapse(false)
     range.setEndAfter(this.host)
@@ -223,23 +211,23 @@ export default class Cursor {
   }
 
   // Same as after() but returns a string.
-  afterHtml () {
+  afterHtml() {
     return content.getInnerHtmlOfFragment(this.after())
   }
 
-  getBoundingClientRect () {
+  getBoundingClientRect() {
     return this.range.getBoundingClientRect()
   }
 
   // Get the BoundingClientRect of the cursor.
   // The returned values are transformed to be absolute
   // (relative to the document).
-  getCoordinates (positioning = 'absolute') {
+  getCoordinates(positioning = 'absolute') {
     const coords = this.range.getBoundingClientRect()
     if (positioning === 'fixed') return coords
 
     // translate into absolute positions
-    const {x, y} = viewport.getScrollPosition(this.win)
+    const { x, y } = viewport.getScrollPosition(this.win)
     return {
       top: coords.top + y,
       bottom: coords.bottom + y,
@@ -250,14 +238,14 @@ export default class Cursor {
     }
   }
 
-  moveBefore (element: Node): Cursor | void {
+  moveBefore(element: Node): Cursor | void {
     this.updateHost(element)
     this.range.setStartBefore(element)
     this.range.setEndBefore(element)
     if (this.isSelection) return new Cursor(this.host, this.range)
   }
 
-  moveAfter (element: Node): Cursor | void {
+  moveAfter(element: Node): Cursor | void {
     this.updateHost(element)
     this.range.setEndAfter(element)
     this.range.setStartAfter(element)
@@ -265,7 +253,7 @@ export default class Cursor {
   }
 
   // Move the cursor to the beginning of the host.
-  moveAtBeginning (element: HTMLElement = this.host): Cursor | void {
+  moveAtBeginning(element: HTMLElement = this.host): Cursor | void {
     this.updateHost(element)
     this.range.selectNodeContents(element)
     this.range.collapse(true)
@@ -273,7 +261,7 @@ export default class Cursor {
   }
 
   // Move the cursor to the end of the host.
-  moveAtEnd (element: HTMLElement = this.host): Cursor | void {
+  moveAtEnd(element: HTMLElement = this.host): Cursor | void {
     this.updateHost(element)
     this.range.selectNodeContents(element)
     this.range.collapse(false)
@@ -281,21 +269,21 @@ export default class Cursor {
   }
 
   // Move the cursor after the last visible character of the host.
-  moveAtTextEnd (element: HTMLElement): Cursor | void {
+  moveAtTextEnd(element: HTMLElement): Cursor | void {
     const lastChild = parser.lastChild(element)
     if (lastChild && lastChild.nodeType === elementNode) {
       return this.moveAtEnd(lastChild as HTMLElement)
     }
   }
 
-  setHost (element: MaybeWrapped<HTMLElement>): void {
+  setHost(element: MaybeWrapped<HTMLElement>): void {
     const unwrappedElement = unwrapElement(element)
     this.host = unwrappedElement
     const doc = unwrappedElement.ownerDocument
-    this.win = !doc ? window : (doc.defaultView || window)
+    this.win = !doc ? window : doc.defaultView || window
   }
 
-  updateHost (element: Node): void {
+  updateHost(element: Node): void {
     const host = parser.getHost(element)
     if (!host) {
       error('Can not set cursor outside of an editable block')
@@ -304,19 +292,19 @@ export default class Cursor {
     this.setHost(host)
   }
 
-  retainVisibleSelection (callback: () => void): void {
+  retainVisibleSelection(callback: () => void): void {
     this.save()
-    callback() // eslint-disable-line callback-return
+    callback()
     this.restore()
     this.setVisibleSelection()
   }
 
-  save () {
+  save() {
     this.savedRangeInfo = rangeSaveRestore.save(this.range)
     this.savedRangeInfo.host = this.host
   }
 
-  restore (): void {
+  restore(): void {
     if (!this.savedRangeInfo) {
       error('Could not restore selection')
       return
@@ -334,7 +322,7 @@ export default class Cursor {
     this.savedRangeInfo = undefined
   }
 
-  equals (cursor: Cursor | null | undefined): boolean {
+  equals(cursor: Cursor | null | undefined): boolean {
     if (!cursor) return false
 
     if (!cursor.host) return false
@@ -348,7 +336,7 @@ export default class Cursor {
 
   // Create an element with the correct ownerWindow
   // (see: http://www.w3.org/DOM/faq.html#ownerdoc)
-  createElement (tagName: string, attributes: Record<string, string> = {}): HTMLElement {
+  createElement(tagName: string, attributes: Record<string, string> = {}): HTMLElement {
     const element = this.win.document.createElement(tagName)
     for (const attributeName in attributes) {
       const attributeValue = attributes[attributeName]
@@ -357,39 +345,38 @@ export default class Cursor {
     return element
   }
 
-  createTextNode (text: string): Text {
+  createTextNode(text: string): Text {
     return this.win.document.createTextNode(text)
   }
 
   // Make sure a node has the correct ownerWindow
   // (see: https://developer.mozilla.org/en-US/docs/Web/API/Document/importNode)
-  adoptElement (node: Node): Node {
+  adoptElement(node: Node): Node {
     return content.adoptElement(node, this.win.document)
   }
 
   // Currently we call triggerChange manually after format changes.
   // This is to prevent excessive triggering of the change event during
   // merge or split operations or other manipulations by scripts.
-  triggerChange () {
-    const event = new Event('formatEditable', {bubbles: true, cancelable: false})
+  triggerChange() {
+    const event = new Event('formatEditable', { bubbles: true, cancelable: false })
     this.host.dispatchEvent(event)
   }
 }
 
-
 /**
-* Get position of the range or cursor
-*
-* Can be used to reliably get the boundingClientRect without
-* some of the drawbacks that the native range has.
-*
-* With the native range.getClientBoundingRect(), newlines are
-* not considered when calculating the position
-*
-* @param {Range} range
-* @param {Window} win
-*/
-function getRangeBoundingClientRect (range: Range, win: Window): DOMRect {
+ * Get position of the range or cursor
+ *
+ * Can be used to reliably get the boundingClientRect without
+ * some of the drawbacks that the native range has.
+ *
+ * With the native range.getClientBoundingRect(), newlines are
+ * not considered when calculating the position
+ *
+ * @param {Range} range
+ * @param {Window} win
+ */
+function getRangeBoundingClientRect(range: Range, win: Window): DOMRect {
   if (range.startContainer.nodeType !== elementNode) return range.getBoundingClientRect()
   const el = win.document.createElement('span')
   el.setAttribute('doc-editable', 'unwrap')
@@ -399,7 +386,7 @@ function getRangeBoundingClientRect (range: Range, win: Window): DOMRect {
   return coords
 }
 
-function isCloseTo (a: number, b: number): boolean {
+function isCloseTo(a: number, b: number): boolean {
   if (a === b) return true
   if (Math.abs(a - b) <= 2) return true
   return false

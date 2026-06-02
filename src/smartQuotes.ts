@@ -12,24 +12,36 @@ const isValidQuotePairConfig = (quotePair: unknown): quotePair is QuotePair =>
   typeof quotePair[1] === 'string'
 
 export const shouldApplySmartQuotes = (config: SmartQuotesConfig, target: HTMLElement): boolean => {
-  const {smartQuotes, quotes, singleQuotes} = config
-  return !!smartQuotes && isValidQuotePairConfig(quotes) && isValidQuotePairConfig(singleQuotes) && target.isContentEditable
+  const { smartQuotes, quotes, singleQuotes } = config
+  return (
+    !!smartQuotes &&
+    isValidQuotePairConfig(quotes) &&
+    isValidQuotePairConfig(singleQuotes) &&
+    target.isContentEditable
+  )
 }
 
-export const isDoubleQuote = (char: string): boolean => /^[\u00AB\u00BB\u201C\u201D\u201E\u0022]$/.test(char)
-export const isSingleQuote = (char: string): boolean => /^[\u2018\u2019\u2039\u203A\u201A\u0027]$/.test(char)
+export const isDoubleQuote = (char: string): boolean =>
+  /^[\u00AB\u00BB\u201C\u201D\u201E\u0022]$/.test(char)
+export const isSingleQuote = (char: string): boolean =>
+  /^[\u2018\u2019\u2039\u203A\u201A\u0027]$/.test(char)
 export const isApostrophe = (char: string): boolean => /^[\u2019\u0027]$/.test(char)
 export const isWhitespace = (char: string): boolean => /^\s$/.test(char)
 export const isSeparatorOrWhitespace = (char: string): boolean => /\s|[>\-–—]/.test(char)
 
-const shouldBeOpeningQuote = (text: string[], indexCharBefore: number): boolean => indexCharBefore < 0 || isSeparatorOrWhitespace(text[indexCharBefore])
-const shouldBeClosingQuote = (text: string[], indexCharBefore: number): boolean => !!text[indexCharBefore] && !isSeparatorOrWhitespace(text[indexCharBefore])
-const hasCharAfter = (textArr: string[], indexCharAfter: number): boolean => !!textArr[indexCharAfter] && !isWhitespace(textArr[indexCharAfter])
-const shouldBeSingleOpeningQuote = (text: string[], indexCharBefore: number): boolean => !!text[indexCharBefore] && isDoubleQuote(text[indexCharBefore])
+const shouldBeOpeningQuote = (text: string[], indexCharBefore: number): boolean =>
+  indexCharBefore < 0 || isSeparatorOrWhitespace(text[indexCharBefore])
+const shouldBeClosingQuote = (text: string[], indexCharBefore: number): boolean =>
+  !!text[indexCharBefore] && !isSeparatorOrWhitespace(text[indexCharBefore])
+const hasCharAfter = (textArr: string[], indexCharAfter: number): boolean =>
+  !!textArr[indexCharAfter] && !isWhitespace(textArr[indexCharAfter])
+const shouldBeSingleOpeningQuote = (text: string[], indexCharBefore: number): boolean =>
+  !!text[indexCharBefore] && isDoubleQuote(text[indexCharBefore])
 
 export const replaceQuote = (range: Range, index: number, quoteType: string): Text | null => {
   const startContainer = range?.startContainer
-  if (!startContainer || startContainer.nodeType !== 3) { // Node.TEXT_NODE
+  if (!startContainer || startContainer.nodeType !== 3) {
+    // Node.TEXT_NODE
     return null
   }
   const textNode = startContainer as Text
@@ -43,12 +55,20 @@ export const replaceQuote = (range: Range, index: number, quoteType: string): Te
   return newTextNode
 }
 
-const hasSingleOpeningQuote = (textArr: string[], offset: number, singleOpeningQuote: string): boolean => {
+const hasSingleOpeningQuote = (
+  textArr: string[],
+  offset: number,
+  singleOpeningQuote: string
+): boolean => {
   if (offset <= 0) {
     return false
   }
   for (let i = offset - 1; i >= 0; i--) {
-    if (isSingleQuote(textArr[i]) && (!isApostrophe(singleOpeningQuote) && !isApostrophe(textArr[i]))) {
+    if (
+      isSingleQuote(textArr[i]) &&
+      !isApostrophe(singleOpeningQuote) &&
+      !isApostrophe(textArr[i])
+    ) {
       return textArr[i] === singleOpeningQuote
     }
   }
@@ -57,7 +77,7 @@ const hasSingleOpeningQuote = (textArr: string[], offset: number, singleOpeningQ
 
 export const applySmartQuotes = (
   range: Range,
-  config: {quotes: QuotePair | string[], singleQuotes: QuotePair | string[]},
+  config: { quotes: QuotePair | string[]; singleQuotes: QuotePair | string[] },
   char: string,
   target: HTMLElement,
   cursorOffset?: number
@@ -69,8 +89,13 @@ export const applySmartQuotes = (
     return
   }
 
-  const {quotes, singleQuotes} = config
-  if (char === quotes[0] || char === quotes[1] || char === singleQuotes[0] || char === singleQuotes[1]) {
+  const { quotes, singleQuotes } = config
+  if (
+    char === quotes[0] ||
+    char === quotes[1] ||
+    char === singleQuotes[0] ||
+    char === singleQuotes[1]
+  ) {
     return
   }
 

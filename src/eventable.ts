@@ -46,14 +46,13 @@ export default function eventable<
   target.notify = events.notify as EventableObject<TEventMap, TContext, TObject>['notify']
 }
 
-function getEventableModule<
-  TContext,
-  TEventMap extends EventMap = Record<string, unknown[]>
->(notifyContext?: TContext): EventModule<TContext, TEventMap> {
+function getEventableModule<TContext, TEventMap extends EventMap = Record<string, unknown[]>>(
+  notifyContext?: TContext
+): EventModule<TContext, TEventMap> {
   const listeners: Record<string, Array<EventHandler<TContext, unknown[]>>> = {}
 
   function addListener(events: string, listener: EventHandler<TContext, unknown[]>): void {
-    events.split(' ').forEach(event => {
+    events.split(' ').forEach((event) => {
       listeners[event] = listeners[event] || []
       listeners[event].unshift(listener)
     })
@@ -81,7 +80,8 @@ function getEventableModule<
       } else if (arguments.length === 1 && typeof eventOrEvents === 'object') {
         for (const eventType in eventOrEvents) {
           const eventListener = eventOrEvents[eventType]
-          if (eventListener) addListener(eventType, eventListener as EventHandler<TContext, unknown[]>)
+          if (eventListener)
+            addListener(eventType, eventListener as EventHandler<TContext, unknown[]>)
         }
       }
       return result
@@ -96,7 +96,7 @@ function getEventableModule<
       } else if (arguments.length === 1) {
         listeners[event!] = []
       } else {
-        Object.keys(listeners).forEach(key => delete listeners[key])
+        Object.keys(listeners).forEach((key) => delete listeners[key])
       }
     },
 

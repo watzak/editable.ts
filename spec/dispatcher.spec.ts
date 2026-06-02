@@ -1,53 +1,52 @@
-
-import {createRange, rangesAreEqual} from '../src/util/dom.js'
+import { createRange, rangesAreEqual } from '../src/util/dom.js'
 import * as content from '../src/content.js'
 import Cursor from '../src/cursor.js'
 import Keyboard from '../src/keyboard.js'
-import {Editable} from '../src/core.js'
+import { Editable } from '../src/core.js'
 import Selection from '../src/selection.js'
-const {key} = Keyboard
+const { key } = Keyboard
 
 describe('Dispatcher:', function () {
   let editable, elem
 
   // create a Cursor object and set the selection to it
-  function createCursor (range) {
+  function createCursor(range) {
     const cursor = new Cursor(elem, range)
     cursor.setVisibleSelection()
     return cursor
   }
 
-  function createRangeAtEnd (node) {
+  function createRangeAtEnd(node) {
     const range = createRange()
     range.selectNodeContents(node)
     range.collapse(false)
     return range
   }
 
-  function createRangeAtBeginning (node) {
+  function createRangeAtBeginning(node) {
     const range = createRange()
     range.selectNodeContents(node)
     range.collapse(true)
     return range
   }
 
-  function createSelection (range) {
+  function createSelection(range) {
     const selection = new Selection(elem, range)
     selection.setVisibleSelection()
     return selection
   }
 
-  function createFullRange (node) {
+  function createFullRange(node) {
     const range = createRange()
     range.selectNodeContents(node)
     return range
   }
 
   // register one listener per test
-  function on (eventName, func) {
+  function on(eventName, func) {
     // off() // make sure the last listener is unregistered
-    const obj = {calls: 0}
-    function proxy () {
+    const obj = { calls: 0 }
+    function proxy() {
       obj.calls += 1
       func.apply(this, arguments)
     }
@@ -56,7 +55,6 @@ describe('Dispatcher:', function () {
   }
 
   describe('for editable:', function () {
-
     beforeEach(function () {
       elem = document.createElement('div')
       elem.setAttribute('contenteditable', true)
@@ -104,7 +102,6 @@ describe('Dispatcher:', function () {
     })
 
     describe('on enter:', function () {
-
       it('fires insert "after" if cursor is at the end', function () {
         // <div>foo\</div>
         elem.innerHTML = 'foo'
@@ -116,7 +113,7 @@ describe('Dispatcher:', function () {
           expect(cursor.isCursor).toBe(true)
         })
 
-        const evt = new KeyboardEvent('keydown', {keyCode: key.enter})
+        const evt = new KeyboardEvent('keydown', { keyCode: key.enter })
         elem.dispatchEvent(evt)
         expect(insert.calls).toBe(1)
       })
@@ -135,7 +132,7 @@ describe('Dispatcher:', function () {
           expect(cursor.isCursor).toBe(true)
         })
 
-        const evt = new KeyboardEvent('keydown', {keyCode: key.enter})
+        const evt = new KeyboardEvent('keydown', { keyCode: key.enter })
         elem.dispatchEvent(evt)
         expect(insert.calls).toBe(1)
       })
@@ -156,14 +153,13 @@ describe('Dispatcher:', function () {
           expect(cursor.isCursor).toBe(true)
         })
 
-        const evt = new KeyboardEvent('keydown', {keyCode: key.enter})
+        const evt = new KeyboardEvent('keydown', { keyCode: key.enter })
         elem.dispatchEvent(evt)
         expect(insert.calls).toBe(1)
       })
     })
 
     describe('on backspace:', function () {
-
       it('fires "merge" if cursor is at the beginning', function () {
         return new Promise((resolve) => {
           elem.innerHTML = 'foo'
@@ -174,13 +170,12 @@ describe('Dispatcher:', function () {
             resolve()
           })
 
-          elem.dispatchEvent(new KeyboardEvent('keydown', {keyCode: key.backspace}))
+          elem.dispatchEvent(new KeyboardEvent('keydown', { keyCode: key.backspace }))
         })
       })
     })
 
     describe('on delete:', function () {
-
       it('fires "merge" if cursor is at the end', function () {
         return new Promise((resolve) => {
           elem.innerHTML = 'foo'
@@ -191,14 +186,13 @@ describe('Dispatcher:', function () {
             resolve()
           })
 
-          elem.dispatchEvent(new KeyboardEvent('keydown', {keyCode: key.delete}))
+          elem.dispatchEvent(new KeyboardEvent('keydown', { keyCode: key.delete }))
         })
       })
     })
 
     describe('on newline:', function () {
-
-      function typeKeys (element, chars) {
+      function typeKeys(element, chars) {
         const selection = window.getSelection()
         const range = selection.getRangeAt(0)
         range.selectNodeContents(element)
@@ -208,11 +202,13 @@ describe('Dispatcher:', function () {
         range.collapse(false)
       }
 
-      function shiftReturn (element) {
-        element.dispatchEvent(new KeyboardEvent('keydown', {
-          shiftKey: true,
-          keyCode: 13
-        }))
+      function shiftReturn(element) {
+        element.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            shiftKey: true,
+            keyCode: 13
+          })
+        )
       }
 
       it('fires newline when shift + enter is pressed', function () {
@@ -226,13 +222,13 @@ describe('Dispatcher:', function () {
       it('appends a zero-width space after the br tag to force a line break', async () => {
         typeKeys(elem, 'foobar')
         shiftReturn(elem)
-        elem.addEventListener('input', function (e) { console.log('input event', e) })
+        elem.addEventListener('input', function (e) {
+          console.log('input event', e)
+        })
         await 1
         // Account for data-editable="remove" attribute
         const html = elem.innerHTML.replace(/ data-editable="remove"/g, '')
-        expect(html).toBe(
-          `\uFEFFfoobar<br>\uFEFF`
-        )
+        expect(html).toBe(`\uFEFFfoobar<br>\uFEFF`)
       })
 
       it('does not append another zero-width space when one is present already', async () => {
@@ -242,14 +238,11 @@ describe('Dispatcher:', function () {
         await 1
         // Account for data-editable="remove" attribute
         const html = elem.innerHTML.replace(/ data-editable="remove"/g, '')
-        expect(html).toBe(
-          `\uFEFFfoobar<br><br>\uFEFF`
-        )
+        expect(html).toBe(`\uFEFFfoobar<br><br>\uFEFF`)
       })
     })
 
     describe('on bold:', function () {
-
       it('fires toggleBold when ctrl + b is pressed', function () {
         return new Promise((resolve) => {
           elem.innerHTML = 'foo'
@@ -261,14 +254,13 @@ describe('Dispatcher:', function () {
             resolve()
           })
 
-          const evt = new KeyboardEvent('keydown', {ctrlKey: true, keyCode: key.b})
+          const evt = new KeyboardEvent('keydown', { ctrlKey: true, keyCode: key.b })
           elem.dispatchEvent(evt)
         })
       })
     })
 
     describe('on italic:', function () {
-
       it('fires toggleEmphasis when ctrl + i is pressed', function () {
         return new Promise((resolve) => {
           elem.innerHTML = 'foo'
@@ -280,14 +272,13 @@ describe('Dispatcher:', function () {
             resolve()
           })
 
-          const evt = new KeyboardEvent('keydown', {ctrlKey: true, keyCode: key.i})
+          const evt = new KeyboardEvent('keydown', { ctrlKey: true, keyCode: key.i })
           elem.dispatchEvent(evt)
         })
       })
     })
 
     describe('selectToBoundary event::', function () {
-
       it('fires "both" if all is selected', function () {
         elem.innerHTML = 'People Make The World Go Round'
         // Make sure elem is in document and has proper setup
@@ -326,11 +317,11 @@ describe('Dispatcher:', function () {
           editable.dispatcher.selectionWatcher.syncSelection()
           // Call selectionChanged to update internal state
           editable.dispatcher.selectionWatcher.selectionChanged()
-          
+
           // Small delay to ensure selection is stable before dispatching
           setTimeout(() => {
             const start = Date.now()
-            const selectionEvent = new MouseEvent('mouseup', {bubbles: true})
+            const selectionEvent = new MouseEvent('mouseup', { bubbles: true })
             document.dispatchEvent(selectionEvent)
             const checkPosition = () => {
               // Re-sync selection in case it got lost
@@ -340,7 +331,7 @@ describe('Dispatcher:', function () {
                 sel?.addRange(testRange)
                 editable.dispatcher.selectionWatcher.syncSelection()
               }
-              
+
               if (position === 'both') {
                 resolve()
                 return
@@ -396,11 +387,11 @@ describe('Dispatcher:', function () {
           editable.dispatcher.selectionWatcher.syncSelection()
           // Call selectionChanged to update internal state
           editable.dispatcher.selectionWatcher.selectionChanged()
-          
+
           // Small delay to ensure selection is stable before dispatching
           setTimeout(() => {
             const start = Date.now()
-            const selectionEvent = new MouseEvent('mouseup', {bubbles: true})
+            const selectionEvent = new MouseEvent('mouseup', { bubbles: true })
             document.dispatchEvent(selectionEvent)
             const checkPosition = () => {
               // Re-sync selection in case it got lost
@@ -410,7 +401,7 @@ describe('Dispatcher:', function () {
                 sel?.addRange(testRange)
                 editable.dispatcher.selectionWatcher.syncSelection()
               }
-              
+
               if (position === 'start') {
                 resolve()
                 return
@@ -466,11 +457,11 @@ describe('Dispatcher:', function () {
           editable.dispatcher.selectionWatcher.syncSelection()
           // Call selectionChanged to update internal state
           editable.dispatcher.selectionWatcher.selectionChanged()
-          
+
           // Small delay to ensure selection is stable before dispatching
           setTimeout(() => {
             const start = Date.now()
-            const selectionEvent = new MouseEvent('mouseup', {bubbles: true})
+            const selectionEvent = new MouseEvent('mouseup', { bubbles: true })
             document.dispatchEvent(selectionEvent)
             const checkPosition = () => {
               // Re-sync selection in case it got lost
@@ -480,7 +471,7 @@ describe('Dispatcher:', function () {
                 sel?.addRange(testRange)
                 editable.dispatcher.selectionWatcher.syncSelection()
               }
-              
+
               if (position === 'end') {
                 resolve()
                 return
@@ -498,13 +489,12 @@ describe('Dispatcher:', function () {
     })
 
     describe('on paste:', function () {
-
       it('inserts plain text clipboard content', function () {
         return new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('Test timed out - paste event not fired'))
           }, 7000)
-          
+
           on('paste', (block, blocks) => {
             clearTimeout(timeout)
             expect(blocks).toEqual(['a plain test'])
@@ -513,7 +503,7 @@ describe('Dispatcher:', function () {
 
           const clipboardData = new DataTransfer()
           clipboardData.setData('text/plain', 'a plain test')
-          const evt = new ClipboardEvent('paste', {clipboardData, bubbles: true})
+          const evt = new ClipboardEvent('paste', { clipboardData, bubbles: true })
           elem.dispatchEvent(evt)
         })
       })
@@ -523,7 +513,7 @@ describe('Dispatcher:', function () {
           const timeout = setTimeout(() => {
             reject(new Error('Test timed out - paste event not fired'))
           }, 7000)
-          
+
           on('paste', (block, blocks) => {
             clearTimeout(timeout)
             expect(blocks).toEqual(['a <strong>bold</strong> test'])
@@ -532,7 +522,7 @@ describe('Dispatcher:', function () {
 
           const clipboardData = new DataTransfer()
           clipboardData.setData('text/html', 'a <strong>bold</strong> test')
-          const evt = new ClipboardEvent('paste', {clipboardData, bubbles: true})
+          const evt = new ClipboardEvent('paste', { clipboardData, bubbles: true })
           elem.dispatchEvent(evt)
         })
       })
@@ -542,7 +532,7 @@ describe('Dispatcher:', function () {
           const timeout = setTimeout(() => {
             reject(new Error('Test timed out - paste event not fired'))
           }, 7000)
-          
+
           on('paste', (block, blocks) => {
             clearTimeout(timeout)
             try {
@@ -570,25 +560,26 @@ describe('Dispatcher:', function () {
           })
           const clipboardData = new DataTransfer()
           clipboardData.setData('text/html', 'copied text')
-          const evt = new ClipboardEvent('paste', {clipboardData, bubbles: true})
+          const evt = new ClipboardEvent('paste', { clipboardData, bubbles: true })
           elem.dispatchEvent(evt)
         })
       })
 
-      it(`doesn't replaces the last '&nbsp' with ' ' if text ends with more than one '&nbsp'`,
-        function () {
-          return new Promise((resolve) => {
-            on('paste', (block, blocks) => {
-              expect(block.innerHTML).toBe('some text that ends with more than one non breaking space&nbsp; &nbsp;')
-              resolve()
-            })
-            elem.innerHTML = 'some text that ends with more than one non breaking space&nbsp; &nbsp;'
-            const clipboardData = new DataTransfer()
-            clipboardData.setData('text/html', 'copied text')
-            const evt = new ClipboardEvent('paste', {clipboardData, bubbles: true})
-            elem.dispatchEvent(evt)
+      it(`doesn't replaces the last '&nbsp' with ' ' if text ends with more than one '&nbsp'`, function () {
+        return new Promise((resolve) => {
+          on('paste', (block, blocks) => {
+            expect(block.innerHTML).toBe(
+              'some text that ends with more than one non breaking space&nbsp; &nbsp;'
+            )
+            resolve()
           })
+          elem.innerHTML = 'some text that ends with more than one non breaking space&nbsp; &nbsp;'
+          const clipboardData = new DataTransfer()
+          clipboardData.setData('text/html', 'copied text')
+          const evt = new ClipboardEvent('paste', { clipboardData, bubbles: true })
+          elem.dispatchEvent(evt)
         })
+      })
     })
 
     describe('input event:', function () {
@@ -602,7 +593,7 @@ describe('Dispatcher:', function () {
             resolve()
           })
 
-          elem.dispatchEvent(new Event('input', {bubbles: true}))
+          elem.dispatchEvent(new Event('input', { bubbles: true }))
         })
       })
     })

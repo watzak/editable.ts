@@ -1,10 +1,8 @@
-
-import {cloneDeep} from '../src/util/clone-deep.js'
+import { cloneDeep } from '../src/util/clone-deep.js'
 import config from '../src/config.js'
-import {Editable} from '../src/core.js'
+import { Editable } from '../src/core.js'
 
 describe('Editable configuration', function () {
-
   describe('instance configuration', function () {
     let editable: Editable | undefined
 
@@ -48,7 +46,7 @@ describe('Editable configuration', function () {
     })
 
     it('retrieves the current state of the config', function () {
-      Editable.globalConfig({editableClass: 'editable-instance'})
+      Editable.globalConfig({ editableClass: 'editable-instance' })
       expect(originalConfig).not.toBe(Editable.getGlobalConfig())
     })
 
@@ -57,7 +55,7 @@ describe('Editable configuration', function () {
     })
 
     it('overrides "editableClass"', function () {
-      Editable.globalConfig({editableClass: 'editable-instance'})
+      Editable.globalConfig({ editableClass: 'editable-instance' })
       expect(Editable.getGlobalConfig().editableClass).toBe('editable-instance')
     })
 

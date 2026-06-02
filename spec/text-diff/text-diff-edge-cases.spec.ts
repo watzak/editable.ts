@@ -1,14 +1,14 @@
-import {vi} from 'vitest'
-import {Editable} from '../../src/features.js'
+import { vi } from 'vitest'
+import { Editable } from '../../src/features.js'
 import TextDiff from '../../src/plugins/text-diff/text-diff.js'
-import {createElement} from '../../src/util/dom.js'
+import { createElement } from '../../src/util/dom.js'
 
 function setupEdgeCaseEnv(text: string) {
   const context: any = {}
   context.div = createElement(`<div>${text}</div>`)
   document.body.appendChild(context.div)
   context.editable = new Editable()
-  context.editable.setupTextDiff({throttle: 0})
+  context.editable.setupTextDiff({ throttle: 0 })
   context.editable.add(context.div)
   return context
 }
@@ -69,7 +69,7 @@ describe('TextDiff Edge Cases:', function () {
       context.editable.textDiff.captureOriginalText(context.div)
       const originalText = context.editable.textDiff.getOriginalText(context.div)
       expect(originalText).toBe('hello')
-      
+
       context.div.remove()
       // Should not throw when accessing removed element
       expect(() => {
@@ -84,15 +84,15 @@ describe('TextDiff Edge Cases:', function () {
       context = setupEdgeCaseEnv('hello')
       vi.useFakeTimers()
       context.editable.textDiff.captureOriginalText(context.div)
-      
+
       const computeSpy = vi.spyOn(context.editable.textDiff, 'computeAndApplyDiff')
-      
+
       // Rapid changes
       for (let i = 0; i < 10; i++) {
         context.div.textContent = `change ${i}`
         context.editable.dispatcher.notify('change', context.div)
       }
-      
+
       vi.advanceTimersByTime(300)
       // Should only compute once after throttle
       expect(computeSpy).toHaveBeenCalled()
@@ -107,7 +107,7 @@ describe('TextDiff Edge Cases:', function () {
       context.editable.textDiff.captureOriginalText(context.div)
       // Verify original text was captured correctly
       expect(context.editable.textDiff.getOriginalText(context.div)).toBe('héllo wörld')
-      
+
       // Change to ASCII text
       context.div.innerHTML = 'hello world'
       context.editable.dispatcher.notify('change', context.div)
@@ -153,7 +153,7 @@ describe('TextDiff Edge Cases:', function () {
       vi.useFakeTimers()
       context.editable.textDiff.captureOriginalText(context.div)
       expect(context.editable.textDiff.getOriginalText(context.div).length).toBe(10000)
-      
+
       context.div.textContent = 'b' + longText.substring(1)
       context.editable.dispatcher.notify('change', context.div)
       vi.advanceTimersByTime(100)
@@ -169,9 +169,9 @@ describe('TextDiff Edge Cases:', function () {
       context.div = createElement('<div><p>hello <strong>world</strong></p></div>')
       document.body.appendChild(context.div)
       context.editable = new Editable()
-      context.editable.setupTextDiff({throttle: 0})
+      context.editable.setupTextDiff({ throttle: 0 })
       context.editable.add(context.div)
-      
+
       vi.useFakeTimers()
       context.editable.textDiff.captureOriginalText(context.div)
       // Change the entire div content to trigger change
@@ -265,12 +265,12 @@ describe('TextDiff Edge Cases:', function () {
       vi.useFakeTimers()
       context.editable.textDiff.captureOriginalText(context.div)
       context.editable.textDiff.isApplyingDiff = true
-      
+
       const computeSpy = vi.spyOn(context.editable.textDiff, 'computeAndApplyDiff')
       context.div.textContent = 'world'
       context.editable.dispatcher.notify('change', context.div)
       vi.advanceTimersByTime(300)
-      
+
       // Should not trigger when flag is set
       expect(computeSpy).not.toHaveBeenCalled()
       vi.useRealTimers()

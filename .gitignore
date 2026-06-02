@@ -6,6 +6,7 @@ lib
 coverage
 hmr.js
 hmr.js.map
-/docs   
+docs/dist
 .autopilot.json
 .cursor
+tmp/

@@ -1,6 +1,4 @@
-
-
-import {Editable} from '../src/core.js'
+import { Editable } from '../src/core.js'
 import MonitoredHighlighting from '../src/monitored-highlighting.js'
 
 describe('MonitoredHighlighting:', function () {

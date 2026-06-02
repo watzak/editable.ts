@@ -1,4 +1,4 @@
-import {computeDiff, type DiffOperation} from '../../src/plugins/text-diff/diff-algorithm.js'
+import { computeDiff, type DiffOperation } from '../../src/plugins/text-diff/diff-algorithm.js'
 
 describe('diff-algorithm:', function () {
   describe('computeDiff:', function () {
@@ -45,7 +45,7 @@ describe('diff-algorithm:', function () {
     it('should handle simple insertion at start', function () {
       const result = computeDiff('world', 'hello world')
       expect(result.length).toBeGreaterThan(0)
-      const insertOps = result.filter(op => op.type === 'insert')
+      const insertOps = result.filter((op) => op.type === 'insert')
       expect(insertOps.length).toBeGreaterThan(0)
       expect(insertOps[0].value).toContain('hello')
     })
@@ -53,24 +53,24 @@ describe('diff-algorithm:', function () {
     it('should handle simple insertion at end', function () {
       const result = computeDiff('hello', 'hello world')
       expect(result.length).toBeGreaterThan(0)
-      const insertOps = result.filter(op => op.type === 'insert')
+      const insertOps = result.filter((op) => op.type === 'insert')
       expect(insertOps.length).toBeGreaterThan(0)
-      expect(insertOps.some(op => op.value.includes('world'))).toBe(true)
+      expect(insertOps.some((op) => op.value.includes('world'))).toBe(true)
     })
 
     it('should handle simple deletion', function () {
       const result = computeDiff('hello world', 'hello')
       expect(result.length).toBeGreaterThan(0)
-      const deleteOps = result.filter(op => op.type === 'delete')
+      const deleteOps = result.filter((op) => op.type === 'delete')
       expect(deleteOps.length).toBeGreaterThan(0)
-      expect(deleteOps.some(op => op.value.includes('world'))).toBe(true)
+      expect(deleteOps.some((op) => op.value.includes('world'))).toBe(true)
     })
 
     it('should handle replacement', function () {
       const result = computeDiff('hello', 'world')
       expect(result.length).toBeGreaterThan(0)
-      const deleteOps = result.filter(op => op.type === 'delete')
-      const insertOps = result.filter(op => op.type === 'insert')
+      const deleteOps = result.filter((op) => op.type === 'delete')
+      const insertOps = result.filter((op) => op.type === 'insert')
       expect(deleteOps.length).toBeGreaterThan(0)
       expect(insertOps.length).toBeGreaterThan(0)
     })
@@ -78,16 +78,16 @@ describe('diff-algorithm:', function () {
     it('should handle single character change', function () {
       const result = computeDiff('a', 'b')
       expect(result.length).toBeGreaterThan(0)
-      const hasDelete = result.some(op => op.type === 'delete' && op.value === 'a')
-      const hasInsert = result.some(op => op.type === 'insert' && op.value === 'b')
+      const hasDelete = result.some((op) => op.type === 'delete' && op.value === 'a')
+      const hasInsert = result.some((op) => op.type === 'insert' && op.value === 'b')
       expect(hasDelete || hasInsert).toBe(true)
     })
 
     it('should handle multiple changes', function () {
       const result = computeDiff('hello world', 'hi there')
       expect(result.length).toBeGreaterThan(0)
-      const deleteOps = result.filter(op => op.type === 'delete')
-      const insertOps = result.filter(op => op.type === 'insert')
+      const deleteOps = result.filter((op) => op.type === 'delete')
+      const insertOps = result.filter((op) => op.type === 'insert')
       expect(deleteOps.length + insertOps.length).toBeGreaterThan(0)
     })
 
@@ -141,7 +141,7 @@ describe('diff-algorithm:', function () {
       const oldText = 'hello world'
       const newText = 'hello there'
       const result = computeDiff(oldText, newText)
-      
+
       // Reconstruct old text from delete and equal operations
       let reconstructedOld = ''
       for (const op of result) {
@@ -150,7 +150,7 @@ describe('diff-algorithm:', function () {
         }
       }
       expect(reconstructedOld).toBe(oldText)
-      
+
       // Reconstruct new text from insert and equal operations
       let reconstructedNew = ''
       for (const op of result) {
@@ -178,8 +178,8 @@ describe('diff-algorithm:', function () {
     it('should handle complete replacement', function () {
       const result = computeDiff('old', 'new')
       expect(result.length).toBeGreaterThan(0)
-      const deleteOps = result.filter(op => op.type === 'delete')
-      const insertOps = result.filter(op => op.type === 'insert')
+      const deleteOps = result.filter((op) => op.type === 'delete')
+      const insertOps = result.filter((op) => op.type === 'insert')
       expect(deleteOps.length).toBeGreaterThan(0)
       expect(insertOps.length).toBeGreaterThan(0)
     })
@@ -187,14 +187,14 @@ describe('diff-algorithm:', function () {
     it('should handle insertion in middle', function () {
       const result = computeDiff('hello', 'he llo')
       expect(result.length).toBeGreaterThan(0)
-      const insertOps = result.filter(op => op.type === 'insert')
+      const insertOps = result.filter((op) => op.type === 'insert')
       expect(insertOps.length).toBeGreaterThan(0)
     })
 
     it('should handle deletion in middle', function () {
       const result = computeDiff('hello', 'hllo')
       expect(result.length).toBeGreaterThan(0)
-      const deleteOps = result.filter(op => op.type === 'delete')
+      const deleteOps = result.filter((op) => op.type === 'delete')
       expect(deleteOps.length).toBeGreaterThan(0)
     })
   })

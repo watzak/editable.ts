@@ -1,21 +1,16 @@
-import {selectionchange} from './feature-detection.js'
+import { selectionchange } from './feature-detection.js'
 import * as clipboard from './clipboard.js'
 import * as content from './content.js'
 import eventable from './eventable.js'
 import SelectionWatcher from './selection-watcher.js'
 import config from './config.js'
 import Keyboard from './keyboard.js'
-import {closest} from './util/dom.js'
-import {replaceLast, endsWithSingleSpace} from './util/string.js'
-import {applySmartQuotes, shouldApplySmartQuotes} from './smartQuotes.js'
-import type {Editable} from './core.js'
-import type {QuotePair} from './smartQuotes.js'
-import type {
-  DispatcherEventMap,
-  EventNotify,
-  EventOff,
-  EventOn
-} from './event-types.js'
+import { closest } from './util/dom.js'
+import { replaceLast, endsWithSingleSpace } from './util/string.js'
+import { applySmartQuotes, shouldApplySmartQuotes } from './smartQuotes.js'
+import type { Editable } from './core.js'
+import type { QuotePair } from './smartQuotes.js'
+import type { DispatcherEventMap, EventNotify, EventOff, EventOn } from './event-types.js'
 import type Selection from './selection.js'
 
 /**
@@ -29,7 +24,7 @@ export default class Dispatcher {
   public editableSelector: string
   public selectionWatcher: SelectionWatcher
   public keyboard: Keyboard
-  public activeListeners: Array<{event: string, listener: EventListener, capture: boolean}>
+  public activeListeners: Array<{ event: string; listener: EventListener; capture: boolean }>
   public suspended?: boolean
   public switchContext?: {
     events: string[]
@@ -40,7 +35,7 @@ export default class Dispatcher {
   public off!: EventOff<DispatcherEventMap, Editable>
   public on!: EventOn<DispatcherEventMap, Editable, this>
 
-  constructor (editable: Editable) {
+  constructor(editable: Editable) {
     const win = editable.win
     eventable<Dispatcher, Editable, DispatcherEventMap>(this, editable)
     this.document = win.document
@@ -57,8 +52,8 @@ export default class Dispatcher {
     }
   }
 
-  setupDocumentListener (event: string, func: (evt: Event) => void, capture: boolean = false): this {
-    const listener = {event, listener: func.bind(this) as EventListener, capture}
+  setupDocumentListener(event: string, func: (evt: Event) => void, capture: boolean = false): this {
+    const listener = { event, listener: func.bind(this) as EventListener, capture }
     this.activeListeners.push(listener)
 
     this.document.addEventListener(event, listener.listener, capture)
@@ -66,17 +61,17 @@ export default class Dispatcher {
   }
 
   /**
-  * Sets up all DOM and keyboard listeners used by the dispatcher.
-  *
-  * @method setup
-  */
-  setup () {
+   * Sets up all DOM and keyboard listeners used by the dispatcher.
+   *
+   * @method setup
+   */
+  setup() {
     // setup all events listeners and keyboard handlers
     this.setupKeyboardEvents()
     this.setupEventListeners()
   }
 
-  unload () {
+  unload() {
     this.off()
     for (const l of this.activeListeners) {
       this.document.removeEventListener(l.event, l.listener, l.capture)
@@ -84,7 +79,7 @@ export default class Dispatcher {
     this.activeListeners.length = 0
   }
 
-  suspend () {
+  suspend() {
     if (this.suspended) return
     this.suspended = true
     for (const l of this.activeListeners) {
@@ -93,13 +88,13 @@ export default class Dispatcher {
     this.activeListeners.length = 0
   }
 
-  continue () {
+  continue() {
     if (!this.suspended) return
     this.suspended = false
     this.setupEventListeners()
   }
 
-  setupEventListeners () {
+  setupEventListeners() {
     this.setupElementListeners()
     this.setupKeydownListener()
 
@@ -111,28 +106,35 @@ export default class Dispatcher {
   }
 
   /**
-  * Sets up events that are triggered on modifying an element.
-  *
-  * @method setupElementListeners
-  */
-  setupElementListeners () {
-    const currentInput: {offset?: number} = {offset: undefined}
-    this
-      .setupDocumentListener('focus', function focusListener (this: Dispatcher, evt: Event) {
+   * Sets up events that are triggered on modifying an element.
+   *
+   * @method setupElementListeners
+   */
+  setupElementListeners() {
+    const currentInput: { offset?: number } = { offset: undefined }
+    this.setupDocumentListener(
+      'focus',
+      function focusListener(this: Dispatcher, evt: Event) {
         const block = this.getEditableBlockByEvent(evt)
         if (!block) return
         const target = evt.target as HTMLElement
         if (target && target.getAttribute(config.pastingAttribute)) return
         this.selectionWatcher.syncSelection()
         this.notify('focus', block)
-      }, true)
-      .setupDocumentListener('blur', function blurListener (this: Dispatcher, evt: Event) {
-        const block = this.getEditableBlockByEvent(evt)
-        if (!block) return
-        if (block.getAttribute(config.pastingAttribute)) return
-        this.notify('blur', block)
-      }, true)
-      .setupDocumentListener('copy', function copyListener (this: Dispatcher, evt: Event) {
+      },
+      true
+    )
+      .setupDocumentListener(
+        'blur',
+        function blurListener(this: Dispatcher, evt: Event) {
+          const block = this.getEditableBlockByEvent(evt)
+          if (!block) return
+          if (block.getAttribute(config.pastingAttribute)) return
+          this.notify('blur', block)
+        },
+        true
+      )
+      .setupDocumentListener('copy', function copyListener(this: Dispatcher, evt: Event) {
         const block = this.getEditableBlockByEvent(evt)
         if (!block) return
         const selection = this.selectionWatcher.getFreshSelection()
@@ -140,7 +142,7 @@ export default class Dispatcher {
           this.notify('clipboard', block, 'copy', selection as Selection)
         }
       })
-      .setupDocumentListener('cut', function cutListener (this: Dispatcher, evt: Event) {
+      .setupDocumentListener('cut', function cutListener(this: Dispatcher, evt: Event) {
         const block = this.getEditableBlockByEvent(evt)
         if (!block) return
         const selection = this.selectionWatcher.getFreshSelection()
@@ -148,7 +150,7 @@ export default class Dispatcher {
           this.notify('clipboard', block, 'cut', selection as Selection)
         }
       })
-      .setupDocumentListener('paste', function pasteListener (this: Dispatcher, evt: Event) {
+      .setupDocumentListener('paste', function pasteListener(this: Dispatcher, evt: Event) {
         const block = this.getEditableBlockByEvent(evt)
         if (!block) return
 
@@ -156,9 +158,11 @@ export default class Dispatcher {
         clipEvent.preventDefault()
         const selection = this.selectionWatcher.getFreshSelection()
         if (!selection || !clipEvent.clipboardData) return
-        const clipboardContent = clipEvent.clipboardData.getData('text/html') || clipEvent.clipboardData.getData('text/plain')
+        const clipboardContent =
+          clipEvent.clipboardData.getData('text/html') ||
+          clipEvent.clipboardData.getData('text/plain')
 
-        const {blocks, cursor} = clipboard.paste(block, selection, clipboardContent)
+        const { blocks, cursor } = clipboard.paste(block, selection, clipboardContent)
         if (blocks.length) {
           const target = clipEvent.target as HTMLElement
           if (target && endsWithSingleSpace(target.innerText)) {
@@ -174,7 +178,7 @@ export default class Dispatcher {
           cursor.setVisibleSelection()
         }
       })
-      .setupDocumentListener('input', function inputListener (this: Dispatcher, evt: Event) {
+      .setupDocumentListener('input', function inputListener(this: Dispatcher, evt: Event) {
         const block = this.getEditableBlockByEvent(evt)
         if (!block) return
 
@@ -191,23 +195,31 @@ export default class Dispatcher {
           }
           setTimeout(() => {
             if (inputEvent.data) {
-              applySmartQuotes(selection.range!, quotesConfig, inputEvent.data, target, currentInput.offset)
+              applySmartQuotes(
+                selection.range!,
+                quotesConfig,
+                inputEvent.data,
+                target,
+                currentInput.offset
+              )
             }
-          }, 300
-          )
+          }, 300)
         }
 
         this.notify('change', block)
       })
 
-      .setupDocumentListener('formatEditable', function formatEditableListener (this: Dispatcher, evt: Event) {
-        const block = this.getEditableBlockByEvent(evt)
-        if (!block) return
-        this.notify('change', block)
-      })
+      .setupDocumentListener(
+        'formatEditable',
+        function formatEditableListener(this: Dispatcher, evt: Event) {
+          const block = this.getEditableBlockByEvent(evt)
+          if (!block) return
+          this.notify('change', block)
+        }
+      )
   }
 
-  dispatchSwitchEvent (event: KeyboardEvent, element: HTMLElement, direction: 'up' | 'down'): void {
+  dispatchSwitchEvent(event: KeyboardEvent, element: HTMLElement, direction: 'up' | 'down'): void {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
     const cursor = this.selectionWatcher.getFreshSelection()
     if (!cursor || cursor.isSelection) return
@@ -238,27 +250,31 @@ export default class Dispatcher {
   }
 
   /**
-  * Sets up listener for keydown event which forwards events to
-  * the Keyboard instance.
-  *
-  * @method setupKeydownListener
-  */
-  setupKeydownListener () {
-    this.setupDocumentListener('keydown', function (this: Dispatcher, evt: Event) {
-      const block = this.getEditableBlockByEvent(evt)
-      if (!block) return
-      const keyEvent = evt as KeyboardEvent
-      this.keyboard.dispatchKeyEvent(keyEvent, block, false)
-    }, true)
+   * Sets up listener for keydown event which forwards events to
+   * the Keyboard instance.
+   *
+   * @method setupKeydownListener
+   */
+  setupKeydownListener() {
+    this.setupDocumentListener(
+      'keydown',
+      function (this: Dispatcher, evt: Event) {
+        const block = this.getEditableBlockByEvent(evt)
+        if (!block) return
+        const keyEvent = evt as KeyboardEvent
+        this.keyboard.dispatchKeyEvent(keyEvent, block, false)
+      },
+      true
+    )
   }
 
   /**
-  * Registers keyboard handlers that translate low-level key presses into
-  * semantic editor events.
-  *
-  * @method setupKeyboardEvents
-  */
-  setupKeyboardEvents () {
+   * Registers keyboard handlers that translate low-level key presses into
+   * semantic editor events.
+   *
+   * @method setupKeyboardEvents
+   */
+  setupKeyboardEvents() {
     const self = this
 
     this.keyboard
@@ -312,7 +328,13 @@ export default class Dispatcher {
         } else {
           const beforeFragment = cursor.before()
           const afterFragment = cursor.after()
-          self.notify('split', editableBlock, content.getInnerHtmlOfFragment(beforeFragment), content.getInnerHtmlOfFragment(afterFragment), cursor)
+          self.notify(
+            'split',
+            editableBlock,
+            content.getInnerHtmlOfFragment(beforeFragment),
+            content.getInnerHtmlOfFragment(afterFragment),
+            cursor
+          )
         }
       })
 
@@ -351,11 +373,11 @@ export default class Dispatcher {
   }
 
   /**
-  * Sets up events that are triggered on a selection change.
-  *
-  * @method setupSelectionChangeListeners
-  */
-  setupSelectionChangeListeners () {
+   * Sets up events that are triggered on a selection change.
+   *
+   * @method setupSelectionChangeListeners
+   */
+  setupSelectionChangeListeners() {
     let selectionDirty = false
     let suppressSelectionChanges = false
     const selectionWatcher = this.selectionWatcher
@@ -401,27 +423,31 @@ export default class Dispatcher {
       }
 
       const self = this
-      this.document.addEventListener('mouseup', () => {
-        suppressSelectionChanges = false
+      this.document.addEventListener(
+        'mouseup',
+        () => {
+          suppressSelectionChanges = false
 
-        if (selectionDirty) {
-          selectionDirty = false
-          selectionWatcher.selectionChanged()
-        }
-      }, {
-        capture: true,
-        once: true
-      } as AddEventListenerOptions)
+          if (selectionDirty) {
+            selectionDirty = false
+            selectionWatcher.selectionChanged()
+          }
+        },
+        {
+          capture: true,
+          once: true
+        } as AddEventListenerOptions
+      )
     })
   }
 
   /**
-  * Fallback solution to support selection change events on browsers that don't
-  * support selectionChange.
-  *
-  * @method setupSelectionChangeFallbackListeners
-  */
-  setupSelectionChangeFallbackListeners () {
+   * Fallback solution to support selection change events on browsers that don't
+   * support selectionChange.
+   *
+   * @method setupSelectionChangeFallbackListeners
+   */
+  setupSelectionChangeFallbackListeners() {
     const notifySelectionBoundary = (evt: Event) => {
       const cursor = this.selectionWatcher.getFreshSelection()
       if (cursor && cursor.isSelection && cursor.isAtBeginning() && cursor.isAtEnd()) {

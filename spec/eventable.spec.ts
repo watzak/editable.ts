@@ -1,8 +1,6 @@
-
 import eventable from '../src/eventable.js'
 
 describe('eventable', function () {
-
   describe('with individual contexts', function () {
     let obj: any
 
@@ -29,7 +27,7 @@ describe('eventable', function () {
         called++
         expect(this.test).toBe('A')
       })
-      obj.notify({test: 'A'}, 'publish')
+      obj.notify({ test: 'A' }, 'publish')
       expect(called).toBe(1)
     })
   })
@@ -39,7 +37,7 @@ describe('eventable', function () {
 
     beforeEach(function () {
       obj = {}
-      eventable(obj, {test: 'context'})
+      eventable(obj, { test: 'context' })
     })
 
     it('attaches an "on" method', function () {
@@ -76,7 +74,6 @@ describe('eventable', function () {
     })
 
     describe('on()', function () {
-
       it('notifies a listener', function () {
         let called = 0
         obj.on('publish', () => {
@@ -104,8 +101,12 @@ describe('eventable', function () {
         let unpublished = 0
 
         obj.on({
-          publish: () => { published++ },
-          unpublish: () => { unpublished++ }
+          publish: () => {
+            published++
+          },
+          unpublish: () => {
+            unpublished++
+          }
         })
 
         obj.notify('publish')
@@ -118,7 +119,9 @@ describe('eventable', function () {
         let called = 0
 
         obj.on({
-          'publish unpublish': () => { called++ }
+          'publish unpublish': () => {
+            called++
+          }
         })
 
         obj.notify('publish')
@@ -129,7 +132,7 @@ describe('eventable', function () {
 
     describe('off()', function () {
       let calledA: number, calledB: number, calledC: number
-      function listenerA () {
+      function listenerA() {
         calledA++
       }
 

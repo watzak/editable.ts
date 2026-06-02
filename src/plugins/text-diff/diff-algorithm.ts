@@ -13,36 +13,42 @@ export interface DiffOperation {
  */
 export function computeDiff(oldText: string, newText: string): DiffOperation[] {
   if (oldText === newText) {
-    return [{
-      type: 'equal',
-      value: oldText,
-      oldStart: 0,
-      oldEnd: oldText.length,
-      newStart: 0,
-      newEnd: newText.length
-    }]
+    return [
+      {
+        type: 'equal',
+        value: oldText,
+        oldStart: 0,
+        oldEnd: oldText.length,
+        newStart: 0,
+        newEnd: newText.length
+      }
+    ]
   }
 
   if (oldText === '') {
-    return [{
-      type: 'insert',
-      value: newText,
-      oldStart: 0,
-      oldEnd: 0,
-      newStart: 0,
-      newEnd: newText.length
-    }]
+    return [
+      {
+        type: 'insert',
+        value: newText,
+        oldStart: 0,
+        oldEnd: 0,
+        newStart: 0,
+        newEnd: newText.length
+      }
+    ]
   }
 
   if (newText === '') {
-    return [{
-      type: 'delete',
-      value: oldText,
-      oldStart: 0,
-      oldEnd: oldText.length,
-      newStart: 0,
-      newEnd: 0
-    }]
+    return [
+      {
+        type: 'delete',
+        value: oldText,
+        oldStart: 0,
+        oldEnd: oldText.length,
+        newStart: 0,
+        newEnd: 0
+      }
+    ]
   }
 
   // Use longest common subsequence (LCS) approach
@@ -55,21 +61,25 @@ export function computeDiff(oldText: string, newText: string): DiffOperation[] {
 
   while (oldIndex < oldText.length || newIndex < newText.length) {
     // Find the next common character
-    if (lcsIndex < lcs.length &&
-        oldIndex < oldText.length &&
-        newIndex < newText.length &&
-        oldText[oldIndex] === lcs[lcsIndex] &&
-        newText[newIndex] === lcs[lcsIndex]) {
+    if (
+      lcsIndex < lcs.length &&
+      oldIndex < oldText.length &&
+      newIndex < newText.length &&
+      oldText[oldIndex] === lcs[lcsIndex] &&
+      newText[newIndex] === lcs[lcsIndex]
+    ) {
       // Common character found
       const startOld = oldIndex
       const startNew = newIndex
       let commonLength = 0
 
-      while (lcsIndex < lcs.length &&
-             oldIndex < oldText.length &&
-             newIndex < newText.length &&
-             oldText[oldIndex] === lcs[lcsIndex] &&
-             newText[newIndex] === lcs[lcsIndex]) {
+      while (
+        lcsIndex < lcs.length &&
+        oldIndex < oldText.length &&
+        newIndex < newText.length &&
+        oldText[oldIndex] === lcs[lcsIndex] &&
+        newText[newIndex] === lcs[lcsIndex]
+      ) {
         commonLength++
         oldIndex++
         newIndex++
@@ -78,11 +88,11 @@ export function computeDiff(oldText: string, newText: string): DiffOperation[] {
 
       operations.push({
         type: 'equal',
-        value: oldText.substring(startOld, (startOld + commonLength)),
+        value: oldText.substring(startOld, startOld + commonLength),
         oldStart: startOld,
-        oldEnd: (startOld + commonLength),
+        oldEnd: startOld + commonLength,
         newStart: startNew,
-        newEnd: (startNew + commonLength)
+        newEnd: startNew + commonLength
       })
     } else {
       // Handle deletions and insertions
@@ -90,14 +100,18 @@ export function computeDiff(oldText: string, newText: string): DiffOperation[] {
       const insertStart = newIndex
 
       // Collect deletions (characters in oldText not in LCS)
-      while (oldIndex < oldText.length &&
-             ((lcsIndex >= lcs.length) || (oldText[oldIndex] !== lcs[lcsIndex]))) {
+      while (
+        oldIndex < oldText.length &&
+        (lcsIndex >= lcs.length || oldText[oldIndex] !== lcs[lcsIndex])
+      ) {
         oldIndex++
       }
 
       // Collect insertions (characters in newText not in LCS)
-      while (newIndex < newText.length &&
-             ((lcsIndex >= lcs.length) || (newText[newIndex] !== lcs[lcsIndex]))) {
+      while (
+        newIndex < newText.length &&
+        (lcsIndex >= lcs.length || newText[newIndex] !== lcs[lcsIndex])
+      ) {
         newIndex++
       }
 
@@ -135,7 +149,9 @@ export function computeDiff(oldText: string, newText: string): DiffOperation[] {
 function computeLCS(str1: string, str2: string): string {
   const m = str1.length
   const n = str2.length
-  const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0))
+  const dp: number[][] = Array(m + 1)
+    .fill(null)
+    .map(() => Array(n + 1).fill(0))
 
   // Build DP table
   for (let i = 1; i <= m; i++) {

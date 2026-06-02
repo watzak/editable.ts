@@ -1,7 +1,11 @@
 import NodeIterator from '../node-iterator.js'
-import {textNode} from '../node-type.js'
+import { textNode } from '../node-type.js'
 
-export const domArray = (target: HTMLElement | HTMLElement[] | string | NodeList, doc: Document, scope?: HTMLElement): HTMLElement[] => {
+export const domArray = (
+  target: HTMLElement | HTMLElement[] | string | NodeList,
+  doc: Document,
+  scope?: HTMLElement
+): HTMLElement[] => {
   if (typeof target === 'string') {
     const container = scope || doc
     return Array.from(container.querySelectorAll(target)) as HTMLElement[]
@@ -22,11 +26,12 @@ export const createElement = (html: string, win: Window = window): HTMLElement |
   return el.firstElementChild as HTMLElement | null
 }
 
-export const closest = (elem: Node | null | undefined, selector: string): HTMLElement | undefined => {
+export const closest = (
+  elem: Node | null | undefined,
+  selector: string
+): HTMLElement | undefined => {
   if (!elem) return undefined
-  const element = elem.nodeType === Node.ELEMENT_NODE
-    ? elem as Element
-    : elem.parentElement
+  const element = elem.nodeType === Node.ELEMENT_NODE ? (elem as Element) : elem.parentElement
   return element?.closest<HTMLElement>(selector) ?? undefined
 }
 
@@ -40,29 +45,29 @@ export const getSelection = (win: Window = window): Selection | null => {
   return win.getSelection ? win.getSelection() : null
 }
 
-export const getNodes = (range: Range, nodeTypes: number[], filterFunc?: ((node: Node) => boolean) | null): Node[] => {
+export const getNodes = (
+  range: Range,
+  nodeTypes: number[],
+  filterFunc?: ((node: Node) => boolean) | null
+): Node[] => {
   const nodes: Node[] = []
   const doc = range.commonAncestorContainer.ownerDocument || document
 
-  const nodeIterator = doc.createNodeIterator(
-    range.commonAncestorContainer,
-    NodeFilter.SHOW_ALL,
-    {
-      acceptNode(node: Node): number {
-        if (
-          range.intersectsNode(node) &&
-          nodeTypes.includes(node.nodeType) &&
-          node !== range.commonAncestorContainer // Exclude the common ancestor container
-        ) {
-          if (typeof filterFunc === 'function') {
-            return filterFunc(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
-          }
-          return NodeFilter.FILTER_ACCEPT
+  const nodeIterator = doc.createNodeIterator(range.commonAncestorContainer, NodeFilter.SHOW_ALL, {
+    acceptNode(node: Node): number {
+      if (
+        range.intersectsNode(node) &&
+        nodeTypes.includes(node.nodeType) &&
+        node !== range.commonAncestorContainer // Exclude the common ancestor container
+      ) {
+        if (typeof filterFunc === 'function') {
+          return filterFunc(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
         }
-        return NodeFilter.FILTER_SKIP
+        return NodeFilter.FILTER_ACCEPT
       }
+      return NodeFilter.FILTER_SKIP
     }
-  )
+  })
 
   let currentNode: Node | null
   while ((currentNode = nodeIterator.nextNode())) {
@@ -73,11 +78,17 @@ export const getNodes = (range: Range, nodeTypes: number[], filterFunc?: ((node:
 }
 
 export const normalizeBoundaries = (range: Range): void => {
-  if (range.startContainer.compareDocumentPosition(range.endContainer) & Node.DOCUMENT_POSITION_FOLLOWING) {
+  if (
+    range.startContainer.compareDocumentPosition(range.endContainer) &
+    Node.DOCUMENT_POSITION_FOLLOWING
+  ) {
     range.setStartBefore(range.endContainer)
   }
 
-  if (range.endContainer.compareDocumentPosition(range.startContainer) & Node.DOCUMENT_POSITION_PRECEDING) {
+  if (
+    range.endContainer.compareDocumentPosition(range.startContainer) &
+    Node.DOCUMENT_POSITION_PRECEDING
+  ) {
     range.setEndAfter(range.startContainer)
   }
 }
@@ -115,11 +126,19 @@ export const splitBoundaries = (range: Range): void => {
   const endContainer = range.endContainer
   const endOffset = range.endOffset
 
-  if (isCharacterDataNode(endContainer) && endOffset > 0 && endOffset < (endContainer as Text).length) {
+  if (
+    isCharacterDataNode(endContainer) &&
+    endOffset > 0 &&
+    endOffset < (endContainer as Text).length
+  ) {
     splitDataNode(endContainer, endOffset)
   }
 
-  if (isCharacterDataNode(startContainer) && startOffset > 0 && startOffset < (startContainer as Text).length) {
+  if (
+    isCharacterDataNode(startContainer) &&
+    startOffset > 0 &&
+    startOffset < (startContainer as Text).length
+  ) {
     const newStartContainer = splitDataNode(startContainer, startOffset)
     range.setStart(newStartContainer, 0)
   }
@@ -140,7 +159,7 @@ export const toCharacterRange = (range: Range, container: Node): CharacterRange 
   const start = startRange.toString().length
   const end = start + rangeText.length
 
-  return {start, end, text: rangeText}
+  return { start, end, text: rangeText }
 }
 
 export const rangesAreEqual = (range1: Range, range2: Range): boolean => {
@@ -169,12 +188,21 @@ export interface Coordinates {
 
 export const getSelectionCoordinates = (selection: Selection): Coordinates[] => {
   const range = selection.getRangeAt(0)
-  return Array.from(range.getClientRects(), ({top, left, bottom, right, width, height}) => ({
-    top, left, bottom, right, width, height
+  return Array.from(range.getClientRects(), ({ top, left, bottom, right, width, height }) => ({
+    top,
+    left,
+    bottom,
+    right,
+    width,
+    height
   }))
 }
 
-export const createRangeFromCharacterRange = (element: Node, actualStartIndex: number, actualEndIndex: number): Range => {
+export const createRangeFromCharacterRange = (
+  element: Node,
+  actualStartIndex: number,
+  actualEndIndex: number
+): Range => {
   const doc = element.ownerDocument || document
   const walker = doc.createTreeWalker(element, NodeFilter.SHOW_TEXT, null)
   let currentIndex = 0
@@ -216,7 +244,12 @@ export const createRangeFromCharacterRange = (element: Node, actualStartIndex: n
   }
 }
 
-export function findStartExcludingWhitespace({root, startContainer, startOffset, whitespacesOnTheLeft}: {
+export function findStartExcludingWhitespace({
+  root,
+  startContainer,
+  startOffset,
+  whitespacesOnTheLeft
+}: {
   root: Node
   startContainer: Node
   startOffset: number
@@ -257,7 +290,12 @@ export function findStartExcludingWhitespace({root, startContainer, startOffset,
   }
 }
 
-export function findEndExcludingWhitespace({root, endContainer, endOffset, whitespacesOnTheRight}: {
+export function findEndExcludingWhitespace({
+  root,
+  endContainer,
+  endOffset,
+  whitespacesOnTheRight
+}: {
   root: Node
   endContainer: Node
   endOffset: number
@@ -271,13 +309,9 @@ export function findEndExcludingWhitespace({root, endContainer, endOffset, white
     // Resolve non-text nodes to their child at the given offset
     if (container.nodeType !== textNode) {
       const isFirstNode = !container.childNodes[offset - 1]
-      const child = isFirstNode
-        ? container.childNodes[offset]
-        : container.childNodes[offset - 1]
+      const child = isFirstNode ? container.childNodes[offset] : container.childNodes[offset - 1]
       if (!isFirstNode) {
-        offset = child.nodeType === textNode
-          ? (child as Text).length
-          : child.childNodes.length
+        offset = child.nodeType === textNode ? (child as Text).length : child.childNodes.length
       } else {
         offset = 0
       }
@@ -307,4 +341,3 @@ export function findEndExcludingWhitespace({root, endContainer, endOffset, white
     offset = prev.length
   }
 }
-

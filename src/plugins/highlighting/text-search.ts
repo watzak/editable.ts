@@ -5,29 +5,32 @@ export interface Match {
   marker?: HTMLElement
 }
 
-export function searchText (text: string, searchTerm: string, marker?: HTMLElement): Match[] {
+export function searchText(text: string, searchTerm: string, marker?: HTMLElement): Match[] {
   const matchMode = 'text'
   return findMatches(text, [searchTerm], matchMode, marker)
 }
 
-export function searchWord (text: string, word: string, marker?: HTMLElement): Match[] {
+export function searchWord(text: string, word: string, marker?: HTMLElement): Match[] {
   const matchMode = 'word'
   return findMatches(text, [word], matchMode, marker)
 }
 
-export function searchAllWords (text: string, words: string[], marker?: HTMLElement): Match[] {
+export function searchAllWords(text: string, words: string[], marker?: HTMLElement): Match[] {
   const matchMode = 'word'
   return findMatches(text, words, matchMode, marker)
 }
 
-function findMatches (text: string, searchTexts: string[], matchMode: 'text' | 'word', marker?: HTMLElement): Match[] {
+function findMatches(
+  text: string,
+  searchTexts: string[],
+  matchMode: 'text' | 'word',
+  marker?: HTMLElement
+): Match[] {
   if (!text || text === '') return []
   if (marker && !isElement(marker)) return []
   if (!searchTexts?.length) return []
 
-  const createRegex = matchMode === 'word'
-    ? createWordRegex
-    : createHighlightRegex
+  const createRegex = matchMode === 'word' ? createWordRegex : createHighlightRegex
 
   const regex = createRegex(searchTexts)
   const matches = [...text.matchAll(regex)]
@@ -52,7 +55,7 @@ function findMatches (text: string, searchTexts: string[], matchMode: 'text' | '
   })
 }
 
-function isElement (obj: unknown): obj is HTMLElement {
+function isElement(obj: unknown): obj is HTMLElement {
   try {
     if (!obj) return false
     if (!(obj instanceof Node)) return false
@@ -62,14 +65,16 @@ function isElement (obj: unknown): obj is HTMLElement {
     // an exception is thrown and we end up here. Testing some
     // properties that all elements have (works on IE7)
     if (!obj || typeof obj !== 'object') return false
-    const candidate = obj as {nodeType?: unknown, style?: unknown, ownerDocument?: unknown}
-    return candidate.nodeType === 1 &&
+    const candidate = obj as { nodeType?: unknown; style?: unknown; ownerDocument?: unknown }
+    return (
+      candidate.nodeType === 1 &&
       typeof candidate.style === 'object' &&
       typeof candidate.ownerDocument === 'object'
+    )
   }
 }
 
-function createHighlightRegex (words: string[] = []): RegExp {
+function createHighlightRegex(words: string[] = []): RegExp {
   const escapedWords = words.map((word) => escapeRegEx(word))
 
   const regex = `(${escapedWords.join('|')})`
@@ -92,19 +97,18 @@ function createHighlightRegex (words: string[] = []): RegExp {
 // \\u00F8-\\u00FF    ø-ÿ (Latin-1 Supplement)
 // \\u0100-\\u017F    Ā-ſ (Latin Extended-A)
 // \\u0180-\\u024F    ƀ-ɏ (Latin Extended-B)
-const letterChars = '\\u0041-\\u005A\\u0061-\\u007A\\u0030-\\u0039\\u00AA\\u00B5\\u00BA\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u00FF\\u0100-\\u017F\\u0180-\\u024F'
+const letterChars =
+  '\\u0041-\\u005A\\u0061-\\u007A\\u0030-\\u0039\\u00AA\\u00B5\\u00BA\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u00FF\\u0100-\\u017F\\u0180-\\u024F'
 
-function createWordRegex (words: string[] = []): RegExp {
+function createWordRegex(words: string[] = []): RegExp {
   const escapedWords = words.map((word) => escapeRegEx(word))
 
   // (notLetter|^)(words)(?=notLetter|$)
-  const regex = `([^${letterChars}]|^)` +
-    `(${escapedWords.join('|')})` +
-    `(?=[^${letterChars}]|$)`
+  const regex = `([^${letterChars}]|^)` + `(${escapedWords.join('|')})` + `(?=[^${letterChars}]|$)`
 
   return new RegExp(regex, 'g')
 }
 
-function escapeRegEx (s: string): string {
+function escapeRegEx(s: string): string {
   return String(s).replace(/([.*+?^=!:${}()|[\]/\\])/g, '\\$1')
 }

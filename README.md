@@ -1,317 +1,89 @@
 # editable.ts
 
-A TypeScript library that provides a friendly and browser-consistent API for `contenteditable` elements. Built for block-level rich text editing with a clean, event-driven architecture. It started as a fork of [https://github.com/livingdocsIO/editable.js](https://github.com/livingdocsIO/editable.js) and has since been modernized around TypeScript, Vitest, Vite, and typed internal APIs.
+[![npm version](https://img.shields.io/npm/v/editable.ts.svg)](https://www.npmjs.com/package/editable.ts)
+[![CI](https://github.com/watzak/editable.ts/actions/workflows/ci.yml/badge.svg)](https://github.com/watzak/editable.ts/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![bundle size](https://img.shields.io/badge/gzip%20core-~2%20KB-brightgreen)](#bundle-size)
 
-## Summary
+**A lightweight, typed API for block-level `contenteditable` editing.**
 
-**editable.ts** is a modern TypeScript rewrite of editable.js, offering a robust abstraction layer over the browser's native `contenteditable` API. It handles cross-browser inconsistencies, provides a typed event system, and enables building rich text editors with minimal boilerplate.
+editable.ts wraps the browser's native `contenteditable` with cross-browser Selection/Range handling, a typed event system, and optional highlighting — without imposing a document model. Forked from [editable.js](https://github.com/livingdocsIO/editable.js) and modernized with TypeScript, Vitest, and Vite.
 
-### Key Features
+**[Live demo](https://watzak.github.io/editable.ts/examples/)** · **[npm](https://www.npmjs.com/package/editable.ts)** · **[Migration from editable.js](docs/MIGRATION.md)** · **[Architecture](docs/ARCHITECTURE.md)**
 
-- **Cross-browser compatibility** - Abstracts away browser differences in Selection and Range APIs
-- **Event-driven architecture** - Clean pub/sub system for handling user interactions
-- **Block-based editing** - Optimized for block-level elements (paragraphs, headings, blockquotes)
-- **Selection & Cursor management** - Powerful APIs for manipulating text selections and cursor positions
-- **Highlighting system** - Built-in support for text highlighting, spellcheck, and custom markers
-- **Default behaviors** - Sensible defaults for common operations (split, merge, insert blocks)
-- **TypeScript support** - Full type definitions and modern TypeScript implementation
-- **Extensible** - Easy to customize and extend with custom event handlers
+> **Privacy:** the demo page includes a Matomo image tracker (`matomo.kamod.ch`) for anonymous usage statistics. The npm library contains no analytics.
 
-### Use Cases
+## Why editable.ts?
 
-- Rich text editors
-- Content management systems
-- Comment and annotation systems
-- Collaborative editing interfaces
-- Inline editing components
+|                  | editable.ts                       | TipTap / Lexical / ProseMirror | Raw `contenteditable` |
+| ---------------- | --------------------------------- | ------------------------------ | --------------------- |
+| Bundle (typical) | **~2 KB gzip** (core)             | 50 KB – 200 KB+                | 0 KB                  |
+| Document model   | **Your HTML/DOM**                 | Custom schema                  | Browser DOM           |
+| Learning curve   | **Low** — events + DOM            | Medium – high                  | High (browser quirks) |
+| Best for         | CMS blocks, inline edit, comments | Full rich-text apps            | Prototypes only       |
 
-Check out the [original editable.js live demo](https://livingdocsio.github.io/editable.js/) for a reference implementation (note: this is the JavaScript version, not this TypeScript fork).
+**Choose editable.ts when** you want lean block editing (paragraphs, headings, blockquotes), keep control of your HTML, and need selection/cursor APIs without shipping a full editor framework.
 
-## What is it about?
+**Choose something else when** you need collaborative CRDT editing, complex schemas, or a plug-and-play toolbar editor out of the box.
 
-A typed API that defines a friendly and browser-consistent content editable interface.
+## Features
 
-Editable is built for block level elements containing only phrasing content. This normally means `p`, `h1`-`h6`, `blockquote` etc. elements. This allows editable to be lean and mean since it is only concerned with formatting and not with layouting.
-
-We made editable.ts to support our vision of online document editing. Have a look at [livingdocs.io](http://livingdocs.io/).
-
-## Architecture Overview
-
-editable.ts follows a layered architecture that separates concerns and provides clear extension points.
-
-### High-Level Architecture
-
-```mermaid
-graph TB
-    subgraph PublicAPI["Public API Layer"]
-        Editable[Editable Class — core entry]
-        FeaturesEntry["features.ts — optional entry"]
-    end
-    
-    subgraph EventSystem["Event System Layer"]
-        Dispatcher[Dispatcher]
-        Eventable[Eventable Mixin]
-        SelectionWatcher[SelectionWatcher]
-        Keyboard[Keyboard Handler]
-    end
-    
-    subgraph CoreComponents["Core Components"]
-        Block[Block Management]
-        Content[Content Management]
-        Parser[Parser]
-        Clipboard[Clipboard Handler]
-    end
-    
-    subgraph SelectionSystem["Selection & Cursor"]
-        Cursor[Cursor]
-        Selection[Selection]
-        RangeContainer[Range Container]
-    end
-    
-    subgraph Highlighting["Highlighting System (optional)"]
-        HighlightSupport[Highlight Support]
-        MonitoredHighlighting[Monitored Highlighting]
-        Plugins[Highlighting Plugins]
-    end
-    
-    subgraph DOMAbstraction["DOM Abstraction Layer"]
-        DOMUtils[DOM Utilities]
-        ElementUtils[Element Utilities]
-        StringUtils[String Utilities]
-    end
-    
-    Editable --> Dispatcher
-    Editable --> Block
-    Editable --> Content
-    FeaturesEntry -.->|extends prototype| Editable
-    FeaturesEntry --> HighlightSupport
-    
-    Dispatcher --> Eventable
-    Dispatcher --> SelectionWatcher
-    Dispatcher --> Keyboard
-    
-    SelectionWatcher --> Cursor
-    SelectionWatcher --> Selection
-    SelectionWatcher --> RangeContainer
-    
-    Cursor --> Content
-    Cursor --> Parser
-    Selection --> Cursor
-    
-    HighlightSupport --> MonitoredHighlighting
-    MonitoredHighlighting --> Plugins
-    
-    Content --> Parser
-    Content --> DOMUtils
-    Parser --> ElementUtils
-    Block --> DOMUtils
-```
-
-### Core Components
-
-#### 1. Editable Class (`core.ts`)
-
-The main npm entry (`editable.ts`) and the lean public API: block editing, events, cursor/selection, and content extraction. Optional APIs (highlighting, monitored spellcheck overlays, text-diff) live behind a separate entry — import `editable.ts/features` once if you need those methods (they register on the same `Editable` class).
-
-**Key Responsibilities (core entry):**
-- Exposes the public API for end users
-- Manages instance-specific configuration
-- Delegates to specialized modules
-- Provides cursor/selection creation utilities
-
-**Key Methods (core entry):**
-- `add()` / `remove()` - Enable/disable editable functionality
-- `enable()` / `disable()` - Control editable state
-- `on()` / `off()` - Event subscription
-- `getSelection()` - Get current selection/cursor
-- `getContent()` - Extract clean content
-
-**Additional methods when using `editable.ts/features`:**
-- `highlight()`, `getHighlightPositions()`, `removeHighlight()`, `decorateHighlight()`
-- `setupHighlighting()`, `setupSpellcheck()`, `setupTextDiff()`
-
-#### 2. Dispatcher (`dispatcher.ts`)
-
-Central event coordination hub that bridges native DOM events to the internal event system.
-
-**Event Flow:**
-```
-Native DOM Event
-    ↓
-Dispatcher (setupDocumentListener)
-    ↓
-Event Handler (filter by editable block)
-    ↓
-SelectionWatcher (get current selection/cursor)
-    ↓
-Dispatcher.notify() (emit internal event)
-    ↓
-Event Handlers (user-defined callbacks)
-```
-
-#### 3. Event System (`eventable.ts`)
-
-Lightweight publish/subscribe mixin implementing the Observer pattern.
-
-**API:**
-- `on(event, handler)` - Subscribe to events
-- `off(event, handler)` - Unsubscribe from events
-- `notify(event, ...args)` - Publish events
-
-#### 4. Selection & Cursor System
-
-**SelectionWatcher** - Monitors browser Selection API and converts to internal Cursor/Selection objects
-
-**Cursor** - Represents a collapsed selection (cursor position) with capabilities for:
-- Position querying (beginning, end, line detection)
-- Content insertion/manipulation
-- Tag detection (bold, italic, links, etc.)
-- Coordinate calculations
-
-**Selection** - Extends Cursor, represents a non-collapsed selection with additional capabilities:
-- Text/HTML extraction
-- Selection wrapping (links, formatting)
-- Range validation
-- Multiple rect support
-
-#### 5. Block Management (`block.ts`)
-
-Manages the lifecycle and state of individual editable block elements.
-
-#### 6. Content Management (`content.ts`)
-
-Handles all content manipulation, extraction, and normalization:
-- HTML normalization
-- Content extraction (removes internal markers)
-- Fragment creation
-- Tag wrapping/unwrapping
-
-#### 7. Highlighting System
-
-Comprehensive highlighting support including:
-- Spellcheck integration
-- Text search highlighting
-- Range-based highlighting
-- Highlight persistence during editing
-- Custom highlight types
-- Text diff overlays for inserted and deleted content
-
-### TypeScript Notes
-
-The current codebase uses TypeScript types as architectural boundaries rather than just annotations:
-
-- `src/event-types.ts` centralizes public and internal event payloads
-- `src/plugin-types.ts` defines configuration contracts for highlighting, spellcheck, and text diff
-- `src/dom-compat.ts` isolates legacy DOM/jQuery-like compatibility helpers
-
-This keeps browser-facing code flexible while making the main editing pipeline easier to evolve safely.
-
-### Data Flow Examples
-
-#### User Types Enter Key
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Browser
-    participant Dispatcher
-    participant Keyboard
-    participant SelectionWatcher
-    participant DefaultBehavior
-    
-    User->>Browser: Presses Enter
-    Browser->>Dispatcher: keydown event
-    Dispatcher->>Keyboard: dispatchKeyEvent()
-    Keyboard->>Dispatcher: 'enter' event
-    Dispatcher->>SelectionWatcher: getFreshRange()
-    SelectionWatcher-->>Dispatcher: Cursor object
-    Dispatcher->>DefaultBehavior: notify('split'/'insert')
-    DefaultBehavior->>Browser: DOM updated
-    Browser-->>User: Cursor positioned
-```
-
-#### User Selects Text
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Browser
-    participant Dispatcher
-    participant SelectionWatcher
-    
-    User->>Browser: Selects text
-    Browser->>Dispatcher: selectionchange event
-    Dispatcher->>SelectionWatcher: selectionChanged()
-    SelectionWatcher->>SelectionWatcher: getFreshSelection()
-    SelectionWatcher-->>Dispatcher: Selection object
-    Dispatcher->>Dispatcher: notify('selection')
-    Dispatcher-->>User: User handlers execute
-```
-
-For a detailed technical deep-dive, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+- **Cross-browser compatibility** — abstracts Selection and Range API differences
+- **Event-driven architecture** — typed pub/sub for focus, selection, split, merge, paste, and more
+- **Block-based editing** — optimized for `p`, `h1`–`h6`, `blockquote`, and other phrasing-content blocks
+- **Selection & cursor APIs** — coordinates, insertion, wrapping, tag detection
+- **Optional features entry** — highlighting, spellcheck overlays, text diff (tree-shakeable)
+- **Sensible defaults** — split, merge, and insert blocks with `defaultBehavior: true`
+- **TypeScript-first** — full `.d.ts` exports, typed event payloads
 
 ## Installation
 
-Via npm:
-
 ```shell
-npm install --save editable.ts
+npm install editable.ts
 ```
-
-You can either `import` the module or find a prebuilt file in the npm bundle `dist/editable.umd.cjs`.
 
 ```typescript
 import { Editable } from 'editable.ts'
 ```
 
-### Paket-Exports: Core vs. Features
+Or use the prebuilt UMD bundle: `dist/editable.umd.cjs`.
 
-| Import | Zweck |
-| ------ | ----- |
-| `editable.ts` | Schlanker Einstieg: `Editable`, Events, Cursor, Content — **ohne** statisches Laden von Highlighting-/TextDiff-Implementierung |
-| `editable.ts/features` | Zusätzliche Methoden auf derselben `Editable`-Klasse: `highlight`, `setupHighlighting`, `setupSpellcheck`, `setupTextDiff`, … (einmal importieren, Side-Effect registriert die Prototyp-Methoden) |
+### Package exports: core vs. features
 
-Typen wie `HighlightOptions` oder `TextDiffOptions` werden aus dem Core-Modul weiterhin type-only re-exportiert (`export type { … } from 'editable.ts'`), damit bestehende Typ-Imports funktionieren.
+| Import                 | Purpose                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| `editable.ts`          | Lean entry: `Editable`, events, cursor, content — **without** highlighting/text-diff code |
+| `editable.ts/features` | Same class plus `highlight`, `setupHighlighting`, `setupSpellcheck`, `setupTextDiff`, …   |
+
+Types such as `HighlightOptions` and `TextDiffOptions` are re-exported from the core entry for convenience:
 
 ```typescript
-// Nur Kern-Editor (kleineres Bundle bei Tree-Shaking)
+import { Editable, type HighlightOptions } from 'editable.ts'
+
+// Core only (smaller bundle)
 import { Editable } from 'editable.ts'
 
-// Oder: gleiche Klasse inkl. Highlighting / Spellcheck-Overlays / Text-Diff
+// With highlighting / spellcheck overlays / text diff
 import { Editable } from 'editable.ts/features'
 ```
 
-### Dateigröße (Bundle)
+### Bundle size
 
-Die npm-Paketinhalte umfassen das ESM-Build unter `lib/` und optional das vorgebaute UMD-Bundle unter `dist/`.
+| Artifact                 | Size (approx.)       | Notes                                                      |
+| ------------------------ | -------------------- | ---------------------------------------------------------- |
+| `lib/core.js` (ESM)      | ~8 KB (~2 KB gzip)   | Core entry; bundlers tree-shake further modules            |
+| `lib/features.js`        | ~3 KB (~1 KB gzip)   | Optional entry; pulls in highlight/text-diff code          |
+| `dist/editable.umd.cjs`  | ~58 KB (~17 KB gzip) | Single file for `<script>` / legacy bundlers               |
+| `lib/` (total, unpacked) | ~1 MB                | All `.js` + `.d.ts`; bundlers include only what you import |
 
-| Artefakt | Größe (ca.) | Hinweis |
-| -------- | ------------- | ------- |
-| `dist/editable.umd.cjs` | ~58 KB (~17 KB gzip) | Einzeldatei für `<script>` / Legacy-Bundler; Werte nach `npm run build` |
-| `lib/core.js` (ESM-Einstieg) | ~8 KB (~2 KB gzip) | Kern-API; weitere Logik liegt in weiteren Modulen unter `lib/` |
-| `lib/features.js` | ~3 KB (~1 KB gzip) | Nur der optionale Einstieg; zieht Highlighting/TextDiff-Code erst bei diesem Import |
-| `lib/` (gesamt, ungepackt) | ~1 MB | Alle `.js`- und `.d.ts`-Dateien; Bundler tree-shaken typischerweise nur genutzte Teile |
+Verify locally after `npm run build`:
 
-Die exakten Byte-Werte ändern sich mit der Version. Nach einem Build kannst du sie lokal mit `ls -la dist/ lib/core.js` bzw. `gzip -c dist/editable.umd.cjs | wc -c` prüfen.
-
-## Quick Start
-
-### Basic Usage
-
-To make an element editable:
-
-```typescript
-import { Editable } from 'editable.ts'
-
-// Create an instance
-const editable = new Editable()
-
-// Make an element editable
-const element = document.querySelector('.my-editable')
-editable.add(element)
+```shell
+ls -la dist/ lib/core.js
+gzip -c dist/editable.umd.cjs | wc -c
 ```
 
-### TypeScript Example
+## Quick start
 
 ```typescript
 import { Editable } from 'editable.ts'
@@ -324,239 +96,159 @@ const editable = new Editable({
   singleQuotes: ['‘', '’']
 })
 
-// Add editable functionality to elements
-editable.add('.editable-block')
+const element = document.querySelector('.my-editable')
+editable.add(element)
 ```
 
 ## Examples
 
-The interactive demo is published at [GitHub Pages](https://watzak.github.io/editable.ts/examples/). **Privacy:** that page includes a Matomo image tracker (requests to `matomo.kamod.ch`) for anonymous usage statistics. The library code published to npm does not contain analytics or tracking.
+### Selection toolbar (vanilla DOM)
 
-### Selection Changes with Toolbar
-
-In a `selection` event you get the editable element that triggered the event as well as a selection object. Through the selection object you can get information about the selection like coordinates or the text it contains and you can manipulate the selection.
-
-In the following example we show a toolbar on top of the selection whenever the user has selected something inside of an editable element.
+Show a floating toolbar when the user selects text:
 
 ```typescript
-editable.on('selection', (editableElement: HTMLElement, selection: Selection | null) => {
+const toolbar = document.getElementById('toolbar')!
+
+editable.on('selection', (_element, selection) => {
   if (!selection) {
-    toolbar.hide()
+    toolbar.hidden = true
     return
   }
 
-  // Get coordinates relative to the document (suited for absolutely positioned elements)
   const coords = selection.getCoordinates()
+  const toolbarHeight = toolbar.offsetHeight
+  const toolbarWidth = toolbar.offsetWidth
 
-  // Position toolbar
-  const top = coords.top - toolbar.outerHeight()
-  const left = coords.left + (coords.width / 2) - (toolbar.outerWidth() / 2)
-  toolbar.css({top, left}).show()
+  toolbar.style.top = `${coords.top - toolbarHeight}px`
+  toolbar.style.left = `${coords.left + coords.width / 2 - toolbarWidth / 2}px`
+  toolbar.hidden = false
 })
 ```
 
-### Cursor Manipulation
-
-Create and manipulate cursors programmatically:
+### Cursor manipulation
 
 ```typescript
-// Get current cursor/selection
 const cursor = editable.getSelection()
 
-if (cursor && cursor.isCursor) {
-  // Check if cursor is at beginning of block
+if (cursor?.isCursor) {
   if (cursor.isAtBeginning()) {
     console.log('Cursor is at the beginning')
   }
 
-  // Insert text at cursor position
   cursor.insert('Hello, World!')
 
-  // Create cursor at specific position
   const newCursor = editable.createCursor(element, 'end')
   newCursor?.insertAfter('<strong>Bold text</strong>')
 }
 ```
 
-### Content Extraction
-
-Extract clean content from editable elements:
+### Content extraction
 
 ```typescript
-// Get clean HTML content (removes internal markers)
 const content = editable.getContent(element)
-console.log(content) // Clean HTML string
 
-// Get selection text
 const selection = editable.getSelection(element)
-if (selection && selection.isSelection) {
-  const selectedText = selection.text()
-  const selectedHtml = selection.html()
-  console.log('Selected text:', selectedText)
-  console.log('Selected HTML:', selectedHtml)
+if (selection?.isSelection) {
+  console.log(selection.text(), selection.html())
 }
 ```
 
-### Event Handling
-
-Handle multiple events with a clean API:
+### Event handling
 
 ```typescript
-// Handle focus events
-editable.on('focus', (element: HTMLElement) => {
-  console.log('Element focused:', element)
-})
+editable.on('focus', (element) => console.log('focused', element))
+editable.on('change', (element) => console.log('changed', element))
 
-// Handle content changes
-editable.on('change', (element: HTMLElement) => {
-  console.log('Content changed in:', element)
-  // Auto-save, validation, etc.
-})
-
-// Handle block splits (Enter key in middle of block)
-editable.on('split', (element: HTMLElement, before: string, after: string, cursor: Cursor) => {
+editable.on('split', (element, before, after, cursor) => {
   console.log('Block split:', { before, after, cursor })
-  // Custom split behavior
 })
 
-// Handle block merges (Backspace/Delete at boundaries)
-editable.on('merge', (element: HTMLElement, direction: 'before' | 'after', cursor: Cursor) => {
+editable.on('merge', (element, direction, cursor) => {
   console.log('Blocks merged:', { direction, cursor })
-  // Custom merge behavior
 })
 ```
 
 ### Highlighting
 
-Add text highlighting and spellcheck. **Import the feature entry** (`editable.ts/features`) so these methods exist on `Editable`:
+Import the features entry so these methods exist on `Editable`:
 
 ```typescript
 import { Editable } from 'editable.ts/features'
 
 const editable = new Editable()
-// … editable.add(element) etc.
+editable.add(element)
 
-// Highlight specific text
-const startIndex = editable.highlight({
+editable.highlight({
   editableHost: element,
   text: 'search term',
   highlightId: 'search-1',
   type: 'search'
 })
 
-// Highlight specific range
-editable.highlight({
-  editableHost: element,
-  text: 'important',
-  highlightId: 'important-1',
-  textRange: { start: 10, end: 18 },
-  type: 'comment'
-})
-
-// Setup spellcheck
 editable.setupSpellcheck({
   throttle: 300,
-  spellcheckService: (text: string, callback) => {
-    // Your spellcheck service
-    callback(checkSpelling(text))
-  }
+  spellcheckService: (text, callback) => callback(checkSpelling(text))
 })
 
-// Setup text diff markers
-editable.setupTextDiff({
-  checkOnInit: true,
-  throttle: 0
-})
+editable.setupTextDiff({ checkOnInit: true, throttle: 0 })
 
-// Remove highlight
-editable.removeHighlight({
-  editableHost: element,
-  highlightId: 'search-1'
-})
+editable.removeHighlight({ editableHost: element, highlightId: 'search-1' })
 ```
 
-### Custom Event Handlers
-
-Override default behaviors:
+### Custom behavior
 
 ```typescript
-// Disable default behavior and implement custom
-const editable = new Editable({
-  defaultBehavior: false
-})
+const editable = new Editable({ defaultBehavior: false })
 
-// Custom Enter handling via semantic events
-editable.on('insert', (element: HTMLElement, direction, cursor) => {
-  console.log('Insert requested:', direction)
+editable.on('insert', (element, direction, cursor) => {
   insertCustomBlock(element, direction, cursor)
 })
 ```
 
-## Events Overview
+## Events
 
-editable.ts emits a comprehensive set of events for all user interactions:
+### Core
 
-### Core Events
+| Event       | When                            |
+| ----------- | ------------------------------- |
+| `focus`     | Editable element receives focus |
+| `blur`      | Editable element loses focus    |
+| `selection` | Text is selected                |
+| `cursor`    | Cursor position changes         |
+| `change`    | Content changed                 |
 
-- **focus**  
-  Fired when an editable element gets focus.
+### Content modification
 
-- **blur**  
-  Fired when an editable element loses focus.
+| Event     | When                                                 |
+| --------- | ---------------------------------------------------- |
+| `insert`  | Enter at beginning or end of block                   |
+| `split`   | Enter in the middle of a block                       |
+| `merge`   | Backspace at start or Delete at end of block         |
+| `newline` | Shift+Enter                                          |
+| `switch`  | Arrow key at block boundary (move to adjacent block) |
 
-- **selection**  
-  Fired when the user selects some text inside an editable element.
+### Clipboard & highlighting
 
-- **cursor**  
-  Fired when the cursor position changes.
+| Event               | When                          |
+| ------------------- | ----------------------------- |
+| `clipboard`         | Copy, cut, or paste           |
+| `paste`             | Paste operation               |
+| `spellcheckUpdated` | Spellcheck highlights updated |
 
-- **change**  
-  Fired when the user has made a change.
+## API reference
 
-### Content Modification Events
+| Module                                 | Description                                          |
+| -------------------------------------- | ---------------------------------------------------- |
+| [core.ts](src/core.ts)                 | Main `Editable` class                                |
+| [features.ts](src/features.ts)         | Optional highlighting / spellcheck / text-diff entry |
+| [cursor.ts](src/cursor.ts)             | Cursor API                                           |
+| [selection.ts](src/selection.ts)       | Selection API                                        |
+| [event-types.ts](src/event-types.ts)   | Typed event payloads                                 |
+| [plugin-types.ts](src/plugin-types.ts) | Highlight and text-diff types                        |
 
-- **insert**  
-  Fired when the user presses `ENTER` at the beginning or end of an editable (For example you can insert a new paragraph after the element if this happens).
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a technical deep-dive.
 
-- **split**  
-  Fired when the user presses `ENTER` in the middle of an element.
-
-- **merge**  
-  Fired when the user pressed `FORWARD DELETE` at the end or `BACKSPACE` at the beginning of an element.
-
-- **newline**  
-  Fired when the user presses `SHIFT+ENTER` to insert a newline.
-
-- **switch**  
-  Fired when the user pressed an `ARROW KEY` at the top or bottom so that you may want to set the cursor into the preceding or following element.
-
-### Clipboard Events
-
-- **clipboard**  
-  Fired for `copy`, `cut` and `paste` events.
-
-- **paste**  
-  Fired specifically on paste operations.
-
-### Highlighting Events
-
-- **spellcheckUpdated**  
-  Fired when the spellcheckService has updated the spellcheck highlights.
-
-## API Reference
-
-For detailed API documentation, see the source files:
-
-- **[core.ts](src/core.ts)** - Main `Editable` class (npm entry `editable.ts`; lean bundle path)
-- **[features.ts](src/features.ts)** - Optional npm entry `editable.ts/features`: adds highlighting, spellcheck overlays, and text-diff APIs on `Editable`
-- **[cursor.ts](src/cursor.ts)** - Cursor manipulation API
-- **[selection.ts](src/selection.ts)** - Selection manipulation API
-- **[dispatcher.ts](src/dispatcher.ts)** - Event system internals
-- **[create-default-behavior.ts](src/create-default-behavior.ts)** - Default behavior implementation
-
-### Type Definitions
-
-`HighlightOptions`, `TextRange`, and `TextDiffOptions` are declared in [`plugin-types.ts`](src/plugin-types.ts) and re-exported from the core module for convenience.
+### Config types
 
 ```typescript
 interface EditableConfig {
@@ -568,74 +260,26 @@ interface EditableConfig {
   quotes?: string[]
   singleQuotes?: string[]
 }
-
-interface HighlightOptions {
-  editableHost: HTMLElement
-  text: string
-  highlightId: string
-  textRange?: { start: number; end: number }
-  raiseEvents?: boolean
-  type?: string
-}
-
-interface TextDiffOptions {
-  enabled?: boolean
-  checkOnInit?: boolean
-  checkOnFocus?: boolean
-  markerDeleted?: string
-  markerInserted?: string
-  throttle?: number
-}
 ```
 
 ## Development
 
-### Setup
-
 ```bash
-# Install node dependencies
 npm install
+npm start          # demo (Vite dev server)
+npm test           # Vitest + lint + format
+npm run build      # lib/ + dist/ + demo bundle
 ```
 
-### Development Tasks
+See [CONTRIBUTING.md](CONTRIBUTING.md) for pull request guidelines.
 
-```bash
-# Development server with demo app (Vite dev server)
-npm start
+**Requirements:** Node.js >= 22, npm >= 11
 
-# Run tests (Vitest)
-npm test
+## Related projects
 
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run tests with interactive UI
-npm run test:ui
-
-# TypeScript/JavaScript linting
-npm run lint
-
-# Build editable.ts (TypeScript → lib/, then bundle → dist/)
-npm run build
-
-# Build TypeScript only
-npm run build:ts
-
-# Build library bundle only
-npm run build:dist
-
-# Build examples only
-npm run build:docs
-```
-
-### Requirements
-
-- Node.js >= 22
-- npm >= 11
+- [editable.js](https://github.com/livingdocsIO/editable.js) — original JavaScript library (see [migration guide](docs/MIGRATION.md))
+- [livingdocs.io](https://livingdocs.io/) — online document editing platform
 
 ## License
 
-editable.ts is licensed under the [MIT License](LICENSE).
+[MIT License](LICENSE)

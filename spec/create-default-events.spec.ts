@@ -1,19 +1,17 @@
-
-import {createRange} from '../src/util/dom.js'
+import { createRange } from '../src/util/dom.js'
 
 import Cursor from '../src/cursor.js'
-import {Editable} from '../src/core.js'
+import { Editable } from '../src/core.js'
 
 describe('Default Events', function () {
-
   // create a Cursor object and set the selection to it
-  function createCursor (elem, range) {
+  function createCursor(elem, range) {
     const cursor = new Cursor(elem, range)
     cursor.setVisibleSelection()
     return cursor
   }
 
-  function createRangeAtEnd (node) {
+  function createRangeAtEnd(node) {
     const range = createRange()
     range.selectNodeContents(node)
     range.collapse(false)
@@ -21,10 +19,10 @@ describe('Default Events', function () {
   }
 
   // register one listener per test
-  function on (editable, eventName, func) {
+  function on(editable, eventName, func) {
     // off() // make sure the last listener is unregistered
-    const obj = {calls: 0}
-    function proxy () {
+    const obj = { calls: 0 }
+    function proxy() {
       obj.calls += 1
       func.apply(this, arguments)
     }
@@ -33,7 +31,6 @@ describe('Default Events', function () {
   }
 
   describe('for editable', function () {
-
     describe('on focus', function () {
       let focus, blur, elem, editable
 

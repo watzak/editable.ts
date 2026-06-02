@@ -13,4 +13,3 @@ export const documentNode = 9
 export const documentTypeNode = 10
 export const documentFragmentNode = 11
 export const notationNode = 12
-

@@ -1,8 +1,8 @@
 import * as string from './util/string.js'
 import * as nodeType from './node-type.js'
 import config from './config.js'
-import {closest} from './util/dom.js'
-import {unwrapElement, type MaybeWrapped} from './dom-compat.js'
+import { closest } from './util/dom.js'
+import { unwrapElement, type MaybeWrapped } from './dom-compat.js'
 
 /**
  * Parser and DOM traversal helpers used throughout the editor core.
@@ -15,10 +15,14 @@ import {unwrapElement, type MaybeWrapped} from './dom-compat.js'
  * @param {DOM Node}
  * @return {DOM Node}
  */
-export function getHost (node: MaybeWrapped<Node>): HTMLElement | null {
+export function getHost(node: MaybeWrapped<Node>): HTMLElement | null {
   node = unwrapElement(node)
   // Check if the node itself is an editable element
-  if (node && (node as Element).classList && (node as Element).classList.contains(config.editableClass)) {
+  if (
+    node &&
+    (node as Element).classList &&
+    (node as Element).classList.contains(config.editableClass)
+  ) {
     return node as HTMLElement
   }
   const result = closest(node, `.${config.editableClass}`)
@@ -34,7 +38,7 @@ export function getHost (node: MaybeWrapped<Node>): HTMLElement | null {
  * @method getNodeIndex
  * @param {HTMLElement}
  */
-export function getNodeIndex (node: Node): number {
+export function getNodeIndex(node: Node): number {
   let index = 0
   let currentNode: Node | null = node.previousSibling
   while (currentNode !== null) {
@@ -51,7 +55,7 @@ export function getNodeIndex (node: Node): number {
  * @method isVoid
  * @param {HTMLElement}
  */
-export function isVoid (node: Node): boolean {
+export function isVoid(node: Node): boolean {
   const childNodes = Array.from(node.childNodes)
   for (const child of childNodes) {
     if (child.nodeType === nodeType.textNode && !isVoidTextNode(child)) {
@@ -70,7 +74,7 @@ export function isVoid (node: Node): boolean {
  * @method isVoidTextNode
  * @param {HTMLElement}
  */
-export function isVoidTextNode (node: Node): boolean {
+export function isVoidTextNode(node: Node): boolean {
   return node.nodeType === nodeType.textNode && !node.nodeValue
 }
 
@@ -80,11 +84,11 @@ export function isVoidTextNode (node: Node): boolean {
  * @method isWhitespaceOnly
  * @param {HTMLElement}
  */
-export function isWhitespaceOnly (node: Node): boolean {
+export function isWhitespaceOnly(node: Node): boolean {
   return node.nodeType === nodeType.textNode && lastOffsetWithContent(node) === 0
 }
 
-export function isLinebreak (node: Node): boolean {
+export function isLinebreak(node: Node): boolean {
   return node.nodeType === nodeType.elementNode && (node as Element).tagName === 'BR'
 }
 
@@ -96,7 +100,7 @@ export function isLinebreak (node: Node): boolean {
  * @method isWhitespaceOnly
  * @param {HTMLElement}
  */
-export function lastOffsetWithContent (elem: Node): number {
+export function lastOffsetWithContent(elem: Node): number {
   if (elem.nodeType === nodeType.textNode) {
     const nodeValue = elem.nodeValue
     if (!nodeValue) return 0
@@ -104,16 +108,18 @@ export function lastOffsetWithContent (elem: Node): number {
   }
 
   let lastOffset = 0
-  Array.from(elem.childNodes).reverse().every((node, index, nodes) => {
-    if (isWhitespaceOnly(node) || isLinebreak(node)) return true
+  Array.from(elem.childNodes)
+    .reverse()
+    .every((node, index, nodes) => {
+      if (isWhitespaceOnly(node) || isLinebreak(node)) return true
 
-    lastOffset = nodes.length - index
-    return false
-  })
+      lastOffset = nodes.length - index
+      return false
+    })
   return lastOffset
 }
 
-export function isBeginningOfHost (host: Node, container: Node, offset: number): boolean {
+export function isBeginningOfHost(host: Node, container: Node, offset: number): boolean {
   if (container === host) return isStartOffset(container, offset)
 
   if (isStartOffset(container, offset)) {
@@ -128,7 +134,7 @@ export function isBeginningOfHost (host: Node, container: Node, offset: number):
   return false
 }
 
-export function isEndOfHost (host: Node, container: Node, offset: number): boolean {
+export function isEndOfHost(host: Node, container: Node, offset: number): boolean {
   if (container === host) return isEndOffset(container, offset)
 
   if (isEndOffset(container, offset)) {
@@ -143,7 +149,7 @@ export function isEndOfHost (host: Node, container: Node, offset: number): boole
   return false
 }
 
-export function isStartOffset (container: Node, offset: number): boolean {
+export function isStartOffset(container: Node, offset: number): boolean {
   if (container.nodeType === nodeType.textNode) return offset === 0
 
   if (container.childNodes.length === 0) return true
@@ -154,12 +160,13 @@ export function isStartOffset (container: Node, offset: number): boolean {
     firstChild &&
     firstChild.nodeType === nodeType.elementNode &&
     (firstChild as Element).getAttribute('data-editable') === 'remove'
-  ) return true
+  )
+    return true
 
   return container.childNodes[offset] === container.firstChild
 }
 
-export function isEndOffset (container: Node, offset: number): boolean {
+export function isEndOffset(container: Node, offset: number): boolean {
   if (container.nodeType === nodeType.textNode) return offset === (container as Text).length
 
   if (container.childNodes.length === 0) return true
@@ -169,7 +176,7 @@ export function isEndOffset (container: Node, offset: number): boolean {
   return false
 }
 
-export function isTextEndOfHost (host: Node, container: Node, offset: number): boolean {
+export function isTextEndOfHost(host: Node, container: Node, offset: number): boolean {
   if (container === host) return isTextEndOffset(container, offset)
 
   if (isTextEndOffset(container, offset)) {
@@ -184,7 +191,7 @@ export function isTextEndOfHost (host: Node, container: Node, offset: number): b
   return false
 }
 
-export function isTextEndOffset (container: Node, offset: number): boolean {
+export function isTextEndOffset(container: Node, offset: number): boolean {
   if (container.nodeType === nodeType.textNode) {
     const nodeValue = container.nodeValue
     if (!nodeValue) return offset === 0
@@ -197,7 +204,7 @@ export function isTextEndOffset (container: Node, offset: number): boolean {
   return offset >= lastOffsetWithContent(container)
 }
 
-export function isSameNode (target: Node, source: Node): boolean {
+export function isSameNode(target: Node, source: Node): boolean {
   let i, len, attr
 
   if (target.nodeType !== source.nodeType) return false
@@ -224,16 +231,14 @@ export function isSameNode (target: Node, source: Node): boolean {
  * @param  {HTMLElement} container The container to iterate on.
  * @return {HTMLElement}           The deepest last child in the container.
  */
-export function lastChild (container: Node): Node {
-  return container.lastChild
-    ? lastChild(container.lastChild)
-    : container
+export function lastChild(container: Node): Node {
+  return container.lastChild ? lastChild(container.lastChild) : container
 }
 
 /**
  * Backward-compatible alias for `lastChild()`.
  */
-export function latestChild (container: Node): Node {
+export function latestChild(container: Node): Node {
   console.warn('editable.ts: Using obsolete function parser.latestCild(), use lastChild() instead')
   return lastChild(container)
 }
@@ -246,17 +251,19 @@ export function latestChild (container: Node): Node {
  * @param  {HTMLElement} DOM node.
  * @return {Boolean}
  */
-export function isDocumentFragmentWithoutChildren (fragment: Node | null | undefined): boolean {
-  return !!(fragment &&
+export function isDocumentFragmentWithoutChildren(fragment: Node | null | undefined): boolean {
+  return !!(
+    fragment &&
     fragment.nodeType === nodeType.documentFragmentNode &&
-    fragment.childNodes.length === 0)
+    fragment.childNodes.length === 0
+  )
 }
 
 /**
  * Determine if an element behaves like an inline element.
  */
-export function isInlineElement (window: Window, element: HTMLElement): boolean {
-  const legacyElement = element as HTMLElement & {currentStyle?: CSSStyleDeclaration}
+export function isInlineElement(window: Window, element: HTMLElement): boolean {
+  const legacyElement = element as HTMLElement & { currentStyle?: CSSStyleDeclaration }
   const styles = legacyElement.currentStyle || window.getComputedStyle(element, '')
   const display = styles.display
   switch (display) {

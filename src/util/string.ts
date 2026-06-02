@@ -59,19 +59,19 @@ export function browserEscapeHtml(str: string): string {
   return div.innerHTML
 }
 
-export function replaceLast(text: string | null | undefined, searchValue: string | null | undefined, replaceValue: string | null | undefined): string {
+export function replaceLast(
+  text: string | null | undefined,
+  searchValue: string | null | undefined,
+  replaceValue: string | null | undefined
+): string {
   if (!text) return ''
   text = `${text}`
   if (!searchValue || replaceValue == null) return text
   const lastOccurrenceIndex = text.lastIndexOf(searchValue)
   if (lastOccurrenceIndex === -1) return text
-  return `${
-    text.slice(0, lastOccurrenceIndex)
-  }${
-    replaceValue
-  }${
-    text.slice(lastOccurrenceIndex + searchValue.length)
-  }`
+  return `${text.slice(0, lastOccurrenceIndex)}${replaceValue}${text.slice(
+    lastOccurrenceIndex + searchValue.length
+  )}`
 }
 
 export function endsWithSingleSpace(text: string): boolean {

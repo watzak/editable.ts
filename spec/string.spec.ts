@@ -1,9 +1,7 @@
-import {escapeHtml} from '../src/util/string.js'
+import { escapeHtml } from '../src/util/string.js'
 
 describe('string util', function () {
-
   describe('escapeHtml()', function () {
-
     it('escapes <, > and &', function () {
       expect(escapeHtml('<>&')).toBe('&lt;&gt;&amp;')
     })

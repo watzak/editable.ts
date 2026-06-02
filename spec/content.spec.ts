@@ -1,18 +1,26 @@
-
-import {createElement, createRange} from '../src/util/dom.js'
+import { createElement, createRange } from '../src/util/dom.js'
 
 import * as content from '../src/content.js'
 import * as rangeSaveRestore from '../src/range-save-restore.js'
 
 describe('Content', function () {
-
   describe('normalizeTags()', function () {
-    const plain = createElement('<div>Plain <strong>text</strong><strong>block</strong> example snippet</div>')
-    const plainWithSpace = createElement('<div>Plain <strong>text</strong> <strong>block</strong> example snippet</div>')
-    const nested = createElement('<div>Nested <strong><em>text</em></strong><strong><em>block</em></strong> example snippet</div>')
-    const nestedMixed = createElement('<div>Nested <strong>and mixed <em>text</em></strong><strong><em>block</em> <em>examples</em></strong> snippet</div>')
+    const plain = createElement(
+      '<div>Plain <strong>text</strong><strong>block</strong> example snippet</div>'
+    )
+    const plainWithSpace = createElement(
+      '<div>Plain <strong>text</strong> <strong>block</strong> example snippet</div>'
+    )
+    const nested = createElement(
+      '<div>Nested <strong><em>text</em></strong><strong><em>block</em></strong> example snippet</div>'
+    )
+    const nestedMixed = createElement(
+      '<div>Nested <strong>and mixed <em>text</em></strong><strong><em>block</em> <em>examples</em></strong> snippet</div>'
+    )
     const consecutiveNewLines = createElement('<div>Consecutive<br><br>new lines</div>')
-    const emptyTags = createElement('<div>Example with <strong>empty <em></em>nested</strong><br>tags</div>')
+    const emptyTags = createElement(
+      '<div>Example with <strong>empty <em></em>nested</strong><br>tags</div>'
+    )
 
     it('works with plain block', function () {
       const expected = createElement('<div>Plain <strong>textblock</strong> example snippet</div>')
@@ -29,14 +37,18 @@ describe('Content', function () {
     })
 
     it('works with nested blocks', function () {
-      const expected = createElement('<div>Nested <strong><em>textblock</em></strong> example snippet</div>')
+      const expected = createElement(
+        '<div>Nested <strong><em>textblock</em></strong> example snippet</div>'
+      )
       const actual = nested.cloneNode(true)
       content.normalizeTags(actual)
       expect(actual.innerHTML).toBe(expected.innerHTML)
     })
 
     it('works with nested blocks that mix other tags', function () {
-      const expected = createElement('<div>Nested <strong>and mixed <em>textblock</em> <em>examples</em></strong> snippet</div>')
+      const expected = createElement(
+        '<div>Nested <strong>and mixed <em>textblock</em> <em>examples</em></strong> snippet</div>'
+      )
       const actual = nestedMixed.cloneNode(true)
       content.normalizeTags(actual)
       expect(actual.innerHTML).toBe(expected.innerHTML)
@@ -50,7 +62,9 @@ describe('Content', function () {
     })
 
     it('should remove empty tags and preserve new lines', function () {
-      const expected = createElement('<div>Example with <strong>empty nested</strong><br>tags</div>')
+      const expected = createElement(
+        '<div>Example with <strong>empty nested</strong><br>tags</div>'
+      )
       const actual = emptyTags.cloneNode(true)
       content.normalizeTags(actual)
       expect(actual.innerHTML).toBe(expected.innerHTML)
@@ -190,7 +204,11 @@ describe('Content', function () {
       const test = createElement('<div><span class="foo"><span class="test">a</span></span></div>')
       range.setStart(test, 0)
       range.setEnd(test, 1)
-      const tags = content.getTagsByNameAndAttributes(test, range, createElement('<span class="foo">'))
+      const tags = content.getTagsByNameAndAttributes(
+        test,
+        range,
+        createElement('<span class="foo">')
+      )
       expect(content.getTagNames(tags)).toEqual(['SPAN'])
     })
 
@@ -198,7 +216,11 @@ describe('Content', function () {
       const test = createElement('<div><span class="foo"><span class="foo">a</span></span></div>')
       range.setStart(test, 0)
       range.setEnd(test, 1)
-      const tags = content.getTagsByNameAndAttributes(test, range, createElement('<span class="foo">'))
+      const tags = content.getTagsByNameAndAttributes(
+        test,
+        range,
+        createElement('<span class="foo">')
+      )
       expect(content.getTagNames(tags)).toEqual(['SPAN', 'SPAN'])
     })
 
@@ -207,7 +229,11 @@ describe('Content', function () {
       const test = createElement('<div><span class="foo"><span class="test">a</span></span></div>')
       range.setStart(test, 0)
       range.setEnd(test, 1)
-      const tags = content.getTagsByNameAndAttributes(test, range, createElement('<span class="foo">'))
+      const tags = content.getTagsByNameAndAttributes(
+        test,
+        range,
+        createElement('<span class="foo">')
+      )
       expect(content.getTagNames(tags)).toEqual(['SPAN'])
     })
   })
@@ -611,19 +637,25 @@ describe('Content', function () {
     })
 
     it('removes two nested marked spans', function () {
-      const element = createElement('<div><span data-editable="unwrap"><span data-editable="unwrap">a</span></span></div>')
+      const element = createElement(
+        '<div><span data-editable="unwrap"><span data-editable="unwrap">a</span></span></div>'
+      )
       const result = content.extractContent(element)
       expect(result).toBe('a')
     })
 
     it('removes two adjacent marked spans', function () {
-      const element = createElement('<div><span data-editable="remove"></span><span data-editable="remove"></span></div>')
+      const element = createElement(
+        '<div><span data-editable="remove"></span><span data-editable="remove"></span></div>'
+      )
       const result = content.extractContent(element)
       expect(result).toBe('')
     })
 
     it('unwraps two marked spans around text', function () {
-      const element = createElement('<div>|<span data-editable="unwrap">a</span>|<span data-editable="unwrap">b</span>|</div>')
+      const element = createElement(
+        '<div>|<span data-editable="unwrap">a</span>|<span data-editable="unwrap">b</span>|</div>'
+      )
       const result = content.extractContent(element)
       expect(result).toBe('|a|b|')
     })
@@ -717,7 +749,6 @@ describe('Content', function () {
     })
 
     describe('called with keepUiElements', function () {
-
       it('does not unwrap a "ui-unwrap" span', function () {
         const element = createElement('<div>a<span data-editable="ui-unwrap">b</span>c</div>')
         const result = content.extractContent(element, true)

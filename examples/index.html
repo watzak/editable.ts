@@ -1,16 +1,31 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title></title>
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width">
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <title>editable.ts — friendly contenteditable API</title>
+    <meta
+      name="description"
+      content="Interactive demo of editable.ts: a lightweight TypeScript library for block-level contenteditable editing with events, selection APIs, and optional highlighting."
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="editable.ts — friendly contenteditable API" />
+    <meta
+      property="og:description"
+      content="Lightweight TypeScript library for block-level contenteditable editing. Try the live demo."
+    />
+    <meta property="og:url" content="https://watzak.github.io/editable.ts/examples/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="editable.ts — friendly contenteditable API" />
+    <meta
+      name="twitter:description"
+      content="Lightweight TypeScript library for block-level contenteditable editing."
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <script src="dist/styles.js"></script>
   </head>
   <body>
-
     <section class="logo-section">
       <div class="logo">
         <div class="square">
@@ -27,15 +42,20 @@
         <h2 class="example-title">An editable paragraph</h2>
 
         <div class="paragraph-example example-sheet">
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed ante dapibus diam. Sed nisi.</p>
-          <p>Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget nulla.</p>
+          <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent
+            libero. Sed ante dapibus diam. Sed nisi.
+          </p>
+          <p>
+            Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris. Fusce
+            nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget nulla.
+          </p>
         </div>
 
         <div>
           <h3>Fired Events:</h3>
           <div class="paragraph-example-events"></div>
         </div>
-
       </div>
     </section>
 
@@ -45,15 +65,16 @@
         <h2 class="example-title">Text Formatting</h2>
 
         <div class="formatting-example example-sheet">
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero.</p>
+          <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent
+            libero.
+          </p>
         </div>
 
         <div class="code-example">
           <h3>HTML</h3>
-<pre><code class="formatting-code-js language-markup">&lt;p&gt;Lorem ipsum dolor sit amet...&lt;/p&gt;</code></pre>
-
+          <pre><code class="formatting-code-js language-markup">&lt;p&gt;Lorem ipsum dolor sit amet...&lt;/p&gt;</code></pre>
         </div>
-
       </div>
     </section>
 
@@ -63,7 +84,10 @@
         <h2 class="example-title">Plain Text</h2>
 
         <div class="plain-text-example example-sheet">
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero.</p>
+          <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent
+            libero.
+          </p>
         </div>
 
         <div class="code-example">
@@ -73,7 +97,6 @@
 editable.add('.example', {plainText: true})
           </code></pre>
         </div>
-
       </div>
     </section>
 
@@ -83,7 +106,10 @@ editable.add('.example', {plainText: true})
         <h2 class="example-title">Styling</h2>
 
         <div class="styling-example example-sheet">
-          <p class="example-style-default">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero.</p>
+          <p class="example-style-default">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent
+            libero.
+          </p>
         </div>
 
         <div class="code-example">
@@ -96,7 +122,6 @@ editable.add('.example', {plainText: true})
             </select>
           </p>
         </div>
-
       </div>
     </section>
 
@@ -105,8 +130,9 @@ editable.add('.example', {plainText: true})
       <div class="section-content">
         <h2 class="example-title">Inline editables</h2>
         <div class="inline-example example-sheet">
-          <span style="margin-right: 20px;">Some inline editable element.</span>
+          <span style="margin-right: 20px">Some inline editable element.</span>
         </div>
+      </div>
     </section>
 
     <!-- Highlight -->
@@ -128,16 +154,16 @@ editable.add('.example', {plainText: true})
 
         <div class="whitespace-highlighting-example example-sheet">
           <p style="font-family: Georgia, serif">
-            Hair&#8202;space<br>
-            Six-per-em space<br>
-            Thin&thinsp;space<br>
-            Normal space<br>
-            Four-per-em space<br>
-            Mathematical space<br>
-            Punctuation space<br>
-            Three-per-em space<br>
-            En&ensp;space<br>
-            Ideographic　space<br>
+            Hair&#8202;space<br />
+            Six-per-em space<br />
+            Thin&thinsp;space<br />
+            Normal space<br />
+            Four-per-em space<br />
+            Mathematical space<br />
+            Punctuation space<br />
+            Three-per-em space<br />
+            En&ensp;space<br />
+            Ideographic　space<br />
             Em&emsp;space
           </p>
         </div>
@@ -163,7 +189,7 @@ editable.add('.example', {plainText: true})
         <h2 class="example-title">iFrame</h2>
 
         <div class="iframe-sheet">
-          <iframe class="iframe-example" src='iframe.html'></iframe>
+          <iframe class="iframe-example" src="iframe.html"></iframe>
         </div>
       </div>
     </section>
@@ -172,10 +198,22 @@ editable.add('.example', {plainText: true})
     <section class="example-section space-after">
       <div class="section-content">
         <h2 class="example-title">Text Diff - Inline Toolbar</h2>
-        <p>Hover over changes to see Accept/Reject buttons in a compact toolbar above the highlight.</p>
+        <p>
+          Hover over changes to see Accept/Reject buttons in a compact toolbar above the highlight.
+        </p>
         <div class="text-diff-inline-toolbar example-sheet">
-          <p>Lorem ipsum <span class="highlight-diff-deleted">dolore</span><span class="highlight-diff-inserted">dolor</span> sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed ante dapibus diam. Sed nisi.</p>
-          <p><span class="highlight-diff-deleted">Null qui sm a nbh ementum imrdiet.</span><span class="highlight-diff-inserted">Nulla quis sem at nibh elementum imperdiet.</span> Duis sagittis ipsum. Praesent mauris.</p>
+          <p>
+            Lorem ipsum <span class="highlight-diff-deleted">dolore</span
+            ><span class="highlight-diff-inserted">dolor</span> sit amet, consectetur adipiscing
+            elit. Integer nec odio. Praesent libero. Sed ante dapibus diam. Sed nisi.
+          </p>
+          <p>
+            <span class="highlight-diff-deleted">Null qui sm a nbh ementum imrdiet.</span
+            ><span class="highlight-diff-inserted"
+              >Nulla quis sem at nibh elementum imperdiet.</span
+            >
+            Duis sagittis ipsum. Praesent mauris.
+          </p>
         </div>
       </div>
     </section>
@@ -187,8 +225,16 @@ editable.add('.example', {plainText: true})
         <p>Hover over changes to see Accept/Reject controls in a side panel listing all changes.</p>
         <div class="text-diff-side-panel-wrapper">
           <div class="text-diff-side-panel example-sheet">
-            <p>The quick brown <span class="highlight-diff-deleted">foxx</span><span class="highlight-diff-inserted">fox</span> jumps over the lazy dog. The quick brown fox jumps over the <span class="highlight-diff-deleted">lazy</span><span class="highlight-diff-inserted">sleeping</span> dog.</p>
-            <p>Sample text with <span class="highlight-diff-inserted">inserted</span> content and <span class="highlight-diff-deleted">deleted</span> content for demonstration.</p>
+            <p>
+              The quick brown <span class="highlight-diff-deleted">foxx</span
+              ><span class="highlight-diff-inserted">fox</span> jumps over the lazy dog. The quick
+              brown fox jumps over the <span class="highlight-diff-deleted">lazy</span
+              ><span class="highlight-diff-inserted">sleeping</span> dog.
+            </p>
+            <p>
+              Sample text with <span class="highlight-diff-inserted">inserted</span> content and
+              <span class="highlight-diff-deleted">deleted</span> content for demonstration.
+            </p>
           </div>
           <div class="text-diff-side-panel-ui"></div>
         </div>
@@ -199,10 +245,22 @@ editable.add('.example', {plainText: true})
     <section class="example-section space-after">
       <div class="section-content">
         <h2 class="example-title">Text Diff - Floating Card</h2>
-        <p>Hover over changes to see a floating card with change summary and Accept/Reject buttons.</p>
+        <p>
+          Hover over changes to see a floating card with change summary and Accept/Reject buttons.
+        </p>
         <div class="text-diff-floating-card example-sheet">
-          <p>Lorem ipsum <span class="highlight-diff-deleted">dolore</span><span class="highlight-diff-inserted">dolor</span> sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero.</p>
-          <p><span class="highlight-diff-deleted">Null qui sm a nbh ementum imrdiet.</span><span class="highlight-diff-inserted">Nulla quis sem at nibh elementum imperdiet.</span> Duis sagittis ipsum.</p>
+          <p>
+            Lorem ipsum <span class="highlight-diff-deleted">dolore</span
+            ><span class="highlight-diff-inserted">dolor</span> sit amet, consectetur adipiscing
+            elit. Integer nec odio. Praesent libero.
+          </p>
+          <p>
+            <span class="highlight-diff-deleted">Null qui sm a nbh ementum imrdiet.</span
+            ><span class="highlight-diff-inserted"
+              >Nulla quis sem at nibh elementum imperdiet.</span
+            >
+            Duis sagittis ipsum.
+          </p>
         </div>
       </div>
     </section>
@@ -213,8 +271,18 @@ editable.add('.example', {plainText: true})
         <h2 class="example-title">Text Diff - In-Place Icons</h2>
         <p>Hover over changes to see small Accept/Reject icons right next to each change.</p>
         <div class="text-diff-inline-icons example-sheet">
-          <p>Lorem ipsum <span class="highlight-diff-deleted">dolore</span><span class="highlight-diff-inserted">dolor</span> sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero.</p>
-          <p><span class="highlight-diff-deleted">Null qui sm a nbh ementum imrdiet.</span><span class="highlight-diff-inserted">Nulla quis sem at nibh elementum imperdiet.</span> Duis sagittis ipsum.</p>
+          <p>
+            Lorem ipsum <span class="highlight-diff-deleted">dolore</span
+            ><span class="highlight-diff-inserted">dolor</span> sit amet, consectetur adipiscing
+            elit. Integer nec odio. Praesent libero.
+          </p>
+          <p>
+            <span class="highlight-diff-deleted">Null qui sm a nbh ementum imrdiet.</span
+            ><span class="highlight-diff-inserted"
+              >Nulla quis sem at nibh elementum imperdiet.</span
+            >
+            Duis sagittis ipsum.
+          </p>
         </div>
       </div>
     </section>
@@ -223,10 +291,23 @@ editable.add('.example', {plainText: true})
     <section class="example-section space-after">
       <div class="section-content">
         <h2 class="example-title">Text Diff - Hover Preview</h2>
-        <p>Only deleted text is shown. Hover over deleted text (strikethrough) to see the replacement text in a popover below.</p>
+        <p>
+          Only deleted text is shown. Hover over deleted text (strikethrough) to see the replacement
+          text in a popover below.
+        </p>
         <div class="text-diff-hover-preview example-sheet">
-          <p>Lorem ipsum <span class="highlight-diff-deleted">dolore</span><span class="highlight-diff-inserted">dolor</span> sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero.</p>
-          <p><span class="highlight-diff-deleted">Null qui sm a nbh ementum imrdiet.</span><span class="highlight-diff-inserted">Nulla quis sem at nibh elementum imperdiet.</span> Duis sagittis ipsum. Praesent mauris.</p>
+          <p>
+            Lorem ipsum <span class="highlight-diff-deleted">dolore</span
+            ><span class="highlight-diff-inserted">dolor</span> sit amet, consectetur adipiscing
+            elit. Integer nec odio. Praesent libero.
+          </p>
+          <p>
+            <span class="highlight-diff-deleted">Null qui sm a nbh ementum imrdiet.</span
+            ><span class="highlight-diff-inserted"
+              >Nulla quis sem at nibh elementum imperdiet.</span
+            >
+            Duis sagittis ipsum. Praesent mauris.
+          </p>
         </div>
       </div>
     </section>
@@ -236,9 +317,14 @@ editable.add('.example', {plainText: true})
       <div class="section-content">
         <h2 class="example-title">Setup</h2>
 
-        <p>The npm package exposes a lean core (<code>editable.ts</code>) and an optional entry (<code>editable.ts/features</code>) that adds <code>setupHighlighting</code>, <code>setupSpellcheck</code>, <code>setupTextDiff</code>, and <code>highlight</code> APIs on the same <code>Editable</code> class. This demo uses the features entry.</p>
+        <p>
+          The npm package exposes a lean core (<code>editable.ts</code>) and an optional entry
+          (<code>editable.ts/features</code>) that adds <code>setupHighlighting</code>,
+          <code>setupSpellcheck</code>, <code>setupTextDiff</code>, and <code>highlight</code> APIs
+          on the same <code>Editable</code> class. This demo uses the features entry.
+        </p>
 
-<pre><code class="language-javascript">
+        <pre><code class="language-javascript">
 import { Editable } from 'editable.ts/features'
 
 // create a new Editable object, and configure it as needed
@@ -260,11 +346,11 @@ const editable = new Editable({
 editable.add(elem)
 </code></pre>
 
-<h2 class="example-title">Setup Highlighting</h2>
+        <h2 class="example-title">Setup Highlighting</h2>
 
         <p>Uses the same <code>editable</code> instance from the features import above.</p>
 
-<pre><code class="language-javascript">
+        <pre><code class="language-javascript">
 editable.setupHighlighting({
   // control when the highlighting is triggered
   checkOnInit: true,
@@ -290,11 +376,11 @@ editable.setupHighlighting({
 })
 </code></pre>
 
-<h2 class="example-title">Setup Text Diff</h2>
+        <h2 class="example-title">Setup Text Diff</h2>
 
         <p>Also requires <code>editable.ts/features</code> (see Setup).</p>
 
-<pre><code class="language-javascript">
+        <pre><code class="language-javascript">
 editable.setupTextDiff({
   // control when the text diff is triggered
   enabled: true,
@@ -309,7 +395,6 @@ editable.setupTextDiff({
   markerInserted: '&lt;span class="highlight-diff-inserted"&gt;&lt;/span&gt;'
 })
 </code></pre>
-
       </div>
     </section>
 
@@ -320,14 +405,12 @@ editable.setupTextDiff({
 
         <!-- focus/blur -->
         <div class="documentation">
-          <h4>
-            <span>focus</span> <span>blur</span>
-          </h4>
-          <p>Fired when when an editable block gets focus and after it is blurred. </p>
+          <h4><span>focus</span> <span>blur</span></h4>
+          <p>Fired when when an editable block gets focus and after it is blurred.</p>
 
           <div class="code-example">
             <h3>Example:</h3>
-<pre><code class="language-javascript">
+            <pre><code class="language-javascript">
 editable
 
 .on('focus', elem => {
@@ -339,7 +422,6 @@ editable
 })
 </code></pre>
           </div>
-
         </div>
 
         <!-- selection -->
@@ -352,7 +434,7 @@ editable
 
           <div class="code-example">
             <h3>Example:</h3>
-<pre><code class="language-javascript">
+            <pre><code class="language-javascript">
 const getSelectionCoordinates = (selection) => {
   const range = selection.getRangeAt(0) // Assuming you want coordinates of the first range
 
@@ -386,7 +468,6 @@ editable.on('selection', (elem, selection) => {
 })
 </code></pre>
           </div>
-
         </div>
 
         <div class="documentation">
@@ -396,8 +477,8 @@ editable.on('selection', (elem, selection) => {
           <p>Fired when the user moves the cursor within an editable block.</p>
 
           <div class="code-example">
-          <h3>Example:</h3>
-<pre><code class="language-javascript">
+            <h3>Example:</h3>
+            <pre><code class="language-javascript">
 editable.on('cursor', (elem, cursor) => {
   if (!cursor) {
     // no cursor anymore in that editable block
@@ -408,7 +489,6 @@ editable.on('cursor', (elem, cursor) => {
 })
 </code></pre>
           </div>
-
         </div>
 
         <div class="documentation">
@@ -419,13 +499,12 @@ editable.on('cursor', (elem, cursor) => {
 
           <div class="code-example">
             <h3>Example:</h3>
-<pre><code class="language-javascript">
+            <pre><code class="language-javascript">
 editable.on('change', elem => {
   const currentContent = editable.getContent(elem);
 })
 </code></pre>
           </div>
-
         </div>
         <div class="documentation">
           <h4>
@@ -435,13 +514,12 @@ editable.on('change', elem => {
 
           <div class="code-example">
             <h3>Example:</h3>
-<pre><code class="language-javascript">
+            <pre><code class="language-javascript">
 editable.on('spellcheckUpdated', elem => {
   const currentContent = editable.getContent(elem);
 })
 </code></pre>
           </div>
-
         </div>
 
         <!-- clipboard -->
@@ -454,7 +532,7 @@ editable.on('spellcheckUpdated', elem => {
 
           <div class="code-example">
             <h3>Example:</h3>
-<pre><code class="language-javascript">
+            <pre><code class="language-javascript">
 editable.on('clipboard', (elem, action, selection) => {
   if (action === 'cut') {
     const cutOutText = selection.text()
@@ -462,7 +540,6 @@ editable.on('clipboard', (elem, action, selection) => {
 })
 </code></pre>
           </div>
-
         </div>
 
         <!-- paste -->
@@ -475,7 +552,7 @@ editable.on('clipboard', (elem, action, selection) => {
 
           <div class="code-example">
             <h3>Example:</h3>
-<pre><code class="language-javascript">
+            <pre><code class="language-javascript">
 editable.on('paste', (elem, blocks, cursor) => {
   // blocks is an array of strings preprocessed by editable.js.
   // If the pasted content contains HTML it is split up by block
@@ -484,7 +561,6 @@ editable.on('paste', (elem, blocks, cursor) => {
 })
 </code></pre>
           </div>
-
         </div>
 
         <!-- insert -->
@@ -492,15 +568,18 @@ editable.on('paste', (elem, blocks, cursor) => {
           <h4>
             <span>insert</span>
           </h4>
-          <p>Fired when the user presses enter (&#x23ce;) at the beginning or end of an editable (for example you can insert a new paragraph after the element if this happens).</p>
-
-          <p class="edit-example">
-            The end<span class="cursor">&nbsp;</span>
           <p>
+            Fired when the user presses enter (&#x23ce;) at the beginning or end of an editable (for
+            example you can insert a new paragraph after the element if this happens).
+          </p>
+
+          <p class="edit-example">The end<span class="cursor">&nbsp;</span></p>
+
+          <p></p>
 
           <div class="code-example">
             <h3>Example:</h3>
-<pre><code class="language-javascript">
+            <pre><code class="language-javascript">
 editable.on('insert', (elem, direction, cursor) => {
   if (direction === 'after') {
     // your code...
@@ -510,7 +589,6 @@ editable.on('insert', (elem, direction, cursor) => {
 })
 </code></pre>
           </div>
-
         </div>
 
         <!-- split -->
@@ -520,20 +598,19 @@ editable.on('insert', (elem, direction, cursor) => {
           </h4>
           <p>Fired when the user presses return (&#x23ce;) in the middle of an editable.</p>
 
-          <p class="edit-example">
-            a<span class="cursor">&nbsp;</span>b
-          <p>
+          <p class="edit-example">a<span class="cursor">&nbsp;</span>b</p>
+
+          <p></p>
 
           <div class="code-example">
             <h3>Example:</h3>
-<pre><code class="language-javascript">
+            <pre><code class="language-javascript">
 editable.on('split', (elem, before, after, cursor) => {
   // before and after are document fragments with the content
   // from before and after the cursor in it.
 })
 </code></pre>
           </div>
-
         </div>
 
         <!-- merge -->
@@ -541,15 +618,18 @@ editable.on('split', (elem, before, after, cursor) => {
           <h4>
             <span>merge</span>
           </h4>
-          <p>Fired when the user pressed forward delete (&#x2326;) at the end or backspace (&#x232B;) at the beginning of an editable.</p>
-
-          <p class="edit-example">
-            <span class="cursor">&nbsp;</span>ab
           <p>
+            Fired when the user pressed forward delete (&#x2326;) at the end or backspace (&#x232B;)
+            at the beginning of an editable.
+          </p>
+
+          <p class="edit-example"><span class="cursor">&nbsp;</span>ab</p>
+
+          <p></p>
 
           <div class="code-example">
             <h3>Example:</h3>
-<pre><code class="language-javascript">
+            <pre><code class="language-javascript">
 editable.on('merge', (elem, direction, cursor) => {
   if (direction === 'after') {
     // your code...
@@ -559,7 +639,6 @@ editable.on('merge', (elem, direction, cursor) => {
 })
 </code></pre>
           </div>
-
         </div>
 
         <!-- switch -->
@@ -568,11 +647,14 @@ editable.on('merge', (elem, direction, cursor) => {
             <span>switch</span>
           </h4>
 
-          <p>Fired when the user presses an arrow key at the top or bottom so that you may want to set the cursor into the preceding or following editable element.</p>
+          <p>
+            Fired when the user presses an arrow key at the top or bottom so that you may want to
+            set the cursor into the preceding or following editable element.
+          </p>
 
           <div class="code-example">
             <h3>Example:</h3>
-<pre><code class="language-javascript">
+            <pre><code class="language-javascript">
 editable.on('switch', (elem, direction, cursor) => {
   if (direction === 'down') {
     // your code...
@@ -582,7 +664,6 @@ editable.on('switch', (elem, direction, cursor) => {
 })
 </code></pre>
           </div>
-
         </div>
 
         <!-- newline -->
@@ -590,21 +671,28 @@ editable.on('switch', (elem, direction, cursor) => {
           <h4>
             <span>newline</span>
           </h4>
-          <p>Fired when the user presses shift and enter (&#x21E7; + &#x23ce;) to insert a newline.</p>
+          <p>
+            Fired when the user presses shift and enter (&#x21E7; + &#x23ce;) to insert a newline.
+          </p>
 
           <div class="code-example">
             <h3>Example:</h3>
-<pre><code class="language-javascript">
+            <pre><code class="language-javascript">
 editable.on('newline', (elem, cursor) => {
   // your code...
 })
 </code></pre>
           </div>
-
         </div>
       </div>
-    </section><!-- Matomo Image Tracker-->
-    <img referrerpolicy="no-referrer-when-downgrade" src="https://matomo.kamod.ch/matomo.php?idsite=2&amp;rec=1" style="border:0" alt="" />
+    </section>
+    <!-- Matomo Image Tracker-->
+    <img
+      referrerpolicy="no-referrer-when-downgrade"
+      src="https://matomo.kamod.ch/matomo.php?idsite=2&amp;rec=1"
+      style="border: 0"
+      alt=""
+    />
     <!-- End Matomo -->
     <script src="dist/bundle.js"></script>
   </body>

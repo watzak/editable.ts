@@ -1,14 +1,9 @@
-import {createRange, containsRange} from './util/dom.js'
-import {contenteditableSpanBug} from './feature-detection.js'
+import { createRange, containsRange } from './util/dom.js'
+import { contenteditableSpanBug } from './feature-detection.js'
 import * as nodeType from './node-type.js'
 import eventable from './eventable.js'
 import type SelectionWatcher from './selection-watcher.js'
-import type {
-  EventNotify,
-  EventOff,
-  EventOn,
-  KeyboardEventMap
-} from './event-types.js'
+import type { EventNotify, EventOff, EventOn, KeyboardEventMap } from './event-types.js'
 
 interface KeyCodes {
   left: number
@@ -42,13 +37,17 @@ export default class Keyboard {
   public off!: EventOff<KeyboardEventMap, HTMLElement>
   public selectionWatcher: SelectionWatcher
 
-  constructor (selectionWatcher: SelectionWatcher) {
+  constructor(selectionWatcher: SelectionWatcher) {
     eventable<Keyboard, HTMLElement, KeyboardEventMap>(this)
     this.selectionWatcher = selectionWatcher
     this.key = (Keyboard as unknown as KeyboardConstructor).key
   }
 
-  dispatchKeyEvent (event: KeyboardEvent, target: HTMLElement, notifyCharacterEvent?: boolean): void {
+  dispatchKeyEvent(
+    event: KeyboardEvent,
+    target: HTMLElement,
+    notifyCharacterEvent?: boolean
+  ): void {
     switch (event.keyCode) {
       case this.key.left:
         return this.notify(target, 'left', event)
@@ -112,7 +111,7 @@ export default class Keyboard {
     }
   }
 
-  preventContenteditableBug (target: HTMLElement, event: KeyboardEvent): void {
+  preventContenteditableBug(target: HTMLElement, event: KeyboardEvent): void {
     if (!contenteditableSpanBug) return
     if (event.ctrlKey || event.metaKey) return
 
@@ -159,7 +158,7 @@ export default class Keyboard {
     if (nodeToRemove) nodeToRemove.remove()
   }
 
-  static getNodeToRemove (selectionRange: Range, target: HTMLElement): Element | undefined {
+  static getNodeToRemove(selectionRange: Range, target: HTMLElement): Element | undefined {
     // This function is only used by preventContenteditableBug. It is exposed on
     // the Keyboard constructor for testing purpose only.
 
@@ -185,7 +184,7 @@ export default class Keyboard {
     const firstChild = startNodeElement.firstChild
     const lastChild = startNodeElement.lastChild
     if (!firstChild || !lastChild) return undefined
-    
+
     const startNodeRange = createRange()
     startNodeRange.setStartBefore(firstChild)
     startNodeRange.setEndAfter(lastChild)
@@ -215,10 +214,7 @@ export default class Keyboard {
     const rangeStartingBeforeCurrentElement = selectionRange.cloneRange()
     rangeStartingBeforeCurrentElement.setStartBefore(startNodeElement)
 
-    const parentResult = Keyboard.getNodeToRemove(
-      rangeStartingBeforeCurrentElement,
-      target
-    )
+    const parentResult = Keyboard.getNodeToRemove(rangeStartingBeforeCurrentElement, target)
     return parentResult || startNodeElement
   }
 }

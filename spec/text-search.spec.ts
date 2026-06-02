@@ -1,11 +1,7 @@
-
-
-import {searchText, searchWord} from '../src/plugins/highlighting/text-search.js'
+import { searchText, searchWord } from '../src/plugins/highlighting/text-search.js'
 
 describe('text-search:', function () {
-
   describe('searchWord()', function () {
-
     it('finds the word "a"', function () {
       const text = 'a'
       const matches = searchWord(text, 'a')
@@ -33,15 +29,16 @@ describe('text-search:', function () {
   })
 
   describe('searchText()', function () {
-
     it('does not go into an endless loop without a marker node', function () {
-      const blockText = 'Mehr als 90 Prozent der Fälle in Grossbritannien in den letzten vier Wochen gehen auf die Delta-Variante zurück. Anders als bei vorangegangenen Wellen scheinen sich jedoch die Fallzahlen von den Todesfällen und Hospitalisierungen zu entkoppeln.'
+      const blockText =
+        'Mehr als 90 Prozent der Fälle in Grossbritannien in den letzten vier Wochen gehen auf die Delta-Variante zurück. Anders als bei vorangegangenen Wellen scheinen sich jedoch die Fallzahlen von den Todesfällen und Hospitalisierungen zu entkoppeln.'
       const matches = searchText(blockText, 'foobar')
       expect(matches).toEqual([])
     })
 
     it('does not go into an endless loop without a html marker node', function () {
-      const blockText = 'Mehr als 90 Prozent der Fälle in Grossbritannien in den letzten vier Wochen gehen auf die Delta-Variante zurück. Anders als bei vorangegangenen Wellen scheinen sich jedoch die Fallzahlen von den Todesfällen und Hospitalisierungen zu entkoppeln.'
+      const blockText =
+        'Mehr als 90 Prozent der Fälle in Grossbritannien in den letzten vier Wochen gehen auf die Delta-Variante zurück. Anders als bei vorangegangenen Wellen scheinen sich jedoch die Fallzahlen von den Todesfällen und Hospitalisierungen zu entkoppeln.'
       const matches = searchText(blockText, 'foobar')
       expect(matches).toEqual([])
     })

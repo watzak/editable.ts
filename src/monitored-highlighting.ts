@@ -1,14 +1,14 @@
 import * as nodeType from './node-type.js'
-import {deepMerge} from './util/merge.js'
+import { deepMerge } from './util/merge.js'
 import * as content from './content.js'
 import highlightText from './highlight-text.js'
 import SpellcheckService from './plugins/highlighting/spellcheck-service.js'
 import WhitespaceHighlighting from './plugins/highlighting/whitespace-highlighting.js'
-import {searchAllWords} from './plugins/highlighting/text-search.js'
+import { searchAllWords } from './plugins/highlighting/text-search.js'
 import MatchCollection from './plugins/highlighting/match-collection.js'
 import highlightSupport from './highlight-support.js'
-import {domArray, domSelector} from './util/dom.js'
-import type {Editable} from './core.js'
+import { domArray, domSelector } from './util/dom.js'
+import type { Editable } from './core.js'
 import type {
   MonitoredHighlightingConfig,
   PendingEditableTimeout,
@@ -23,7 +23,7 @@ import type {
 // This instance monitors an editable block for changes and
 // updates highlights accordingly. It also calls the spellcheck
 // service after the content has changed.
-import type {Match} from './plugins/highlighting/text-search.js'
+import type { Match } from './plugins/highlighting/text-search.js'
 
 export default class MonitoredHighlighting {
   public editable: Editable
@@ -36,7 +36,7 @@ export default class MonitoredHighlighting {
   public spellcheckService: SpellcheckService
   public whitespace: typeof WhitespaceHighlighting.prototype
 
-  constructor (editable: Editable, configuration: MonitoredHighlightingConfig = {}) {
+  constructor(editable: Editable, configuration: MonitoredHighlightingConfig = {}) {
     this.editable = editable
     this.win = editable.win
     this.focusedEditableHost = undefined
@@ -71,11 +71,17 @@ export default class MonitoredHighlighting {
     const spellcheckService = this.config.spellcheck.spellcheckService
     const spellcheckMarker = this.config.spellcheck.marker
     const whitespaceMarker = this.config.whitespace.marker
-    const whitespaceMarkerNode = highlightSupport
-      .createMarkerNode(whitespaceMarker, 'whitespace', this.win)
-    const spellcheckMarkerNode = highlightSupport
-      .createMarkerNode(spellcheckMarker, 'spellcheck', this.win)
-    
+    const whitespaceMarkerNode = highlightSupport.createMarkerNode(
+      whitespaceMarker,
+      'whitespace',
+      this.win
+    )
+    const spellcheckMarkerNode = highlightSupport.createMarkerNode(
+      spellcheckMarker,
+      'spellcheck',
+      this.win
+    )
+
     if (!whitespaceMarkerNode || !spellcheckMarkerNode) {
       throw new Error('Failed to create marker nodes')
     }
@@ -90,7 +96,7 @@ export default class MonitoredHighlighting {
   // Events
   // ------
 
-  setupListeners (): void {
+  setupListeners(): void {
     if (this.config.checkOnFocus) {
       this.editable.on('focus', (editableHost: HTMLElement) => this.onFocus(editableHost))
       this.editable.on('blur', (editableHost: HTMLElement) => this.onBlur(editableHost))
@@ -103,24 +109,24 @@ export default class MonitoredHighlighting {
     }
   }
 
-  onInit (editableHost: HTMLElement): void {
+  onInit(editableHost: HTMLElement): void {
     this.highlight(editableHost)
   }
 
-  onFocus (editableHost: HTMLElement): void {
+  onFocus(editableHost: HTMLElement): void {
     if (this.focusedEditableHost !== editableHost) {
       this.focusedEditableHost = editableHost
       this.editableHasChanged(editableHost, undefined)
     }
   }
 
-  onBlur (editableHost: HTMLElement): void {
+  onBlur(editableHost: HTMLElement): void {
     if (this.focusedEditableHost === editableHost) {
       this.focusedEditableHost = undefined
     }
   }
 
-  onChange (editableHost: HTMLElement): void {
+  onChange(editableHost: HTMLElement): void {
     if (this.config.checkOnChange) {
       this.editableHasChanged(editableHost, this.config.throttle)
     }
@@ -132,7 +138,7 @@ export default class MonitoredHighlighting {
   // Manage Highlights
   // -----------------
 
-  editableHasChanged (editableHost: HTMLElement, throttle?: number): void {
+  editableHasChanged(editableHost: HTMLElement, throttle?: number): void {
     if (this.timeout.id && this.timeout.editableHost === editableHost) {
       clearTimeout(this.timeout.id)
     }
@@ -149,15 +155,14 @@ export default class MonitoredHighlighting {
     }
   }
 
-  highlight (editableHost: HTMLElement): void {
+  highlight(editableHost: HTMLElement): void {
     const textBefore = highlightText.extractText(editableHost)
 
     // getSpellcheck
-    this.spellcheckService.check(textBefore, ((
-      err: null,
-      misspelledWords?: string[] | null
-    ) => {
-      if (err || !editableHost.isConnected) { return } // return in case the host was removed from the dom
+    this.spellcheckService.check(textBefore, ((err: null, misspelledWords?: string[] | null) => {
+      if (err || !editableHost.isConnected) {
+        return
+      } // return in case the host was removed from the dom
 
       // refresh the text
       const text = highlightText.extractText(editableHost)
@@ -172,7 +177,7 @@ export default class MonitoredHighlighting {
       const whitespaceMatches = this.whitespace.findMatches(text)
       if (whitespaceMatches) {
         // Convert WhitespaceMatch[] to Match[]
-        const matches: Match[] = whitespaceMatches.map(m => ({
+        const matches: Match[] = whitespaceMatches.map((m) => ({
           startIndex: m.startIndex || 0,
           endIndex: m.endIndex,
           match: m.match,
@@ -187,7 +192,7 @@ export default class MonitoredHighlighting {
 
   // Calls highlightMatches internally but ensures
   // that the selection stays the same
-  safeHighlightMatches (editableHost: HTMLElement, matches: Match[]): void {
+  safeHighlightMatches(editableHost: HTMLElement, matches: Match[]): void {
     const selection = this.editable.getSelection(editableHost)
     if (selection) {
       selection.retainVisibleSelection(() => {
@@ -201,7 +206,7 @@ export default class MonitoredHighlighting {
     }
   }
 
-  highlightMatches (editableHost: HTMLElement, matches: Match[]): void {
+  highlightMatches(editableHost: HTMLElement, matches: Match[]): void {
     // Remove old highlights
     this.removeHighlights(editableHost)
 
@@ -212,15 +217,19 @@ export default class MonitoredHighlighting {
     }
   }
 
-  removeHighlights (editableHost: HTMLElement | string): void {
+  removeHighlights(editableHost: HTMLElement | string): void {
     const host = domSelector(editableHost, this.win.document)
     if (!host) return
-    for (const elem of domArray('[data-highlight="spellcheck"], [data-highlight="whitespace"]', this.win.document, host)) {
+    for (const elem of domArray(
+      '[data-highlight="spellcheck"], [data-highlight="whitespace"]',
+      this.win.document,
+      host
+    )) {
       content.unwrap(elem)
     }
   }
 
-  removeHighlightsAtCursor (editableHost: HTMLElement | string): void {
+  removeHighlightsAtCursor(editableHost: HTMLElement | string): void {
     const host = domSelector(editableHost, this.win.document)
     if (!host) return
     editableHost = host
@@ -256,5 +265,4 @@ export default class MonitoredHighlighting {
       }
     }
   }
-
 }

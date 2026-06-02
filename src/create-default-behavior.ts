@@ -3,7 +3,7 @@ import * as content from './content.js'
 import log from './util/log.js'
 import * as block from './block.js'
 import * as nodeType from './node-type.js'
-import type {Editable} from './core.js'
+import type { Editable } from './core.js'
 import type Cursor from './cursor.js'
 import type Selection from './selection.js'
 
@@ -14,12 +14,12 @@ import type Selection from './selection.js'
  * per-instance or per-element behavior overrides are registered.
  */
 
-export default function createDefaultBehavior (editable: Editable) {
+export default function createDefaultBehavior(editable: Editable) {
   const document = editable.win.document
 
   return {
     /** @param {HTMLElement} element */
-    focus (element: HTMLElement): void {
+    focus(element: HTMLElement): void {
       if (!parser.isVoid(element)) return
 
       // Add an zero width space if the editable is empty to force it to have a height
@@ -28,7 +28,7 @@ export default function createDefaultBehavior (editable: Editable) {
       element.appendChild(document.createTextNode('\uFEFF'))
     },
 
-    blur (element: HTMLElement): void {
+    blur(element: HTMLElement): void {
       // Note: there is a special case when the tab is changed where
       // we can get a blur event even if the cursor is still in the editable.
       // This blur would cause us to lose the cursor position (because of cleanInternals()).
@@ -39,15 +39,15 @@ export default function createDefaultBehavior (editable: Editable) {
       content.cleanInternals(element)
     },
 
-    selection (element: HTMLElement, selection: Selection): void {
+    selection(element: HTMLElement, selection: Selection): void {
       log(selection ? 'Default selection behavior' : 'Default selection empty behavior')
     },
 
-    cursor (element: HTMLElement, cursor: Cursor): void {
+    cursor(element: HTMLElement, cursor: Cursor): void {
       log('Default cursor behavior')
     },
 
-    newline (element: HTMLElement, cursor: Cursor): void {
+    newline(element: HTMLElement, cursor: Cursor): void {
       // When the cursor is at the text end, we'll need to add an empty text node
       // after the br tag to ensure that the cursor shows up on the next line
       if (cursor.isAtTextEnd()) {
@@ -70,7 +70,7 @@ export default function createDefaultBehavior (editable: Editable) {
       cursor.setVisibleSelection()
     },
 
-    insert (element: HTMLElement, direction: string, cursor: Cursor): void {
+    insert(element: HTMLElement, direction: string, cursor: Cursor): void {
       const newElement = element.cloneNode(false) as HTMLElement
       if (newElement.id) newElement.removeAttribute('id')
 
@@ -83,7 +83,7 @@ export default function createDefaultBehavior (editable: Editable) {
       editable.createCursorAtEnd(newElement)?.setVisibleSelection()
     },
 
-    split (element: HTMLElement, before: string, after: string, cursor: Cursor): void {
+    split(element: HTMLElement, before: string, after: string, cursor: Cursor): void {
       const fragment = content.createFragmentFromString(before)
       const newNode = element.cloneNode(false) as HTMLElement
       newNode.appendChild(fragment)
@@ -100,10 +100,9 @@ export default function createDefaultBehavior (editable: Editable) {
       cursor.setVisibleSelection()
     },
 
-    merge (element: HTMLElement, direction: string, cursor: Cursor): void {
-      const target = direction === 'before'
-        ? element.previousElementSibling
-        : element.nextElementSibling
+    merge(element: HTMLElement, direction: string, cursor: Cursor): void {
+      const target =
+        direction === 'before' ? element.previousElementSibling : element.nextElementSibling
 
       if (!target) return
 
@@ -112,29 +111,28 @@ export default function createDefaultBehavior (editable: Editable) {
 
       // Calculate text lengths before merging to position cursor correctly.
       // Reuse one parse operation per content string.
-      const targetTextLength = content.createFragmentFromString(targetContent).textContent?.length || 0
-      const elementTextLength = content.createFragmentFromString(elementContent).textContent?.length || 0
+      const targetTextLength =
+        content.createFragmentFromString(targetContent).textContent?.length || 0
+      const elementTextLength =
+        content.createFragmentFromString(elementContent).textContent?.length || 0
 
-      const mergedContent = direction === 'before'
-        ? targetContent + elementContent
-        : elementContent + targetContent
+      const mergedContent =
+        direction === 'before' ? targetContent + elementContent : elementContent + targetContent
 
       element.innerHTML = mergedContent
       target.remove()
 
       // Position cursor at the merge boundary
-      const cursorOffset = direction === 'before'
-        ? targetTextLength
-        : elementTextLength
+      const cursorOffset = direction === 'before' ? targetTextLength : elementTextLength
 
-      editable.createCursorAtCharacterOffset({element, offset: cursorOffset})
+      editable.createCursorAtCharacterOffset({ element, offset: cursorOffset })
     },
 
-    empty (element: HTMLElement): void {
+    empty(element: HTMLElement): void {
       log('Default empty behavior')
     },
 
-    switch (element: HTMLElement, direction: string, cursor: Cursor): void {
+    switch(element: HTMLElement, direction: string, cursor: Cursor): void {
       switch (direction) {
         case 'before':
           const prevSibling = element.previousElementSibling
@@ -153,11 +151,11 @@ export default function createDefaultBehavior (editable: Editable) {
       }
     },
 
-    move (element: HTMLElement, selection: Selection, direction: string): void {
+    move(element: HTMLElement, selection: Selection, direction: string): void {
       log('Default move behavior')
     },
 
-    paste (element: HTMLElement, blocks: string[], cursor: Cursor): void {
+    paste(element: HTMLElement, blocks: string[], cursor: Cursor): void {
       cursor.insertBefore(blocks[0])
 
       if (blocks.length <= 1) {
@@ -183,15 +181,15 @@ export default function createDefaultBehavior (editable: Editable) {
       if (lastCursor) lastCursor.setVisibleSelection()
     },
 
-    clipboard (element: HTMLElement, action: string, cursor: Cursor): void {
+    clipboard(element: HTMLElement, action: string, cursor: Cursor): void {
       log('Default clipboard behavior')
     },
 
-    toggleBold (selection: Selection): void {
+    toggleBold(selection: Selection): void {
       selection.toggleBold()
     },
 
-    toggleEmphasis (selection: Selection): void {
+    toggleEmphasis(selection: Selection): void {
       selection.toggleEmphasis()
     }
   }

@@ -1,5 +1,5 @@
-@import "normalize.css";
-@import "prismjs/themes/prism.css";
+@import 'normalize.css';
+@import 'prismjs/themes/prism.css';
 
 /*
  * HTML5 Boilerplate
@@ -120,20 +120,20 @@ html {
   height: 300px;
   margin: 0 auto;
 
-  background: #5F85ED;
+  background: #5f85ed;
 }
 
 .logo h1 {
   position: absolute;
   bottom: 0;
   right: 0;
-  margin: .2em .5em;
+  margin: 0.2em 0.5em;
 }
 
 .logo h2 {
-  margin-top: .5em;
+  margin-top: 0.5em;
   font-weight: 400;
-  color: rgba(255, 255, 255, .5);
+  color: rgba(255, 255, 255, 0.5);
   color: rgba(0, 0, 0, 0.6);
 }
 
@@ -193,15 +193,14 @@ article {
   margin: 0 auto;
 }
 
-[contenteditable="true"]:focus {
+[contenteditable='true']:focus {
   background-color: #eee;
 }
 
-.iframe-container iframe{
+.iframe-container iframe {
   width: 100%;
   height: 500px;
 }
-
 
 /* ==========================================================================
    Tooltip
@@ -231,9 +230,7 @@ article {
   color: #efc75e;
 }
 
-
-.selection-tip:after /* triangle decoration */
-{
+.selection-tip:after /* triangle decoration */ {
   width: 0;
   height: 0;
   border-left: 8px solid transparent;
@@ -246,33 +243,27 @@ article {
   margin-left: -8px;
 }
 
-.selection-tip.top:after
-{
+.selection-tip.top:after {
   border-top-color: transparent;
   border-bottom: 8px solid #111;
   top: -20px;
   bottom: auto;
 }
 
-.selection-tip.left:after
-{
+.selection-tip.left:after {
   left: 8px;
   margin: 0;
 }
 
-.selection-tip.right:after
-{
+.selection-tip.right:after {
   right: 8px;
   left: auto;
   margin: 0;
 }
 
-
-
 /* ==========================================================================
    Spellcheck & Highlight
    ========================================================================== */
-
 
 .highlight {
   background: #ecbc3f;
@@ -287,8 +278,8 @@ article {
 }
 
 .highlight-whitespace {
-  background: rgba(7, 165, 206, .1);
-  border-bottom: 1px solid rgba(7, 165, 206, .5);
+  background: rgba(7, 165, 206, 0.1);
+  border-bottom: 1px solid rgba(7, 165, 206, 0.5);
 }
 
 .highlight-comment {
@@ -934,7 +925,6 @@ article {
   text-decoration: none;
 }
 
-
 /* ==========================================================================
    Events List
    ========================================================================== */
@@ -947,14 +937,13 @@ article {
 .events-list .events-list-entry {
   list-style: none;
   margin-bottom: 2px;
-  opacity: .6;
+  opacity: 0.6;
   transition: opacity 1s ease-in;
 }
 
 .events-list .events-list-entry:last-child {
   margin-bottom: 0;
 }
-
 
 /* Event List Animations */
 
@@ -963,9 +952,8 @@ article {
 }
 
 .events-list .events-enter.events-enter-active {
-  opacity: .99;
+  opacity: 0.99;
 }
-
 
 /* Event styles */
 
@@ -1056,7 +1044,7 @@ article {
    ========================================================================== */
 
 .documentation {
-  border-bottom: 1px solid rgba(0, 0, 0, .5);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
 }
 
 .documentation h4 {
@@ -1094,7 +1082,6 @@ article {
   margin-right: 1px;
 }
 
-
 /* ==========================================================================
    Helpers
    ========================================================================== */
@@ -1117,7 +1104,7 @@ article {
 
 .clearfix:before,
 .clearfix:after {
-  content: " "; /* 1 */
+  content: ' '; /* 1 */
   display: table; /* 2 */
 }
 

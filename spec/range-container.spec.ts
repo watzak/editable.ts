@@ -1,5 +1,4 @@
-
-import {createElement, createRange} from '../src/util/dom.js'
+import { createElement, createRange } from '../src/util/dom.js'
 import RangeContainer from '../src/range-container.js'
 
 describe('RangeContainer', function () {
@@ -23,14 +22,12 @@ describe('RangeContainer', function () {
     })
 
     describe('getCursor()', function () {
-
       it('returns undefined', function () {
         expect(range.getCursor()).toBe(undefined)
       })
     })
 
     describe('getSelection()', function () {
-
       it('returns undefined', function () {
         expect(range.getSelection()).toBe(undefined)
       })

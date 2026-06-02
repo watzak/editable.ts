@@ -1,29 +1,26 @@
-
-import {parseContent, updateConfig} from '../src/clipboard.js'
-import {cloneDeep} from '../src/util/clone-deep.js'
+import { parseContent, updateConfig } from '../src/clipboard.js'
+import { cloneDeep } from '../src/util/clone-deep.js'
 import config from '../src/config.js'
 
 describe('Clipboard', function () {
-
   describe('parseContent()', function () {
-
     afterEach(function () {
       updateConfig(config)
     })
 
-    function extract (str: string) {
+    function extract(str: string) {
       const div = document.createElement('div')
       div.innerHTML = str
       return parseContent(div)
     }
 
-    function extractPlainText (str: string) {
+    function extractPlainText(str: string) {
       const div = document.createElement('div')
       div.innerHTML = str
-      return parseContent(div, {plainText: true})
+      return parseContent(div, { plainText: true })
     }
 
-    function extractSingleBlock (str: string) {
+    function extractSingleBlock(str: string) {
       return extract(str)[0]
     }
 
@@ -39,7 +36,9 @@ describe('Clipboard', function () {
     })
 
     it('keeps a <a> element with an href attribute with an absolute link', function () {
-      expect(extractSingleBlock('<a href="http://link.com">a</a>')).toBe('<a href="http://link.com">a</a>')
+      expect(extractSingleBlock('<a href="http://link.com">a</a>')).toBe(
+        '<a href="http://link.com">a</a>'
+      )
     })
 
     it('keeps a <a> element with an href attribute with an relative link', function () {
@@ -48,25 +47,21 @@ describe('Clipboard', function () {
 
     it('keeps a <a> element with an a list of whitelisted-attributes', function () {
       const updatedConfig = cloneDeep(config)
-      updatedConfig.pastedHtmlRules.allowedElements = {a: {href: true, rel: true, target: true}}
+      updatedConfig.pastedHtmlRules.allowedElements = { a: { href: true, rel: true, target: true } }
 
       updateConfig(updatedConfig)
-      expect(
-        extractSingleBlock(
-          '<a target="_blank" rel="nofollow" href="/link/1337">a</a>'
-        )
-      ).toBe('<a target="_blank" rel="nofollow" href="/link/1337">a</a>')
+      expect(extractSingleBlock('<a target="_blank" rel="nofollow" href="/link/1337">a</a>')).toBe(
+        '<a target="_blank" rel="nofollow" href="/link/1337">a</a>'
+      )
     })
 
-    it('removes attributes that arent whitelisted for an <a> element ', function () {
+    it('removes attributes that arent whitelisted for an <a> element', function () {
       const updatedConfig = cloneDeep(config)
-      updatedConfig.pastedHtmlRules.allowedElements = {a: {href: true}}
+      updatedConfig.pastedHtmlRules.allowedElements = { a: { href: true } }
       updateConfig(updatedConfig)
-      expect(
-        extractSingleBlock(
-          '<a target="_blank" rel="nofollow" href="/link/1337">a</a>'
-        )
-      ).toBe('<a href="/link/1337">a</a>')
+      expect(extractSingleBlock('<a target="_blank" rel="nofollow" href="/link/1337">a</a>')).toBe(
+        '<a href="/link/1337">a</a>'
+      )
     })
 
     it('keeps a <strong> element', function () {
@@ -99,7 +94,7 @@ describe('Clipboard', function () {
     // Clean Whitespace
     // ----------------
 
-    function checkWhitespace (a: string, b: string) {
+    function checkWhitespace(a: string, b: string) {
       expect(escape(extractSingleBlock(a))).toBe(escape(b))
     }
 
@@ -133,7 +128,6 @@ describe('Clipboard', function () {
     it('removes an <a> element without an href attribute', function () {
       expect(extractSingleBlock('<a>a</a>')).toBe('a')
     })
-
 
     it('removes an <a> element with an empty href attribute', function () {
       expect(extractSingleBlock('<a href>a</a>')).toBe('a')
@@ -170,7 +164,9 @@ describe('Clipboard', function () {
       const updatedConfig = cloneDeep(config)
       updatedConfig.pastedHtmlRules.keepInternalRelativeLinks = true
       updateConfig(updatedConfig)
-      expect(extractSingleBlock(`<a href="${window.location.origin}/test123">a</a>`)).toBe('<a href="/test123">a</a>')
+      expect(extractSingleBlock(`<a href="${window.location.origin}/test123">a</a>`)).toBe(
+        '<a href="/test123">a</a>'
+      )
     })
 
     // Escape Content
@@ -201,7 +197,6 @@ describe('Clipboard', function () {
     // -----------------------
 
     describe('replace quotes', function () {
-
       beforeEach(function () {
         const updatedConfig = cloneDeep(config)
         updatedConfig.pastedHtmlRules.replaceQuotes = {
@@ -344,7 +339,9 @@ describe('Clipboard', function () {
         }
 
         updateConfig(updatedConfig)
-        const block = extractSingleBlock(`Can I ask you somethin'? “'Twas the night before Christmas,” he said.`)
+        const block = extractSingleBlock(
+          `Can I ask you somethin'? “'Twas the night before Christmas,” he said.`
+        )
         expect(block).toBe(`Can I ask you somethin’? «’Twas the night before Christmas,» he said.`)
       })
 
@@ -374,12 +371,16 @@ describe('Clipboard', function () {
       })
 
       it('does not replace quotation marks inside tag attributes', function () {
-        const block = extractSingleBlock('text outside "<a href="https://livingdocs.io">text inside</a>"')
+        const block = extractSingleBlock(
+          'text outside "<a href="https://livingdocs.io">text inside</a>"'
+        )
         expect(block).toBe('text outside “<a href="https://livingdocs.io">text inside</a>”')
       })
 
       it('replaces quotation marks around elements with attributes', function () {
-        const block = extractSingleBlock('text outside "<a href="https://livingdocs.io">text inside</a>"')
+        const block = extractSingleBlock(
+          'text outside "<a href="https://livingdocs.io">text inside</a>"'
+        )
         expect(block).toBe('text outside “<a href="https://livingdocs.io">text inside</a>”')
       })
     })

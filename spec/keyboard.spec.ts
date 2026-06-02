@@ -1,10 +1,8 @@
-
-import {createElement, createRange} from '../src/util/dom.js'
+import { createElement, createRange } from '../src/util/dom.js'
 import Keyboard from '../src/keyboard.js'
 import * as nodeType from '../src/node-type.js'
 
 describe('Keyboard', function () {
-
   describe('dispatchKeyEvent()', function () {
     let keyboard, event, called
 
@@ -26,7 +24,6 @@ describe('Keyboard', function () {
     })
 
     describe('notify "character" event', function () {
-
       it('does not fire the event for a "left" key', function () {
         keyboard.on('character', () => called++)
 
@@ -77,7 +74,6 @@ describe('Keyboard', function () {
     })
 
     describe('notify "bold" event', function () {
-
       it('does not fire the event for a "b" key without "ctrl" or "meta" key', function () {
         keyboard.on('bold', () => called++)
 
@@ -106,7 +102,6 @@ describe('Keyboard', function () {
     })
 
     describe('notify "italic" event', function () {
-
       it('does not fire the event for a "i" key without "ctrl" or "meta" key', function () {
         keyboard.on('italic', () => called++)
 
@@ -136,10 +131,22 @@ describe('Keyboard', function () {
   })
 
   describe('getNodeToRemove()', function () {
-    let contenteditable, range, nodeText1, nodeText2, nodeText3, nodeText4, nodeText5, nodeText6, nodeA, nodeB, nodeC
+    let contenteditable,
+      range,
+      nodeText1,
+      nodeText2,
+      nodeText3,
+      nodeText4,
+      nodeText5,
+      nodeText6,
+      nodeA,
+      nodeB,
+      nodeC
 
     beforeEach(function () {
-      contenteditable = createElement('<CONTENTEDITABLE>Text1<A><B>Text2</B>Text3<C>Text4</C>Text5</A>Text6</CONTENTEDITABLE>')
+      contenteditable = createElement(
+        '<CONTENTEDITABLE>Text1<A><B>Text2</B>Text3<C>Text4</C>Text5</A>Text6</CONTENTEDITABLE>'
+      )
       const nodes = {}
       destructureNodes(contenteditable, nodes)
       nodeText1 = nodes.nodeText1
@@ -198,7 +205,7 @@ describe('Keyboard', function () {
   })
 })
 
-function destructureNodes (elem, obj) {
+function destructureNodes(elem, obj) {
   Array.from(elem.childNodes, (node) => {
     if (node.nodeType === nodeType.elementNode) {
       obj[`node${node.tagName}`] = node

@@ -11,7 +11,7 @@ import {
   findStartExcludingWhitespace,
   findEndExcludingWhitespace
 } from './util/dom.js'
-import type {HtmlAttributes} from './config.js'
+import type { HtmlAttributes } from './config.js'
 
 /**
  * Represents an active text selection inside an editable host.
@@ -20,58 +20,53 @@ import type {HtmlAttributes} from './config.js'
  * and formatting a non-collapsed range.
  */
 export default class Selection extends Cursor {
-  constructor (editableHost: HTMLElement, range: Range) {
+  constructor(editableHost: HTMLElement, range: Range) {
     super(editableHost, range)
     delete this.isCursor
     this.isSelection = true
   }
 
   // Get the text inside the selection.
-  text () {
+  text() {
     return this.range.toString()
   }
 
   // Get the html inside the selection.
-  html () {
+  html() {
     return rangeToHtml(this.range)
   }
 
-  isAllSelected () {
-    return parser.isBeginningOfHost(
-      this.host,
-      this.range.startContainer,
-      this.range.startOffset
-    ) && parser.isTextEndOfHost(
-      this.host,
-      this.range.endContainer,
-      this.range.endOffset
+  isAllSelected() {
+    return (
+      parser.isBeginningOfHost(this.host, this.range.startContainer, this.range.startOffset) &&
+      parser.isTextEndOfHost(this.host, this.range.endContainer, this.range.endOffset)
     )
   }
 
-  getTextRange () {
+  getTextRange() {
     return toCharacterRange(this.range, this.host)
   }
 
   // Return a plain string of the current selection content.
-  toString () {
+  toString() {
     return this.range.toString()
   }
 
   // Return true if the selection can be wrapped, i.e. all open nodes
   // are closed within this selection.
-  isWrappable () {
+  isWrappable() {
     return content.isWrappable(this.range)
   }
 
   // Get the ClientRects of this selection.
   // Use this if you want more precision than getBoundingClientRect can give.
-  getRects () {
+  getRects() {
     // consider: translate into absolute positions
     // just like Cursor#getCoordinates()
     return this.range.getClientRects()
   }
 
-  link (href: string, attrs: Record<string, string | null | undefined> = {}): void {
+  link(href: string, attrs: Record<string, string | null | undefined> = {}): void {
     if (href) attrs.href = href
     const link = this.createElement(config.linkMarkup.name, config.linkMarkup.attribs)
     for (const key in attrs) {
@@ -89,13 +84,12 @@ export default class Selection extends Cursor {
   }
 
   // trims whitespaces on the left and right of a selection, i.e. what you want in case of links
-  trimRange () {
+  trimRange() {
     const textToTrim = this.range.toString()
     const whitespacesOnTheLeft = textToTrim.search(/\S|$/)
     const lastNonWhitespace = textToTrim.search(/\S[\s]+$/)
-    const whitespacesOnTheRight = lastNonWhitespace === -1
-      ? 0
-      : textToTrim.length - (lastNonWhitespace + 1)
+    const whitespacesOnTheRight =
+      lastNonWhitespace === -1 ? 0 : textToTrim.length - (lastNonWhitespace + 1)
 
     const [startContainer, startOffset] = findStartExcludingWhitespace({
       root: this.range.commonAncestorContainer,
@@ -114,11 +108,11 @@ export default class Selection extends Cursor {
     this.range.setEnd(endContainer, endOffset)
   }
 
-  unlink () {
+  unlink() {
     this.removeFormatting(config.linkMarkup.name)
   }
 
-  toggleLink (href: string, attrs: Record<string, string | null | undefined> = {}): void {
+  toggleLink(href: string, attrs: Record<string, string | null | undefined> = {}): void {
     const links = this.getTagsByName(config.linkMarkup.name)
     if (links.length >= 1) {
       const firstLink = links[0]
@@ -132,7 +126,13 @@ export default class Selection extends Cursor {
     }
   }
 
-  highlightComment ({highlightId, textRange}: {highlightId: string, textRange: {text: string, start: number, end: number}}): void {
+  highlightComment({
+    highlightId,
+    textRange
+  }: {
+    highlightId: string
+    textRange: { text: string; start: number; end: number }
+  }): void {
     highlightSupport.highlightRange(
       this.host,
       textRange.text,
@@ -147,7 +147,7 @@ export default class Selection extends Cursor {
 
   // Manually add a highlight
   // Note: the current code does not work with newlines (LP)
-  highlight ({highlightId}: {highlightId: string}): void {
+  highlight({ highlightId }: { highlightId: string }): void {
     const textBefore = this.textBefore()
     const currentTextContent = this.text()
 
@@ -169,7 +169,7 @@ export default class Selection extends Cursor {
   }
 
   // e.g. toggle('<em>')
-  toggle (elem: Node): void {
+  toggle(elem: Node): void {
     if (block.isPlainTextBlock(this.host)) return
     if (this.range.collapsed) return
     elem = this.adoptElement(elem)
@@ -180,55 +180,71 @@ export default class Selection extends Cursor {
     }
   }
 
-  toggleCustom ({tagName, attributes, trim = false}: {tagName: string, attributes: HtmlAttributes, trim?: boolean}): void {
+  toggleCustom({
+    tagName,
+    attributes,
+    trim = false
+  }: {
+    tagName: string
+    attributes: HtmlAttributes
+    trim?: boolean
+  }): void {
     const customElem = this.createElement(tagName, attributes)
     if (trim) this.trimRange()
     this.toggle(customElem)
   }
 
-  makeCustom ({tagName, attributes, trim = false}: {tagName: string, attributes: HtmlAttributes, trim?: boolean}): void {
+  makeCustom({
+    tagName,
+    attributes,
+    trim = false
+  }: {
+    tagName: string
+    attributes: HtmlAttributes
+    trim?: boolean
+  }): void {
     const customElem = this.createElement(tagName, attributes)
     if (trim) this.trimRange()
     this.forceWrap(customElem)
   }
 
-  makeBold () {
+  makeBold() {
     const bold = this.createElement(config.boldMarkup.name, config.boldMarkup.attribs)
     if (config.boldMarkup.trim) this.trimRange()
     this.forceWrap(bold)
   }
 
-  toggleBold () {
+  toggleBold() {
     const bold = this.createElement(config.boldMarkup.name, config.boldMarkup.attribs)
     if (config.boldMarkup.trim) this.trimRange()
     this.toggle(bold)
   }
 
-  giveEmphasis () {
+  giveEmphasis() {
     const em = this.createElement(config.italicMarkup.name, config.italicMarkup.attribs)
     if (config.italicMarkup.trim) this.trimRange()
     this.forceWrap(em)
   }
 
-  toggleEmphasis () {
+  toggleEmphasis() {
     const em = this.createElement(config.italicMarkup.name, config.italicMarkup.attribs)
     if (config.italicMarkup.trim) this.trimRange()
     this.toggle(em)
   }
 
-  makeUnderline () {
+  makeUnderline() {
     const u = this.createElement(config.underlineMarkup.name, config.underlineMarkup.attribs)
     if (config.underlineMarkup.trim) this.trimRange()
     this.forceWrap(u)
   }
 
-  toggleUnderline () {
+  toggleUnderline() {
     const u = this.createElement(config.underlineMarkup.name, config.underlineMarkup.attribs)
     if (config.underlineMarkup.trim) this.trimRange()
     this.toggle(u)
   }
 
-  insertCharacter (character: string): Cursor {
+  insertCharacter(character: string): Cursor {
     const cursor = this.deleteContent()
     const textNode = cursor.createTextNode(character)
     cursor.insertBefore(textNode)
@@ -240,18 +256,18 @@ export default class Selection extends Cursor {
   //
   // @param {String} E.g. '«'
   // @param {String} E.g. '»'
-  surround (startCharacter: string, endCharacter: string): void {
+  surround(startCharacter: string, endCharacter: string): void {
     this.range = content.surround(this.host, this.range, startCharacter, endCharacter)
     this.setVisibleSelection()
   }
 
-  removeSurround (startCharacter: string, endCharacter: string): void {
+  removeSurround(startCharacter: string, endCharacter: string): void {
     this.range = content.deleteCharacter(this.host, this.range, startCharacter)
     this.range = content.deleteCharacter(this.host, this.range, endCharacter)
     this.setVisibleSelection()
   }
 
-  removeChars (chars: string[] = []): void {
+  removeChars(chars: string[] = []): void {
     for (let i = 0; i < chars.length; i++) {
       const char = chars[i]
       this.range = content.deleteCharacter(this.host, this.range, char)
@@ -259,9 +275,8 @@ export default class Selection extends Cursor {
     this.setVisibleSelection()
   }
 
-  toggleSurround (startCharacter: string, endCharacter: string): void {
-    if (this.containsString(startCharacter) &&
-    this.containsString(endCharacter)) {
+  toggleSurround(startCharacter: string, endCharacter: string): void {
+    if (this.containsString(startCharacter) && this.containsString(endCharacter)) {
       this.removeSurround(startCharacter, endCharacter)
     } else {
       this.surround(startCharacter, endCharacter)
@@ -271,7 +286,7 @@ export default class Selection extends Cursor {
   // @param {String} selector. An element selector, e.g. 'a' or 'span.some-class'
   //                           that represents elements to be removed; if undefined,
   //                           remove all.
-  removeFormatting (selector?: string): void {
+  removeFormatting(selector?: string): void {
     const newRange = content.removeFormatting(this.host, this.range, selector || null)
     if (newRange) {
       this.range = newRange
@@ -282,11 +297,11 @@ export default class Selection extends Cursor {
   // Delete the farest ancestor that is an exact selection
   //
   // @return Selection instance
-  deleteExactSurroundingTags (): Selection {
+  deleteExactSurroundingTags(): Selection {
     const ancestorTags = this.getAncestorTags().reverse()
     for (const ancestorTag of ancestorTags) {
       if (this.isExactSelection(ancestorTag, undefined)) {
-        (ancestorTag as Element).remove()
+        ;(ancestorTag as Element).remove()
         break
       }
     }
@@ -296,9 +311,9 @@ export default class Selection extends Cursor {
   // Delete all the tags whose text is completely within the current selection.
   //
   // @return Selection instance
-  deleteContainedTags (): Selection {
+  deleteContainedTags(): Selection {
     const containedTags = this.getContainedTags()
-    containedTags.forEach(containedTag => (containedTag as Element).remove())
+    containedTags.forEach((containedTag) => (containedTag as Element).remove())
     return new Selection(this.host, this.range)
   }
 
@@ -306,7 +321,7 @@ export default class Selection extends Cursor {
   // After that the selection will be a cursor.
   //
   // @return Cursor instance
-  deleteContent () {
+  deleteContent() {
     this.range.deleteContents()
     return new Cursor(this.host, this.range)
   }
@@ -314,7 +329,7 @@ export default class Selection extends Cursor {
   // Expand the current selection.
   //
   // @param {DOM Node}
-  expandTo (elem: Node): void {
+  expandTo(elem: Node): void {
     this.range = content.expandTo(this.host, this.range, elem as HTMLElement)
     this.setVisibleSelection()
   }
@@ -322,7 +337,7 @@ export default class Selection extends Cursor {
   //  Collapse the selection at the beginning of the selection
   //
   //  @return Cursor instance
-  collapseAtBeginning (elem?: Node): Cursor {
+  collapseAtBeginning(elem?: Node): Cursor {
     this.range.collapse(true)
     this.setVisibleSelection()
     return new Cursor(this.host, this.range)
@@ -331,7 +346,7 @@ export default class Selection extends Cursor {
   //  Collapse the selection at the end of the selection
   //
   //  @return Cursor instance
-  collapseAtEnd (elem?: Node): Cursor {
+  collapseAtEnd(elem?: Node): Cursor {
     this.range.collapse(false)
     this.setVisibleSelection()
     return new Cursor(this.host, this.range)
@@ -340,7 +355,7 @@ export default class Selection extends Cursor {
   // Wrap the selection with the specified tag. If another tag with
   // the same tagName is affecting the selection this tag will be
   // remove first.
-  forceWrap (elem: Node): void {
+  forceWrap(elem: Node): void {
     if (block.isPlainTextBlock(this.host)) return
     if (this.range.collapsed) return
     elem = this.adoptElement(elem)
@@ -359,7 +374,7 @@ export default class Selection extends Cursor {
   //   whitespaces at the beginning or end of the selection will
   //   be ignored.
   // @return {Boolean}
-  isExactSelection (elem: Node, onlyVisible?: string | undefined): boolean {
+  isExactSelection(elem: Node, onlyVisible?: string | undefined): boolean {
     return content.isExactSelection(this.range, elem, onlyVisible === 'visible')
   }
 
@@ -367,13 +382,13 @@ export default class Selection extends Cursor {
   //
   // @method containsString
   // @return {Boolean}
-  containsString (str: string): boolean {
+  containsString(str: string): boolean {
     return content.containsString(this.range, str)
   }
 
   // Delete all occurrences of the specified character from the
   // selection.
-  deleteCharacter (character: string): void {
+  deleteCharacter(character: string): void {
     this.range = content.deleteCharacter(this.host, this.range, character)
     this.setVisibleSelection()
   }

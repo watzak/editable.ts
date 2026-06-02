@@ -70,29 +70,48 @@ const config: Config = {
   },
   pastedHtmlRules: {
     allowedElements: {
-      'a': {
-        'href': true,
-        'rel': true,
-        'target': true
+      a: {
+        href: true,
+        rel: true,
+        target: true
       },
-      'strong': {},
-      'em': {},
-      'br': {}
+      strong: {},
+      em: {},
+      br: {}
     },
     allowedPlainTextElements: {
-      'br': {}
+      br: {}
     },
     requiredAttributes: {
-      'a': ['href']
+      a: ['href']
     },
     transformElements: {
-      'b': 'strong',
-      'i': 'em'
+      b: 'strong',
+      i: 'em'
     },
     splitIntoBlocks: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'blockquote'],
     blockLevelElements: [
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'p', 'pre', 'hr', 'blockquote',
-      'article', 'figure', 'header', 'footer', 'ul', 'ol', 'li', 'section', 'table', 'video'
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'div',
+      'p',
+      'pre',
+      'hr',
+      'blockquote',
+      'article',
+      'figure',
+      'header',
+      'footer',
+      'ul',
+      'ol',
+      'li',
+      'section',
+      'table',
+      'video'
     ],
     blacklistedElements: ['style', 'script'],
     keepInternalRelativeLinks: false,

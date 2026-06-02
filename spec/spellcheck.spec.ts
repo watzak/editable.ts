@@ -1,16 +1,15 @@
-
-import {vi} from 'vitest'
-import {Editable} from '../src/core.js'
+import { vi } from 'vitest'
+import { Editable } from '../src/core.js'
 import MonitoredHighlighting from '../src/monitored-highlighting.js'
 import Cursor from '../src/cursor.js'
-import {createElement, createRange} from '../src/util/dom.js'
+import { createElement, createRange } from '../src/util/dom.js'
 
 describe('Spellcheck:', function () {
   let editable
 
   // Helpers
 
-  function createCursor (host, elem, offset) {
+  function createCursor(host, elem, offset) {
     const range = createRange()
     range.setStart(elem, offset)
     range.setEnd(elem, offset)
@@ -53,7 +52,6 @@ describe('Spellcheck:', function () {
     })
 
     describe('highlight()', function () {
-
       it('calls highlightMatches()', function () {
         const highlightMatches = vi.spyOn(highlighting, 'highlightMatches')
         highlighting.highlight(p)
@@ -114,7 +112,6 @@ describe('Spellcheck:', function () {
     })
 
     describe('removeHighlights()', function () {
-
       it('removes the highlights', function () {
         highlighting.highlight(p)
         expect(p.querySelectorAll('.misspelled-word').length).toBe(1)
@@ -159,7 +156,9 @@ describe('Spellcheck:', function () {
       })
 
       it('does not remove the highlights if cursor is outside a match', function () {
-        vi.spyOn(editable, 'getSelection').mockImplementation(() => createCursor(p, p.firstChild, 0))
+        vi.spyOn(editable, 'getSelection').mockImplementation(() =>
+          createCursor(p, p.firstChild, 0)
+        )
 
         highlighting.removeHighlightsAtCursor(p)
         expect(p.querySelectorAll('.misspelled-word').length).toBe(1)
@@ -167,7 +166,6 @@ describe('Spellcheck:', function () {
     })
 
     describe('retains cursor position', function () {
-
       it('in the middle of a text node', function () {
         const cursor = createCursor(p, p.firstChild, 4)
         cursor.save()

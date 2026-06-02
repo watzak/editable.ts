@@ -1,0 +1,24 @@
+name: Migration from editable.js
+description: Questions or issues when migrating from editable.js
+title: '[Migration]: '
+labels: ['migration', 'question']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        See [docs/MIGRATION.md](../docs/MIGRATION.md) for the migration guide.
+
+  - type: textarea
+    id: setup
+    attributes:
+      label: Your editable.js setup
+      description: How did you use editable.js (events, highlighting, bundler, etc.)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is blocking migration?
+    validations:
+      required: true

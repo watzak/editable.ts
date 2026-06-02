@@ -1,4 +1,4 @@
-import {getTotalCharCount, textNodesUnder, getTextNodeAndRelativeOffset} from './element.js'
+import { getTotalCharCount, textNodesUnder, getTextNodeAndRelativeOffset } from './element.js'
 
 interface BinarySearchData {
   currentOffset: number
@@ -45,7 +45,7 @@ export function binaryCursorSearch({
   const textNodes = textNodesUnder(host)
 
   // early terminate on empty editables
-  if (totalCharCount === 0) return {wasFound: false}
+  if (totalCharCount === 0) return { wasFound: false }
 
   const data: BinarySearchData = {
     currentOffset: Math.floor(totalCharCount / 2),
@@ -62,7 +62,7 @@ export function binaryCursorSearch({
   while (data.leftLimit < data.rightLimit && safety > 0) {
     safety = safety - 1
     offset = data.currentOffset
-    const range = createRangeAtCharacterOffset({textNodes, offset: data.currentOffset})
+    const range = createRangeAtCharacterOffset({ textNodes, offset: data.currentOffset })
     const coords = getRect(range)
     distance = Math.abs(coords.left - positionX)
     if (distance < bestDistance) {
@@ -94,7 +94,7 @@ export function binaryCursorSearch({
     if (data.currentOffset === offset) break
   }
 
-  const range = createRangeAtCharacterOffset({textNodes, offset: data.currentOffset})
+  const range = createRangeAtCharacterOffset({ textNodes, offset: data.currentOffset })
   const coords = getRect(range)
   const finalDistance = Math.abs(coords.left - positionX)
 
@@ -109,7 +109,7 @@ export function binaryCursorSearch({
     offset = bestOffset
   }
 
-  return {distance, offset, wasFound: true}
+  return { distance, offset, wasFound: true }
 }
 
 // move the binary search index in between the current position and the left limit
@@ -124,11 +124,14 @@ function moveRight(data: BinarySearchData): void {
   data.currentOffset = Math.ceil((data.currentOffset + data.rightLimit) / 2)
 }
 
-function createRangeAtCharacterOffset({textNodes, offset}: {
+function createRangeAtCharacterOffset({
+  textNodes,
+  offset
+}: {
   textNodes: Text[]
   offset: number
 }): Range {
-  const {node, relativeOffset} = getTextNodeAndRelativeOffset({textNodes, absOffset: offset})
+  const { node, relativeOffset } = getTextNodeAndRelativeOffset({ textNodes, absOffset: offset })
   if (!node) throw new Error('Could not find text node for offset')
 
   const newRange = node.ownerDocument.createRange()
@@ -159,4 +162,3 @@ function getRect(target: RectLikeTarget, fallback?: DOMRect): DOMRect {
     return fallback || fallbackRect()
   }
 }
-

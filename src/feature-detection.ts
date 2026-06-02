@@ -1,13 +1,13 @@
-import type {SelectionChangeDocument} from './dom-compat.js'
+import type { SelectionChangeDocument } from './dom-compat.js'
 
 /**
-* Check for contenteditable support
-*
-* (from Modernizr)
-* this is known to false positive in some mobile browsers
-* here is a whitelist of verified working browsers:
-* https://github.com/NielsLeenheer/html5test/blob/549f6eac866aa861d9649a0707ff2c0157895706/scripts/engine.js#L2083
-*/
+ * Check for contenteditable support
+ *
+ * (from Modernizr)
+ * this is known to false positive in some mobile browsers
+ * here is a whitelist of verified working browsers:
+ * https://github.com/NielsLeenheer/html5test/blob/549f6eac866aa861d9649a0707ff2c0157895706/scripts/engine.js#L2083
+ */
 export const contenteditable = typeof document.documentElement.contentEditable !== 'undefined'
 
 // Detect webkit browser engine

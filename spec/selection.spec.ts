@@ -1,13 +1,10 @@
-
-
-import {Editable} from '../src/core.js'
+import { Editable } from '../src/core.js'
 import Selection from '../src/selection.js'
 import Cursor from '../src/cursor.js'
 import config from '../src/config.js'
-import {createElement, createRange} from '../src/util/dom.js'
+import { createElement, createRange } from '../src/util/dom.js'
 
 describe('Selection', function () {
-
   it('should be defined', function () {
     expect(typeof Selection).toBe('function')
   })
@@ -44,7 +41,6 @@ describe('Selection', function () {
   })
 
   describe('removeChars()', function () {
-
     it('removes multiple characters', function () {
       const div = createElement('<div>«Foo "bar" foo»</div>')
       const range = createRange()
@@ -94,7 +90,7 @@ describe('Selection', function () {
   })
 
   describe('deleteContainedTags:', function () {
-    it('deletes all the tags whose content is completely within the current selection: ', function () {
+    it('deletes all the tags whose content is completely within the current selection:', function () {
       const content = createElement('<p>text <strong>bold</strong> text')
       const range = createRange()
       range.setStart(content, 1)
@@ -124,7 +120,6 @@ describe('Selection', function () {
     })
 
     describe('isAllSelected()', function () {
-
       it('returns true if all is selected', function () {
         expect(selection.isAllSelected()).toBe(true)
       })
@@ -149,7 +144,7 @@ describe('Selection', function () {
       let customElement
 
       beforeEach(function () {
-        customElement = {tagName: 'span', attributes: {class: 'foo'}}
+        customElement = { tagName: 'span', attributes: { class: 'foo' } }
       })
 
       it('makes the selection custom tag with the configured attributes', function () {
@@ -176,7 +171,7 @@ describe('Selection', function () {
           type: 'tag',
           name: 'strong',
           attribs: {
-            'class': 'foo'
+            class: 'foo'
           }
         }
       })
@@ -209,7 +204,7 @@ describe('Selection', function () {
           type: 'tag',
           name: 'em',
           attribs: {
-            'class': 'bar'
+            class: 'bar'
           }
         }
       })
@@ -242,7 +237,7 @@ describe('Selection', function () {
           type: 'tag',
           name: 'u',
           attribs: {
-            'class': 'bar'
+            class: 'bar'
           }
         }
       })
@@ -275,7 +270,7 @@ describe('Selection', function () {
           type: 'tag',
           name: 'a',
           attribs: {
-            'class': 'foo bar'
+            class: 'foo bar'
           }
         }
       })
@@ -306,21 +301,21 @@ describe('Selection', function () {
       })
 
       it('sets class attribute', function () {
-        selection.link('https://livingdocs.io', {class: 'baz'})
+        selection.link('https://livingdocs.io', { class: 'baz' })
         const linkTags = selection.getTagsByName('a')
         const html = getHtml(linkTags[0])
         expect(html).toBe('<a class="baz" href="https://livingdocs.io">foobar</a>')
       })
 
       it('removes class attribute when set to null', function () {
-        selection.link('https://livingdocs.io', {class: null})
+        selection.link('https://livingdocs.io', { class: null })
         const linkTags = selection.getTagsByName('a')
         const html = getHtml(linkTags[0])
         expect(html).toBe('<a href="https://livingdocs.io">foobar</a>')
       })
 
       it('does not modify class attribute when set to undefined', function () {
-        selection.link('https://livingdocs.io', {class: undefined})
+        selection.link('https://livingdocs.io', { class: undefined })
         const linkTags = selection.getTagsByName('a')
         const html = getHtml(linkTags[0])
         expect(html).toBe('<a class="foo bar" href="https://livingdocs.io">foobar</a>')
@@ -335,7 +330,7 @@ describe('Selection', function () {
             type: 'tag',
             name: 'strong',
             attribs: {
-              'class': 'foo'
+              class: 'foo'
             }
           }
         })
@@ -349,7 +344,9 @@ describe('Selection', function () {
           selection.makeBold()
           const boldTags = selection.getTagsByName('strong')
           const html = getHtml(boldTags[0])
-          expect(html).toBe('<strong class="foo"><a class="foo bar" href="https://livingdocs.io">foobar</a></strong>')
+          expect(html).toBe(
+            '<strong class="foo"><a class="foo bar" href="https://livingdocs.io">foobar</a></strong>'
+          )
         })
 
         it('toggles a link bold in a selection with text after', function () {
@@ -372,7 +369,9 @@ describe('Selection', function () {
           // make link + b char bold
           newSelection.toggleBold()
           const html = getHtml(oneWord)
-          expect(html).toBe('<div><strong class="foo"><a class="foo bar" href="https://livingdocs.io">foo</a>b</strong>ar</div>')
+          expect(html).toBe(
+            '<div><strong class="foo"><a class="foo bar" href="https://livingdocs.io">foo</a>b</strong>ar</div>'
+          )
         })
 
         it('toggles a link bold in a selection with text before', function () {
@@ -393,11 +392,12 @@ describe('Selection', function () {
           // make o char + link bold
           newSelection.toggleBold()
           const html = getHtml(oneWord)
-          expect(html).toBe('<div>fo<strong class="foo">o<a class="foo bar" href="https://livingdocs.io">bar</a></strong></div>')
+          expect(html).toBe(
+            '<div>fo<strong class="foo">o<a class="foo bar" href="https://livingdocs.io">bar</a></strong></div>'
+          )
         })
       })
     })
-
   })
 
   describe('triming:', function () {
@@ -414,7 +414,7 @@ describe('Selection', function () {
         type: 'tag',
         name: 'a',
         attribs: {
-          'class': 'foo bar'
+          class: 'foo bar'
         },
         trim: true
       }
@@ -424,7 +424,7 @@ describe('Selection', function () {
         type: 'tag',
         name: 'u',
         attribs: {
-          'class': 'bar'
+          class: 'bar'
         },
         trim: false
       }
@@ -456,23 +456,23 @@ describe('Selection', function () {
       const wordWithSpecialWhitespaces = createElement('<div>   ﻿bar </div>')
       const range = createRange()
       range.selectNodeContents(wordWithSpecialWhitespaces.firstChild)
-      const selection = new Selection(wordWithSpecialWhitespaces, range)
-      selection.trimRange()
-      expect(selection.range.startOffset).toBe(4)
-      expect(selection.range.endOffset).toBe(7)
+      const specialWhitespaceSelection = new Selection(wordWithSpecialWhitespaces, range)
+      specialWhitespaceSelection.trimRange()
+      expect(specialWhitespaceSelection.range.startOffset).toBe(4)
+      expect(specialWhitespaceSelection.range.endOffset).toBe(7)
     })
 
     it('does trim if only a whitespace is selected', function () {
       const whitespaceOnly = createElement('<div> </div>')
       const range = createRange()
       range.selectNodeContents(whitespaceOnly.firstChild)
-      const selection = new Selection(whitespaceOnly, range)
-      selection.trimRange()
-      expect(selection.toString()).toBe('')
+      const whitespaceOnlySelection = new Selection(whitespaceOnly, range)
+      whitespaceOnlySelection.trimRange()
+      expect(whitespaceOnlySelection.toString()).toBe('')
     })
 
     it('trims a custom element if the param is given', function () {
-      selection.toggleCustom({tagName: 'span', attributes: {class: 'foo'}, trim: true})
+      selection.toggleCustom({ tagName: 'span', attributes: { class: 'foo' }, trim: true })
       const spanTags = selection.getTagsByName('span')
       const html = getHtml(spanTags[0])
       expect(html).toBe('<span class="foo">foobar</span>')
@@ -519,7 +519,6 @@ describe('Selection', function () {
   })
 
   describe('inherits form Cursor', function () {
-
     it('has isAtEnd() method from Cursor in its protoype chain', function () {
       expect(Selection.prototype.hasOwnProperty('isAtEnd')).toBe(false)
       expect(Cursor.prototype.hasOwnProperty('isAtEnd')).toBe(true)
@@ -543,7 +542,7 @@ describe('Selection', function () {
         range.selectNodeContents(div)
         selection = new Selection(div, range)
 
-        editable.enable(div, {plainText: true})
+        editable.enable(div, { plainText: true })
       })
 
       it('should not make regular text bold on toggle', function () {

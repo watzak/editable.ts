@@ -1,4 +1,4 @@
-import {textNode} from './node-type.js'
+import { textNode } from './node-type.js'
 
 // A DOM node iterator.
 //
@@ -11,7 +11,10 @@ export default class NodeIterator {
   public root: Node
   private iteratorFunc: () => Node | undefined
 
-  constructor(root: Node, method?: 'getNext' | 'getPrevious' | 'getNextTextNode' | 'getPreviousTextNode') {
+  constructor(
+    root: Node,
+    method?: 'getNext' | 'getPrevious' | 'getNextTextNode' | 'getPreviousTextNode'
+  ) {
     this.current = this.previous = this.nextNode = this.root = root
     this.iteratorFunc = this[method || 'getNext'].bind(this) as () => Node | undefined
   }
@@ -38,11 +41,11 @@ export default class NodeIterator {
 
   next(): IteratorResult<Node | undefined, undefined> {
     const value = this.iteratorFunc()
-    return value ? {value} : {done: true, value: undefined}
+    return value ? { value } : { done: true, value: undefined }
   }
 
   getNext(): Node | undefined {
-    let n = this.current = this.nextNode
+    let n = (this.current = this.nextNode)
     let child: Node | null
     this.nextNode = undefined
     if (this.current) {
@@ -53,7 +56,7 @@ export default class NodeIterator {
       if (child && (n as Element).getAttribute?.('data-editable') !== 'remove') {
         this.nextNode = child
       } else {
-        while ((n !== this.root) && n) {
+        while (n !== this.root && n) {
           const nextSibling = n.nextSibling
           if (nextSibling) {
             this.nextNode = nextSibling
@@ -67,7 +70,7 @@ export default class NodeIterator {
   }
 
   getPrevious(): Node | undefined {
-    let n = this.current = this.previous
+    let n = (this.current = this.previous)
     let child: Node | null
     this.previous = undefined
     if (this.current) {
@@ -78,7 +81,7 @@ export default class NodeIterator {
       if (child && (n as Element).getAttribute?.('data-editable') !== 'remove') {
         this.previous = child
       } else {
-        while ((n !== this.root) && n) {
+        while (n !== this.root && n) {
           const prevSibling = n.previousSibling
           if (prevSibling) {
             this.previous = prevSibling
@@ -96,7 +99,7 @@ export default class NodeIterator {
     this.nextNode = undefined
     this.previous = undefined
     let n = this.current
-    while ((n !== this.root) && n) {
+    while (n !== this.root && n) {
       const nextSibling = n.nextSibling
       if (nextSibling) {
         this.nextNode = nextSibling

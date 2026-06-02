@@ -1,12 +1,10 @@
-
-import {createRange, createElement} from '../src/util/dom.js'
+import { createRange, createElement } from '../src/util/dom.js'
 
 import * as content from '../src/content.js'
 import Cursor from '../src/cursor.js'
 import config from '../src/config.js'
 
 describe('Cursor', function () {
-
   it('is defined', function () {
     expect(Cursor).not.toBe(undefined)
   })
@@ -56,28 +54,24 @@ describe('Cursor', function () {
     })
 
     describe('isAtTextEnd()', function () {
-
       it('returns true when at text end', function () {
         expect(cursor.isAtTextEnd()).toBe(true)
       })
     })
 
     describe('isAtEnd()', function () {
-
       it('is true', function () {
         expect(cursor.isAtEnd()).toBe(true)
       })
     })
 
     describe('isAtBeginning()', function () {
-
       it('is false', function () {
         expect(cursor.isAtBeginning()).toBe(false)
       })
     })
 
     describe('save() and restore()', function () {
-
       it('saves and restores the cursor', function () {
         cursor.save()
 
@@ -92,7 +86,6 @@ describe('Cursor', function () {
     })
 
     describe('insertAfter()', function () {
-
       it('can deal with an empty documentFragment', function () {
         expect(() => {
           const frag = window.document.createDocumentFragment()
@@ -102,7 +95,6 @@ describe('Cursor', function () {
     })
 
     describe('insertBefore()', function () {
-
       it('can deal with an empty documentFragment', function () {
         expect(() => {
           const frag = window.document.createDocumentFragment()
@@ -112,7 +104,6 @@ describe('Cursor', function () {
     })
 
     describe('before()', function () {
-
       it('gets the content before', function () {
         const fragment = cursor.before()
         expect(content.getInnerHtmlOfFragment(fragment)).toBe('foobar')
@@ -120,7 +111,6 @@ describe('Cursor', function () {
     })
 
     describe('textBefore()', function () {
-
       it('gets the text before', function () {
         const textBefore = cursor.textBefore()
         expect(textBefore).toBe('foobar')
@@ -128,14 +118,12 @@ describe('Cursor', function () {
     })
 
     describe('beforeHtml()', function () {
-
       it('gets the content before', function () {
         expect(cursor.beforeHtml()).toBe('foobar')
       })
     })
 
     describe('after()', function () {
-
       it('gets the content after', function () {
         const fragment = cursor.after()
         expect(content.getInnerHtmlOfFragment(fragment)).toBe('')
@@ -143,7 +131,6 @@ describe('Cursor', function () {
     })
 
     describe('textAfter()', function () {
-
       it('gets the text after', function () {
         const textAfter = cursor.textAfter()
         expect(textAfter).toBe('')
@@ -151,21 +138,18 @@ describe('Cursor', function () {
     })
 
     describe('afterHtml()', function () {
-
       it('gets the content before', function () {
         expect(cursor.afterHtml()).toBe('')
       })
     })
 
     describe('getInnerTags', function () {
-
       it('gets the inner tags covered by the cursor', function () {
         expect(cursor.getInnerTags()).toEqual([])
       })
     })
 
     describe('getAncestorTags', function () {
-
       it('gets all ancestor tags of the cursor', function () {
         expect(cursor.getAncestorTags()).toEqual([])
       })

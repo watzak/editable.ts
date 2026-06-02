@@ -1,0 +1,43 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "vitest"],
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2022": true
+  },
+  "ignorePatterns": [
+    "coverage/**",
+    "dist/**",
+    "examples/dist/**",
+    "lib/**",
+    "hmr.js",
+    "node_modules/**"
+  ],
+  "rules": {
+    "eqeqeq": ["warn", "smart"],
+    "no-unused-vars": [
+      "warn",
+      {
+        "args": "none",
+        "caughtErrors": "none"
+      }
+    ],
+    "no-shadow": [
+      "error",
+      {
+        "allow": [
+          "argv",
+          "callback",
+          "cb",
+          "context",
+          "done",
+          "err",
+          "params",
+          "range",
+          "selection"
+        ]
+      }
+    ]
+  }
+}

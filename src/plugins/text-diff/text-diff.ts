@@ -1,11 +1,11 @@
 import highlightText from '../../highlight-text.js'
 import highlightSupport from '../../highlight-support.js'
-import {computeDiff, type DiffOperation} from './diff-algorithm.js'
-import {domArray, domSelector} from '../../util/dom.js'
+import { computeDiff, type DiffOperation } from './diff-algorithm.js'
+import { domArray, domSelector } from '../../util/dom.js'
 import * as content from '../../content.js'
-import type {Editable} from '../../core.js'
-import type {PendingEditableTimeout} from '../../plugin-types.js'
-import type {TextDiffOptions} from '../../plugin-types.js'
+import type { Editable } from '../../core.js'
+import type { PendingEditableTimeout } from '../../plugin-types.js'
+import type { TextDiffOptions } from '../../plugin-types.js'
 
 export default class TextDiff {
   public editable: Editable
@@ -165,7 +165,7 @@ export default class TextDiff {
         const highlightId = `diff-inserted-${highlightIdCounter++}`
         const startIndex = op.newStart
         const endIndex = Math.min(op.newEnd, currentText.length)
-        
+
         if (startIndex < currentText.length && endIndex > startIndex) {
           try {
             highlightSupport.highlightRange(
@@ -187,17 +187,17 @@ export default class TextDiff {
 
     // Then handle deletions by inserting them as non-editable markers
     // We need to process deletions in reverse order to maintain correct positions
-    const deletions = operations.filter(op => op.type === 'delete').reverse()
-    
+    const deletions = operations.filter((op) => op.type === 'delete').reverse()
+
     for (const op of deletions) {
       if (currentText.length === 0) continue
       const highlightId = `diff-deleted-${highlightIdCounter++}`
       const insertPosition = this.mapOriginalToCurrentPosition(operations, op.oldStart)
-      
+
       if (insertPosition !== null) {
         try {
           const cursor = this.createDeletionCursor(editableHost, insertPosition, currentText)
-          
+
           if (cursor) {
             cursor.retainVisibleSelection(() => {
               // Create a span with the deleted text, marked as non-editable
@@ -206,7 +206,7 @@ export default class TextDiff {
               deletedSpan.setAttribute('contenteditable', 'false')
               deletedSpan.setAttribute('data-editable', 'remove') // Mark for removal when extracting content
               deletedSpan.textContent = op.value
-              
+
               // Insert the span before the cursor position
               cursor.insertBefore(deletedSpan)
             })
@@ -225,7 +225,10 @@ export default class TextDiff {
     })
   }
 
-  mapOriginalToCurrentPosition(operations: DiffOperation[], originalPosition: number): number | null {
+  mapOriginalToCurrentPosition(
+    operations: DiffOperation[],
+    originalPosition: number
+  ): number | null {
     let currentPosition = 0
 
     for (const op of operations) {
@@ -257,7 +260,11 @@ export default class TextDiff {
     const host = domSelector(editableHost, this.win.document)
     if (!host) return
 
-    for (const elem of domArray('[data-highlight="diff-deleted"], [data-highlight="diff-inserted"]', this.win.document, host)) {
+    for (const elem of domArray(
+      '[data-highlight="diff-deleted"], [data-highlight="diff-inserted"]',
+      this.win.document,
+      host
+    )) {
       content.unwrap(elem)
     }
   }

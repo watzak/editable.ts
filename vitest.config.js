@@ -1,4 +1,4 @@
-import {defineConfig} from 'vitest/config'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
@@ -10,15 +10,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'text-summary'],
-      exclude: [
-        'node_modules/',
-        'spec/',
-        'examples/',
-        'lib/',
-        'dist/',
-        '**/*.d.ts',
-        '**/*.spec.ts'
-      ]
+      exclude: ['node_modules/', 'spec/', 'examples/', 'lib/', 'dist/', '**/*.d.ts', '**/*.spec.ts']
     },
     // Test timeout
     testTimeout: 8000
@@ -33,4 +25,3 @@ export default defineConfig({
     'process.env.NODE_ENV': JSON.stringify('test')
   }
 })
-

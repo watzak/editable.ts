@@ -1,4 +1,4 @@
-import {Editable} from '../src/core.js'
+import { Editable } from '../src/core.js'
 
 describe('Editable', function () {
   let editable: Editable | undefined, div: HTMLElement | undefined
@@ -10,7 +10,6 @@ describe('Editable', function () {
   })
 
   describe('global variable', function () {
-
     it('is not defined', function () {
       expect(window.Editable).toBeUndefined()
     })
@@ -27,7 +26,6 @@ describe('Editable', function () {
   })
 
   describe('with an element added', function () {
-
     beforeEach(function () {
       div = document.createElement('div')
       document.body.appendChild(div)
@@ -50,7 +48,6 @@ describe('Editable', function () {
     })
 
     describe('appendTo()', function () {
-
       it('appends a document fragment', function () {
         div.innerHTML = 'a'
         const frag = document.createDocumentFragment()
@@ -80,7 +77,6 @@ describe('Editable', function () {
     })
 
     describe('prependTo()', function () {
-
       it('prepends a document fragment', function () {
         const frag = document.createDocumentFragment()
         frag.appendChild(document.createTextNode('b'))
@@ -110,7 +106,6 @@ describe('Editable', function () {
     })
 
     describe('change event', function () {
-
       it('gets triggered after format change', function () {
         return new Promise((resolve) => {
           editable.change((element) => {
@@ -125,17 +120,17 @@ describe('Editable', function () {
     })
 
     describe('findClosestCursorOffset:', function () {
-    /*
-     * Cursor1:                     | (left: 130)
-     * Comp 1:   Cristiano Ronaldo wurde 2018 mit grossem Tamtam nach Turin geholt.
-     * Comp 2:   Der Spieler blieb bei fünf Champions-League-Titeln stehen.
-     * Cursor 2:                    | (offset: 19 chars)
-     */
+      /*
+       * Cursor1:                     | (left: 130)
+       * Comp 1:   Cristiano Ronaldo wurde 2018 mit grossem Tamtam nach Turin geholt.
+       * Comp 2:   Der Spieler blieb bei fünf Champions-League-Titeln stehen.
+       * Cursor 2:                    | (offset: 19 chars)
+       */
       it('finds the index in a text node', function () {
         div.innerHTML = 'Der Spieler blieb bei fünf Champions-League-Titeln stehen.'
-        const {wasFound, offset} = editable.findClosestCursorOffset({
+        const { wasFound, offset } = editable.findClosestCursorOffset({
           element: div,
-          origCoordinates: {top: 0, left: 130}
+          origCoordinates: { top: 0, left: 130 }
         })
         expect(wasFound).toBe(true)
         // With JSDOM mock getBoundingClientRect, the offset calculation will differ
@@ -152,10 +147,11 @@ describe('Editable', function () {
        * Cursor 2:                                   |
        */
       it('finds the index in a nested html tag structure', function () {
-        div.innerHTML = '<p>Der <em>Spieler</em> blieb bei fünf <span>Champions-League-Titeln</span> stehen.</p>'
-        const {wasFound, offset} = editable.findClosestCursorOffset({
+        div.innerHTML =
+          '<p>Der <em>Spieler</em> blieb bei fünf <span>Champions-League-Titeln</span> stehen.</p>'
+        const { wasFound, offset } = editable.findClosestCursorOffset({
           element: div,
-          origCoordinates: {top: 0, left: 130}
+          origCoordinates: { top: 0, left: 130 }
         })
         expect(wasFound).toBe(true)
         // With JSDOM mock getBoundingClientRect, the offset calculation will differ
@@ -167,9 +163,9 @@ describe('Editable', function () {
 
       it('returns not found for empty nodes', function () {
         div.innerHTML = ''
-        const {wasFound} = editable.findClosestCursorOffset({
+        const { wasFound } = editable.findClosestCursorOffset({
           element: div,
-          origCoordinates: {top: 0, left: 130}
+          origCoordinates: { top: 0, left: 130 }
         })
         expect(wasFound).toBe(false)
       })
@@ -182,9 +178,9 @@ describe('Editable', function () {
        */
       it('returns not found for coordinates that are out of the text area', function () {
         div.innerHTML = 'Foo'
-        const {wasFound, offset} = editable.findClosestCursorOffset({
+        const { wasFound, offset } = editable.findClosestCursorOffset({
           element: div,
-          origCoordinates: {top: 0, left: 130}
+          origCoordinates: { top: 0, left: 130 }
         })
         expect(wasFound).toBe(true)
         expect(offset).toBe(3)

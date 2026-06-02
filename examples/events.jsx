@@ -1,10 +1,10 @@
-import {Component, cloneElement, render} from 'preact'
-import {PropTypes} from 'prop-types'
-import {closest} from '../src/util/dom.ts'
+import { Component, cloneElement, render } from 'preact'
+import { PropTypes } from 'prop-types'
+import { closest } from '../src/util/dom.ts'
 
 // Custom CSSTransition component to replace react-transition-group
 class CSSTransition extends Component {
-  constructor (props) {
+  constructor(props) {
     super(props)
     this.state = {
       isEntering: false,
@@ -13,33 +13,33 @@ class CSSTransition extends Component {
     this.timeoutId = null
   }
 
-  componentDidMount () {
+  componentDidMount() {
     if (this.props.in) {
       // Trigger enter animation
-      this.setState({isEntering: true})
+      this.setState({ isEntering: true })
       // Use requestAnimationFrame to ensure DOM is ready
       requestAnimationFrame(() => {
-        this.setState({isEntered: true})
+        this.setState({ isEntered: true })
       })
       // Clear classes after timeout
       const timeout = this.props.timeout || 0
       if (timeout > 0) {
         this.timeoutId = setTimeout(() => {
-          this.setState({isEntering: false})
+          this.setState({ isEntering: false })
         }, timeout)
       }
     }
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     if (this.timeoutId) {
       clearTimeout(this.timeoutId)
     }
   }
 
-  render () {
-    const {children, classNames} = this.props
-    const {isEntering, isEntered} = this.state
+  render() {
+    const { children, classNames } = this.props
+    const { isEntering, isEntered } = this.state
     // Preact children can be an array or single element - get the first if array
     const child = Array.isArray(children) ? children[0] : children
 
@@ -60,7 +60,7 @@ class CSSTransition extends Component {
 
 // Custom TransitionGroup component to replace react-transition-group
 class TransitionGroup extends Component {
-  render () {
+  render() {
     // Since exit is disabled, just render children directly
     // TransitionGroup from react-transition-group manages keys and transitions
     // For our simple use case, we can just wrap the children
@@ -69,33 +69,39 @@ class TransitionGroup extends Component {
 }
 
 class Events extends Component {
-  render () {
+  render() {
     const transitionOptions = {
       classNames: 'events',
       in: true,
       timeout: 500
     }
 
-    const defaultContent = (<CSSTransition key='empty-entry' {...transitionOptions}>
-      <div>Nothing to see yet.</div>
-    </CSSTransition>)
+    const defaultContent = (
+      <CSSTransition key="empty-entry" {...transitionOptions}>
+        <div>Nothing to see yet.</div>
+      </CSSTransition>
+    )
 
     const content = this.props.list.map(function (entry) {
-      return (<CSSTransition key={entry.id} {...transitionOptions}>
-        <div className='events-list-entry'>
-          <span className='event-name'>{entry.name}</span>
-          {entry.content}
-        </div>
-      </CSSTransition>)
+      return (
+        <CSSTransition key={entry.id} {...transitionOptions}>
+          <div className="events-list-entry">
+            <span className="event-name">{entry.name}</span>
+            {entry.content}
+          </div>
+        </CSSTransition>
+      )
     })
 
-    return (<div className='events-list'>
-      <TransitionGroup
-        children={content.length ? content : defaultContent}
-        enter={true}
-        exit={false}
-      />
-    </div>)
+    return (
+      <div className="events-list">
+        <TransitionGroup
+          children={content.length ? content : defaultContent}
+          enter={true}
+          exit={false}
+        />
+      </div>
+    )
   }
 }
 Events.propTypes = {
@@ -103,12 +109,14 @@ Events.propTypes = {
 }
 
 class CursorPosition extends Component {
-  render () {
-    return (<span className='cursor-position'>
-      {this.props.before}
-      <i>&nbsp;</i>
-      {this.props.after}
-    </span>)
+  render() {
+    return (
+      <span className="cursor-position">
+        {this.props.before}
+        <i>&nbsp;</i>
+        {this.props.after}
+      </span>
+    )
   }
 }
 CursorPosition.propTypes = {
@@ -117,8 +125,8 @@ CursorPosition.propTypes = {
 }
 
 class Selection extends Component {
-  render () {
-    return <span className='selection'>{this.props.content}</span>
+  render() {
+    return <span className="selection">{this.props.content}</span>
   }
 }
 Selection.propTypes = {
@@ -126,10 +134,13 @@ Selection.propTypes = {
 }
 
 class Clipboard extends Component {
-  render () {
-    return (<span>
-      <span className='clipboard-action'>{this.props.action}</span> <span className='clipboard-content'>{this.props.content}</span>
-    </span>)
+  render() {
+    return (
+      <span>
+        <span className="clipboard-action">{this.props.action}</span>{' '}
+        <span className="clipboard-content">{this.props.content}</span>
+      </span>
+    )
   }
 }
 Clipboard.propTypes = {
@@ -141,30 +152,30 @@ let guid = 0
 const listLength = 7
 const events = []
 
-function addToList (event) {
+function addToList(event) {
   events.unshift(event)
   if (events.length > listLength) removeFromList()
 }
 
-function removeFromList () {
+function removeFromList() {
   events.pop()
   draw()
 }
 
-function showEvent (event) {
+function showEvent(event) {
   event.id = ++guid
   addToList(event)
   draw()
 }
 
-function draw () {
+function draw() {
   const container = document.querySelector('.paragraph-example-events')
   if (container) {
     render(<Events list={events} />, container)
   }
 }
 
-function isFromFirstExample (elem) {
+function isFromFirstExample(elem) {
   return !!closest(elem, '.paragraph-example')
 }
 
@@ -238,9 +249,10 @@ export default function (editable) {
 
     .on('insert', (elem, direction, cursor) => {
       if (!isFromFirstExample(elem)) return
-      const content = direction === 'after'
-        ? 'Insert a new block after the current one'
-        : 'Insert a new block before the current one'
+      const content =
+        direction === 'after'
+          ? 'Insert a new block after the current one'
+          : 'Insert a new block before the current one'
 
       showEvent({
         name: 'insert',
@@ -258,9 +270,10 @@ export default function (editable) {
 
     .on('merge', (elem, direction) => {
       if (!isFromFirstExample(elem)) return
-      const content = direction === 'after'
-        ? 'Merge this block with the following block'
-        : 'Merge this block with the previous block'
+      const content =
+        direction === 'after'
+          ? 'Merge this block with the following block'
+          : 'Merge this block with the previous block'
 
       showEvent({
         name: 'merge',
@@ -270,9 +283,10 @@ export default function (editable) {
 
     .on('switch', (elem, direction, cursor) => {
       if (!isFromFirstExample(elem)) return
-      const content = direction === 'down'
-        ? 'Set the focus to the following block'
-        : 'Set the focus to the previous block'
+      const content =
+        direction === 'down'
+          ? 'Set the focus to the following block'
+          : 'Set the focus to the previous block'
 
       showEvent({
         name: 'switch',

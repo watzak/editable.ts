@@ -1,6 +1,6 @@
 import error from './util/error.js'
 import * as nodeType from './node-type.js'
-import {createRange, normalizeBoundaries} from './util/dom.js'
+import { createRange, normalizeBoundaries } from './util/dom.js'
 
 /**
  * Inspired by the Selection save and restore module for Rangy by Tim Down
@@ -11,14 +11,14 @@ let boundaryMarkerId = 0
 // (U+FEFF) zero width no-break space
 const markerTextChar = '\ufeff'
 
-function isSecondChildOfCommonAncestor (range: Range, rangeContainer: Node): boolean {
+function isSecondChildOfCommonAncestor(range: Range, rangeContainer: Node): boolean {
   const parent = range.commonAncestorContainer
   if (parent.nodeType === 3) return false // if we are on the text node it can't be a parent
   const possibleChild = rangeContainer.parentElement
   return possibleChild?.parentElement === parent
 }
 
-export function insertRangeBoundaryMarker (range: Range, atStart: boolean): HTMLElement {
+export function insertRangeBoundaryMarker(range: Range, atStart: boolean): HTMLElement {
   const container = range.commonAncestorContainer
 
   // If ownerDocument is null the commonAncestorContainer is window.document
@@ -50,8 +50,10 @@ export function insertRangeBoundaryMarker (range: Range, atStart: boolean): HTML
   // of the common ancestor.
   // It can help to prevent the nuking of e.g. comments when formatting like bold
   // is applied.
-  const directlyBeforeFormatTag = atStart && isSecondChildOfCommonAncestor(range, range.startContainer)
-  const directlyAfterFormatTag = !atStart && isSecondChildOfCommonAncestor(range, range.endContainer)
+  const directlyBeforeFormatTag =
+    atStart && isSecondChildOfCommonAncestor(range, range.startContainer)
+  const directlyAfterFormatTag =
+    !atStart && isSecondChildOfCommonAncestor(range, range.endContainer)
   if (directlyBeforeFormatTag) {
     const startParentElem = range.startContainer.parentElement
     if (startParentElem && startParentElem.parentElement) {
@@ -72,7 +74,12 @@ export function insertRangeBoundaryMarker (range: Range, atStart: boolean): HTML
   return markerEl
 }
 
-export function setRangeBoundary (host: HTMLElement, range: Range, markerId: string, atStart: boolean): void {
+export function setRangeBoundary(
+  host: HTMLElement,
+  range: Range,
+  markerId: string,
+  atStart: boolean
+): void {
   const markerEl = getMarker(host, markerId)
   if (!markerEl) return console.log('Marker element has been removed. Cannot restore selection.')
   range[atStart ? 'setStartBefore' : 'setEndBefore'](markerEl)
@@ -88,7 +95,7 @@ export interface RangeInfo {
   restored?: boolean
 }
 
-export function save (range: Range): RangeInfo {
+export function save(range: Range): RangeInfo {
   let rangeInfo: RangeInfo
   let startEl: HTMLElement | undefined
   let endEl: HTMLElement
@@ -125,7 +132,7 @@ export function save (range: Range): RangeInfo {
   return rangeInfo
 }
 
-export function restore (host: HTMLElement, rangeInfo: RangeInfo): Range | undefined {
+export function restore(host: HTMLElement, rangeInfo: RangeInfo): Range | undefined {
   if (rangeInfo.restored) return
 
   const range = createRange()
@@ -165,6 +172,6 @@ export function restore (host: HTMLElement, rangeInfo: RangeInfo): Range | undef
   return range
 }
 
-function getMarker (host: HTMLElement, id: string): HTMLElement | null {
+function getMarker(host: HTMLElement, id: string): HTMLElement | null {
   return host.querySelector(`#${id}`)
 }

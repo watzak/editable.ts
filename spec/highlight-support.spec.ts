@@ -1,12 +1,11 @@
+import { vi } from 'vitest'
 
-import {vi} from 'vitest'
-
-import {Editable} from '../src/features.js'
+import { Editable } from '../src/features.js'
 import highlightSupport from '../src/highlight-support.js'
-import {createElement, createRange, toCharacterRange} from '../src/util/dom.js'
+import { createElement, createRange, toCharacterRange } from '../src/util/dom.js'
 import Selection from '../src/selection.js'
 
-function setupHighlightEnv (text) {
+function setupHighlightEnv(text) {
   const context = {}
   context.text = text
   context.div = createElement(`<div>${context.text}</div>`)
@@ -21,20 +20,20 @@ function setupHighlightEnv (text) {
     return selection.getTextRange()
   }
 
-  // eslint-disable-next-line no-shadow
-  context.highlightRange = (text, highlightId, start, end, dispatcher, type) => {
-    const win = context.div.ownerDocument?.defaultView || (typeof window !== 'undefined' ? window : undefined)
+  context.highlightRange = (highlightText, highlightId, start, end, dispatcher, type) => {
+    const win =
+      context.div.ownerDocument?.defaultView || (typeof window !== 'undefined' ? window : undefined)
     // Ensure win is actually a Window object, not a string
     if (win && typeof win === 'object' && win.document) {
       return highlightSupport.highlightRange(
         context.div,
-        text,
+        highlightText,
         highlightId,
         start,
         end,
         dispatcher,
-        win,  // Window parameter (7th)
-        type  // type parameter (8th)
+        win, // Window parameter (7th)
+        type // type parameter (8th)
       )
     }
     // Fallback - create a window from the document if available
@@ -42,7 +41,7 @@ function setupHighlightEnv (text) {
     const fallbackWin = doc?.defaultView || undefined
     return highlightSupport.highlightRange(
       context.div,
-      text,
+      highlightText,
       highlightId,
       start,
       end,
@@ -53,16 +52,12 @@ function setupHighlightEnv (text) {
   }
 
   context.removeHighlight = (highlightId, dispatcher) => {
-    return highlightSupport.removeHighlight(
-      context.div,
-      highlightId,
-      dispatcher
-    )
+    return highlightSupport.removeHighlight(context.div, highlightId, dispatcher)
   }
 
   // we don't want to compare the native range in our tests since this is a native JS object
   context.extractWithoutNativeRange = function (type) {
-    const positions = context.editable.getHighlightPositions({editableHost: context.div, type})
+    const positions = context.editable.getHighlightPositions({ editableHost: context.div, type })
     // Check if positions is null, undefined, or an empty object
     if (!positions || (typeof positions === 'object' && Object.keys(positions).length === 0)) {
       return undefined
@@ -70,14 +65,15 @@ function setupHighlightEnv (text) {
     const extracted = {}
     for (const id in positions) {
       const val = positions[id]
-      const {nativeRange, ...withoutNativeRange} = val // eslint-disable-line
+      const withoutNativeRange = { ...val }
+      delete withoutNativeRange.nativeRange
       extracted[id] = withoutNativeRange
     }
     return Object.keys(extracted).length === 0 ? undefined : extracted
   }
 
   context.extract = function (type) {
-    return context.editable.getHighlightPositions({editableHost: context.div, type})
+    return context.editable.getHighlightPositions({ editableHost: context.div, type })
   }
 
   context.getHtml = function () {
@@ -87,7 +83,7 @@ function setupHighlightEnv (text) {
   context.formatHtml = (string) => {
     return createElement(`<div>${string.replace(/\n/gm, '')}</div>`).innerHTML
   }
-  
+
   return context
 }
 
@@ -119,7 +115,7 @@ describe('highlight-support:', function () {
       context.editable.highlight({
         editableHost: context.div,
         highlightId: 'myId',
-        textRange: {foo: 3, bar: 7}
+        textRange: { foo: 3, bar: 7 }
       })
       const highlightSpan = context.div.querySelectorAll('[data-word-id="myId"]')
       expect(highlightSpan.length).toBe(0)
@@ -131,7 +127,7 @@ describe('highlight-support:', function () {
       const result = context.editable.highlight({
         editableHost: context.div,
         highlightId: 'myId',
-        textRange: {foo: 3, bar: 32}
+        textRange: { foo: 3, bar: 32 }
       })
       const highlightSpan = context.div.querySelectorAll('[data-word-id="myId"]')
       expect(highlightSpan.length).toBe(0)
@@ -142,7 +138,7 @@ describe('highlight-support:', function () {
       context.editable.highlight({
         editableHost: context.div,
         highlightId: 'myId',
-        textRange: {start: 3, end: 3}
+        textRange: { start: 3, end: 3 }
       })
 
       const highlightSpan = context.div.querySelectorAll('[data-word-id="myId"]')
@@ -222,7 +218,8 @@ Make The <br> World Go Round`)
           end: 4
         }
       }
-      const expectedHtml = context.formatHtml(`<span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="firstId">P</span>
+      const expectedHtml =
+        context.formatHtml(`<span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="firstId">P</span>
 <span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="secondId">e</span>
 <span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="thirdId">o</span>
 <span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="fourthId">p</span>
@@ -235,7 +232,7 @@ le Make The <br> World Go Round`)
     })
 
     it('handles nested highlights', function () {
-      context = setupHighlightEnv( 'People Make The <br> World Go Round')
+      context = setupHighlightEnv('People Make The <br> World Go Round')
       context.highlightRange('P', 'firstId', 0, 1)
       context.highlightRange('e', 'secondId', 1, 2)
       context.highlightRange('ople', 'thirdId', 2, 6)
@@ -262,7 +259,8 @@ le Make The <br> World Go Round`)
           end: 6
         }
       }
-      const expectedHtml = context.formatHtml(`<span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="firstId">
+      const expectedHtml =
+        context.formatHtml(`<span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="firstId">
 <span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="fourthId">P</span></span>
 <span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="secondId">
 <span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="fourthId">e</span></span>
@@ -275,7 +273,7 @@ le Make The <br> World Go Round`)
     })
 
     it('handles intersecting highlights', function () {
-      context = setupHighlightEnv( 'People Make The <br> World Go Round')
+      context = setupHighlightEnv('People Make The <br> World Go Round')
       context.highlightRange('Peo', 'firstId', 0, 3)
       context.highlightRange('ople', 'secondId', 2, 6)
       context.highlightRange('le', 'thirdId', 4, 6)
@@ -311,7 +309,7 @@ le Make The <br> World Go Round`)
     // todo: the input is ' The <br> World' which would be 11 - 23
     // todo:   is there some whitespace normalization going on?
     it('handles highlights containing break tags', function () {
-      context = setupHighlightEnv( 'The <br> World Go Round')
+      context = setupHighlightEnv('The <br> World Go Round')
       context.highlightRange('The  World', 'myId', 0, 10)
       const expectedRanges = {
         myId: {
@@ -327,11 +325,10 @@ le Make The <br> World Go Round`)
 
       expect(context.getHtml()).toBe(expectedHtml)
       expect(context.extractWithoutNativeRange()).toEqual(expectedRanges)
-
     })
 
     it('handles identical ranges', function () {
-      context = setupHighlightEnv( 'People Make The World Go Round')
+      context = setupHighlightEnv('People Make The World Go Round')
       context.highlightRange(' The World', 'firstId', 11, 21)
       context.highlightRange(' The World', 'secondId', 11, 21)
       const expectedRanges = {
@@ -354,11 +351,10 @@ le Make The <br> World Go Round`)
 
       expect(context.getHtml()).toBe(expectedHtml)
       expect(context.extractWithoutNativeRange()).toEqual(expectedRanges)
-
     })
 
     it('updates any existing range', function () {
-      context = setupHighlightEnv( 'People Make The <br> World Go Round')
+      context = setupHighlightEnv('People Make The <br> World Go Round')
       context.highlightRange('a', 'myId', 11, 22)
       context.highlightRange('a', 'myId', 8, 9)
       const expectedRanges = {
@@ -377,7 +373,7 @@ ke The <br> World Go Round`)
     })
 
     it('handles a <br> tag without whitespaces', function () {
-      context = setupHighlightEnv( 'a<br>b')
+      context = setupHighlightEnv('a<br>b')
       context.highlightRange('b', 'myId', 1, 2)
       const expectedHtml = context.formatHtml(`a<br>
 <span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">b</span>`)
@@ -386,12 +382,12 @@ ke The <br> World Go Round`)
     })
 
     it('does not throw when text has been deleted', function () {
-      context = setupHighlightEnv( '')
+      context = setupHighlightEnv('')
       expect(() => context.highlightRange('not found', 'myId', 33, 38)).not.toThrow()
     })
 
     it('normalizes a simple text node after removing a highlight', function () {
-      context = setupHighlightEnv( 'People Make The World Go Round')
+      context = setupHighlightEnv('People Make The World Go Round')
       context.highlightRange('ple ', 'myId', 3, 7)
       const normalizeSpy = vi.spyOn(context.div, 'normalize')
       context.removeHighlight('myId')
@@ -403,34 +399,36 @@ ke The <br> World Go Round`)
   })
 
   describe('highlightRange() - with formatted text', function () {
-
     it('handles highlights surrounding <span> tags', function () {
-      context = setupHighlightEnv( 'a<span>b</span>cd')
+      context = setupHighlightEnv('a<span>b</span>cd')
       context.highlightRange('bc', 'myId', 1, 3)
       const extract = context.extractWithoutNativeRange()
 
       expect(extract.myId.text).toBe('bc')
 
       const content = context.getHtml()
-      expect(content).toBe('a<span><span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">b</span></span><span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">c</span>d')
+      expect(content).toBe(
+        'a<span><span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">b</span></span><span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">c</span>d'
+      )
     })
 
     it('handles highlights intersecting <span> tags', function () {
-      context = setupHighlightEnv( 'a<span data-word-id="x">bc</span>d')
+      context = setupHighlightEnv('a<span data-word-id="x">bc</span>d')
       context.highlightRange('ab', 'myId', 0, 2)
       const extract = context.extractWithoutNativeRange()
 
       expect(extract.myId.text).toBe('ab')
 
       const content = context.getHtml()
-      expect(content).toBe('<span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">a</span><span data-word-id="x"><span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">b</span>c</span>d')
+      expect(content).toBe(
+        '<span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">a</span><span data-word-id="x"><span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">b</span>c</span>d'
+      )
     })
   })
 
   // How characters are counted determines how the the highlight
   // startIndex and endIndex are applied.
   describe('highlightRange() - character counting', function () {
-
     // actual / expected length / expected text
     const cases = [
       ['😐', 2, '😐'],
@@ -449,11 +447,10 @@ ke The <br> World Go Round`)
 
     // Generate a test for each test case
     for (const [char, expectedLength, expectedText] of cases) {
-
       it(`treats '${char}' as ${expectedLength} characters`, function () {
         context = setupHighlightEnv(char)
 
-        const {start, end} = context.getCharacterRange()
+        const { start, end } = context.getCharacterRange()
         context.highlightRange(char, 'char', start, end)
 
         if (expectedLength === 0) {
@@ -474,14 +471,13 @@ ke The <br> World Go Round`)
   })
 
   describe('highlightRange() - with special characters', function () {
-
     it('maps selection offsets to ranges containing multibyte symbols consistently', function () {
-      context = setupHighlightEnv( '😐 Make&nbsp;The \n 🌍 Go \n🔄')
+      context = setupHighlightEnv('😐 Make&nbsp;The \n 🌍 Go \n🔄')
       const range = createRange()
       const node = context.div
       range.setStart(node.firstChild, 0)
       range.setEnd(node.firstChild, 2)
-      const {start, end} = toCharacterRange(range, context.div)
+      const { start, end } = toCharacterRange(range, context.div)
 
       context.highlightRange('😐', 'myId', start, end)
       const expectedRanges = {
@@ -492,14 +488,15 @@ ke The <br> World Go Round`)
         }
       }
 
-      const expectedHtml = '<span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">😐</span> Make&nbsp;The \n 🌍 Go \n🔄'
+      const expectedHtml =
+        '<span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">😐</span> Make&nbsp;The \n 🌍 Go \n🔄'
 
       expect(context.extractWithoutNativeRange()).toEqual(expectedRanges)
       expect(context.getHtml()).toBe(expectedHtml)
     })
 
     it('treats non-breakable spaces consistently', function () {
-      context = setupHighlightEnv( '😐 Make&nbsp;The \n 🌍 Go \n🔄')
+      context = setupHighlightEnv('😐 Make&nbsp;The \n 🌍 Go \n🔄')
       context.highlightRange(' Make T', 'myId', 2, 9)
       const expectedRanges = {
         myId: {
@@ -515,7 +512,7 @@ ke The <br> World Go Round`)
     })
 
     it('treats \\n spaces consistently', function () {
-      context = setupHighlightEnv( '&nbsp;The \n 🌍 Go \n🔄')
+      context = setupHighlightEnv('&nbsp;The \n 🌍 Go \n🔄')
       context.highlightRange('The \n 🌍', 'myId', 1, 9)
       const expectedRanges = {
         myId: {
@@ -532,7 +529,7 @@ ke The <br> World Go Round`)
     })
 
     it('extracts a readable text', function () {
-      context = setupHighlightEnv( '😐 Make&nbsp;The \r\n 🌍 Go \n🔄')
+      context = setupHighlightEnv('😐 Make&nbsp;The \r\n 🌍 Go \n🔄')
       context.highlightRange('😐 Make The 🌍 Go 🔄', 'myId', 0, 23)
       const expectedRanges = {
         myId: {
@@ -541,24 +538,25 @@ ke The <br> World Go Round`)
           end: 23
         }
       }
-      const expectedHtml = '<span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">😐 Make&nbsp;The \n 🌍 Go \n🔄</span>'
+      const expectedHtml =
+        '<span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">😐 Make&nbsp;The \n 🌍 Go \n🔄</span>'
       expect(context.getHtml()).toBe(expectedHtml)
       expect(context.extractWithoutNativeRange()).toEqual(expectedRanges)
     })
 
     it('notify change on add highlight when dispatcher is given', function () {
-      context = setupHighlightEnv( '😐 Make&nbsp;The \r\n 🌍 Go \n🔄')
+      context = setupHighlightEnv('😐 Make&nbsp;The \r\n 🌍 Go \n🔄')
       let called = 0
-      const dispatcher = {notify: () => called++}
+      const dispatcher = { notify: () => called++ }
       context.highlightRange('😐 Make The 🌍 Go 🔄', 'myId', 0, 20, dispatcher)
 
       expect(called).toBe(1)
     })
 
     it('notify change on remove highlight when dispatcher is given', function () {
-      context = setupHighlightEnv( '😐 Make&nbsp;The \r\n 🌍 Go \n🔄')
+      context = setupHighlightEnv('😐 Make&nbsp;The \r\n 🌍 Go \n🔄')
       let called = 0
-      const dispatcher = {notify: () => called++}
+      const dispatcher = { notify: () => called++ }
       context.highlightRange('😐 Make The 🌍 Go 🔄', 'myId', 0, 20)
       context.removeHighlight('first', dispatcher)
 
@@ -567,7 +565,6 @@ ke The <br> World Go Round`)
   })
 
   describe('highlightRange() - multiple white spaces', function () {
-
     beforeEach(function () {
       context = setupHighlightEnv('People Make The&nbsp;<br>&nbsp;World Go Round')
     })
@@ -648,7 +645,7 @@ Make The&nbsp;<br>&nbsp;W<span class="highlight-spellcheck" data-editable="ui-un
 
   describe('highlightRange() - matches based on both start index and match', function () {
     beforeEach(function () {
-      context = setupHighlightEnv( 'People make the world go round and round and round the world')
+      context = setupHighlightEnv('People make the world go round and round and round the world')
     })
 
     it('highlights based on both match and start index', function () {
@@ -660,7 +657,9 @@ Make The&nbsp;<br>&nbsp;W<span class="highlight-spellcheck" data-editable="ui-un
           end: 40
         }
       }
-      const expectedHtml = context.formatHtml(`People make the world go round and <span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">round</span> and round the world`)
+      const expectedHtml = context.formatHtml(
+        `People make the world go round and <span class="highlight-comment" data-editable="ui-unwrap" data-highlight="comment" data-word-id="myId">round</span> and round the world`
+      )
       expect(context.getHtml()).toBe(expectedHtml)
       expect(context.extractWithoutNativeRange('comment')).toEqual(expectedRanges)
     })

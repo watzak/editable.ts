@@ -1,18 +1,24 @@
 import type Cursor from './cursor.js'
 import type Selection from './selection.js'
-import type {Editable} from './core.js'
+import type { Editable } from './core.js'
 
 export type EventMap = Record<string, unknown[]>
 
 export type EventKey<TEventMap extends EventMap> = Extract<keyof TEventMap, string>
 
-export type EventHandler<TContext, TArgs extends unknown[]> = (this: TContext, ...args: TArgs) => unknown
+export type EventHandler<TContext, TArgs extends unknown[]> = (
+  this: TContext,
+  ...args: TArgs
+) => unknown
 
 export type EventHandlerMap<TEventMap extends EventMap, TContext> = {
   [TEventName in EventKey<TEventMap>]?: EventHandler<TContext, TEventMap[TEventName]>
 }
 
-export type GenericEventHandlerMap<TContext> = Record<string, EventHandler<TContext, unknown[]> | undefined>
+export type GenericEventHandlerMap<TContext> = Record<
+  string,
+  EventHandler<TContext, unknown[]> | undefined
+>
 
 export interface EventOn<TEventMap extends EventMap, TContext, TSelf> {
   <TEventName extends EventKey<TEventMap>>(
@@ -28,10 +34,7 @@ export interface EventNotify<TEventMap extends EventMap, TContext> {
     event: TEventName,
     ...args: TEventMap[TEventName]
   ): void
-  <TEventName extends EventKey<TEventMap>>(
-    event: TEventName,
-    ...args: TEventMap[TEventName]
-  ): void
+  <TEventName extends EventKey<TEventMap>>(event: TEventName, ...args: TEventMap[TEventName]): void
 }
 
 export interface EventOff<TEventMap extends EventMap, TContext> {
@@ -102,4 +105,7 @@ export interface KeyboardEventMap extends EventMap {
 
 export type EditableEvent = EventKey<EditableEventMap>
 
-export type EditableEventHandler<TEventName extends EditableEvent> = EventHandler<Editable, EditableEventMap[TEventName]>
+export type EditableEventHandler<TEventName extends EditableEvent> = EventHandler<
+  Editable,
+  EditableEventMap[TEventName]
+>

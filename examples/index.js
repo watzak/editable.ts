@@ -1,27 +1,27 @@
 import Prism from 'prismjs'
 
-import {Editable} from '../src/features.ts'
+import { Editable } from '../src/features.ts'
 import eventList from './events.jsx'
-import {getSelectionCoordinates} from '../src/util/dom.ts'
+import { getSelectionCoordinates } from '../src/util/dom.ts'
 import * as content from '../src/content.ts'
 import highlightText from '../src/highlight-text.ts'
 
 // Paragraph Example
-const editable = new Editable({browserSpellcheck: false})
+const editable = new Editable({ browserSpellcheck: false })
 
 // Paragraph
 // ---------
-editable.enable('.paragraph-example p', {normalize: true})
+editable.enable('.paragraph-example p', { normalize: true })
 eventList(editable)
 
 // Text formatting toolbar
-editable.enable('.formatting-example p', {normalize: true})
+editable.enable('.formatting-example p', { normalize: true })
 setupTooltip()
 
 // Plain Text
-editable.enable('.plain-text-example.example-sheet', {plainText: true})
+editable.enable('.plain-text-example.example-sheet', { plainText: true })
 
-editable.enable('.styling-example p', {normalize: true})
+editable.enable('.styling-example p', { normalize: true })
 const secondExample = document.querySelector('.formatting-example p')
 updateCode(secondExample)
 
@@ -63,9 +63,10 @@ if (iframeExample) {
 // ---------------
 
 let currentSelection
-function setupTooltip () {
+function setupTooltip() {
   const tooltipWrapper = document.createElement('div')
-  tooltipWrapper.innerHTML = '<div class="selection-tip" style="display:none;">' +
+  tooltipWrapper.innerHTML =
+    '<div class="selection-tip" style="display:none;">' +
     `<button class="js-format js-format-bold"><img width="20" height=20" src="data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="fill: #eee"><path d="M13.5,15.5H10V12.5H13.5A1.5,1.5 0 0,1 15,14A1.5,1.5 0 0,1 13.5,15.5M10,6.5H13A1.5,1.5 0 0,1 14.5,8A1.5,1.5 0 0,1 13,9.5H10M15.6,10.79C16.57,10.11 17.25,9 17.25,8C17.25,5.74 15.5,4 13.25,4H7V18H14.04C16.14,18 17.75,16.3 17.75,14.21C17.75,12.69 16.89,11.39 15.6,10.79Z" /></svg>`)}"></button>` +
     `<button class="js-format js-format-italic"><img width="20" height=20" src="data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="fill: #eee"><path d="M10,4V7H12.21L8.79,15H6V18H14V15H11.79L15.21,7H18V4H10Z" /></svg>`)}"></button>` +
     `<button class="js-format js-format-underline"><img width="20" height=20" src="data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="fill: #eee"><path d="M5,21H19V19H5V21M12,17A6,6 0 0,0 18,11V3H15.5V11A3.5,3.5 0 0,1 12,14.5A3.5,3.5 0 0,1 8.5,11V3H6V11A6,6 0 0,0 12,17Z" /></svg>`)}"></button>` +
@@ -96,8 +97,7 @@ function setupTooltip () {
 
       // position tooltip
       const top = coords.top - tooltip.offsetHeight - 15
-      // eslint-disable-next-line
-      const left = coords.left + (coords.width / 2) - (tooltip.offsetWidth / 2)
+      const left = coords.left + coords.width / 2 - tooltip.offsetWidth / 2
       tooltip.style.top = `${top}px`
       tooltip.style.left = `${left}px`
     })
@@ -108,7 +108,7 @@ function setupTooltip () {
   setupTooltipListeners(tooltip)
 }
 
-function setupTooltipListeners (tooltip) {
+function setupTooltipListeners(tooltip) {
   // prevent editable from loosing focus
   // document
   //   .addEventListener('mousedown', (evt) => {})
@@ -160,7 +160,7 @@ function setupTooltipListeners (tooltip) {
 
     const textRange = currentSelection.getTextRange()
 
-    currentSelection.highlightComment({textRange})
+    currentSelection.highlightComment({ textRange })
     currentSelection.triggerChange()
   })
 
@@ -194,7 +194,7 @@ function setupTooltipListeners (tooltip) {
 
     currentSelection.toggleCustom({
       tagName: 'mark',
-      attributes: {class: 'text-highlight'}
+      attributes: { class: 'text-highlight' }
     })
     currentSelection.triggerChange()
   })
@@ -207,7 +207,7 @@ function setupTooltipListeners (tooltip) {
   })
 }
 
-function updateCode (elem) {
+function updateCode(elem) {
   const elemContent = editable.getContent(elem)
   const codeBlock = document.querySelector('.formatting-code-js')
   if (!codeBlock) return
@@ -218,7 +218,7 @@ function updateCode (elem) {
 // Highlighting
 // ------------
 
-function highlightService (text, callback) {
+function highlightService(text, callback) {
   callback(['happy'])
 }
 
@@ -237,13 +237,11 @@ editable.setupHighlighting({
 const highlightExample = document.querySelector('.highlighting-example p')
 editable.add(highlightExample)
 
-
 // Whitespace Highlighting
 // -----------------------
 
 const highlightExample2 = document.querySelector('.whitespace-highlighting-example p')
 editable.add(highlightExample2)
-
 
 // Pasting
 // -------
@@ -272,7 +270,7 @@ editable.add('.text-diff-hover-preview p')
 // Text Diff - Shared Accept/Reject Logic
 // ---------------------------------------
 
-function findRelatedPair (element) {
+function findRelatedPair(element) {
   const pair = {
     deleted: [],
     inserted: []
@@ -336,23 +334,26 @@ function findRelatedPair (element) {
   return pair
 }
 
-function acceptChange (pair, highlight) {
+function acceptChange(pair, highlight) {
   if (!pair || !highlight) return
 
-  const editableHost = highlight.closest('p') || highlight.closest('.text-diff-inline-toolbar') ||
-                       highlight.closest('.text-diff-side-panel') || highlight.closest('.text-diff-floating-card') ||
-                       highlight.closest('.text-diff-inline-icons')
+  const editableHost =
+    highlight.closest('p') ||
+    highlight.closest('.text-diff-inline-toolbar') ||
+    highlight.closest('.text-diff-side-panel') ||
+    highlight.closest('.text-diff-floating-card') ||
+    highlight.closest('.text-diff-inline-icons')
   if (!editableHost) return
 
   // Unwrap insertion markers (keep the text)
-  pair.inserted.forEach(insertedEl => {
+  pair.inserted.forEach((insertedEl) => {
     if (insertedEl.parentNode && insertedEl.isConnected) {
       content.unwrap(insertedEl)
     }
   })
 
   // Remove deletion markers (remove the text)
-  pair.deleted.forEach(deletedEl => {
+  pair.deleted.forEach((deletedEl) => {
     if (deletedEl.isConnected) {
       deletedEl.remove()
     }
@@ -371,23 +372,26 @@ function acceptChange (pair, highlight) {
   editable.dispatcher.notify('change', editableHost)
 }
 
-function rejectChange (pair, highlight) {
+function rejectChange(pair, highlight) {
   if (!pair || !highlight) return
 
-  const editableHost = highlight.closest('p') || highlight.closest('.text-diff-inline-toolbar') ||
-                       highlight.closest('.text-diff-side-panel') || highlight.closest('.text-diff-floating-card') ||
-                       highlight.closest('.text-diff-inline-icons')
+  const editableHost =
+    highlight.closest('p') ||
+    highlight.closest('.text-diff-inline-toolbar') ||
+    highlight.closest('.text-diff-side-panel') ||
+    highlight.closest('.text-diff-floating-card') ||
+    highlight.closest('.text-diff-inline-icons')
   if (!editableHost) return
 
   // Unwrap deletion markers (keep the text)
-  pair.deleted.forEach(deletedEl => {
+  pair.deleted.forEach((deletedEl) => {
     if (deletedEl.parentNode && deletedEl.isConnected) {
       content.unwrap(deletedEl)
     }
   })
 
   // Remove insertion markers (remove the text)
-  pair.inserted.forEach(insertedEl => {
+  pair.inserted.forEach((insertedEl) => {
     if (insertedEl.isConnected) {
       insertedEl.remove()
     }
@@ -409,7 +413,7 @@ function rejectChange (pair, highlight) {
 // Text Diff Popover (Original)
 // -----------------
 
-function setupTextDiffPopover () {
+function setupTextDiffPopover() {
   const popover = document.createElement('div')
   popover.className = 'text-diff-popover'
   popover.innerHTML = `
@@ -422,7 +426,7 @@ function setupTextDiffPopover () {
   let currentHighlight = null
   let currentPair = null
 
-  function findRelatedPairLocal (element) {
+  function findRelatedPairLocal(element) {
     const pair = {
       deleted: [],
       inserted: []
@@ -486,7 +490,7 @@ function setupTextDiffPopover () {
     return pair
   }
 
-  function showPopover (element) {
+  function showPopover(element) {
     currentHighlight = element
     currentPair = findRelatedPairLocal(element)
 
@@ -504,14 +508,14 @@ function setupTextDiffPopover () {
     const popoverRect = popover.getBoundingClientRect()
 
     // Position popover above the element by default
-    let top = (rect.top + scrollTop) - (popoverRect.height + 8)
-    let left = (rect.left + scrollLeft) + ((rect.width / 2) - (popoverRect.width / 2))
+    let top = rect.top + scrollTop - (popoverRect.height + 8)
+    let left = rect.left + scrollLeft + (rect.width / 2 - popoverRect.width / 2)
 
     // Adjust if popover would go off screen horizontally
-    if (left < (scrollLeft + 8)) {
+    if (left < scrollLeft + 8) {
       left = scrollLeft + 8
-    } else if ((left + popoverRect.width) > ((scrollLeft + window.innerWidth) - 8)) {
-      left = ((scrollLeft + window.innerWidth) - popoverRect.width) - 8
+    } else if (left + popoverRect.width > scrollLeft + window.innerWidth - 8) {
+      left = scrollLeft + window.innerWidth - popoverRect.width - 8
     }
 
     // Adjust if popover would go off screen vertically (above)
@@ -527,18 +531,18 @@ function setupTextDiffPopover () {
     popover.style.top = `${top}px`
   }
 
-  function hidePopover () {
+  function hidePopover() {
     popover.style.display = 'none'
     currentHighlight = null
     currentPair = null
   }
 
-  function handleAccept () {
+  function handleAccept() {
     acceptChange(currentPair, currentHighlight)
     hidePopover()
   }
 
-  function handleReject () {
+  function handleReject() {
     rejectChange(currentPair, currentHighlight)
     hidePopover()
   }
@@ -548,7 +552,7 @@ function setupTextDiffPopover () {
   if (textDiffExample) {
     let hideTimeout = null
 
-    function showPopoverDelayed (element) {
+    function showPopoverDelayed(element) {
       if (hideTimeout) {
         clearTimeout(hideTimeout)
         hideTimeout = null
@@ -556,36 +560,50 @@ function setupTextDiffPopover () {
       showPopover(element)
     }
 
-    function hidePopoverDelayed () {
+    function hidePopoverDelayed() {
       if (hideTimeout) {
         clearTimeout(hideTimeout)
       }
       hideTimeout = setTimeout(() => {
-        if (!popover.matches(':hover') &&
-            !textDiffExample.querySelector(':hover')?.classList?.contains('highlight-diff-deleted') &&
-            !textDiffExample.querySelector(':hover')?.classList?.contains('highlight-diff-inserted')) {
+        if (
+          !popover.matches(':hover') &&
+          !textDiffExample.querySelector(':hover')?.classList?.contains('highlight-diff-deleted') &&
+          !textDiffExample.querySelector(':hover')?.classList?.contains('highlight-diff-inserted')
+        ) {
           hidePopover()
         }
       }, 150)
     }
 
-    textDiffExample.addEventListener('mouseover', (e) => {
-      const target = e.target
-      if (target.nodeType === 1 &&
+    textDiffExample.addEventListener(
+      'mouseover',
+      (e) => {
+        const target = e.target
+        if (
+          target.nodeType === 1 &&
           (target.classList.contains('highlight-diff-deleted') ||
-           target.classList.contains('highlight-diff-inserted'))) {
-        showPopoverDelayed(target)
-      }
-    }, true)
+            target.classList.contains('highlight-diff-inserted'))
+        ) {
+          showPopoverDelayed(target)
+        }
+      },
+      true
+    )
 
-    textDiffExample.addEventListener('mouseout', (e) => {
-      const target = e.target
-      if (target.nodeType === 1 &&
+    textDiffExample.addEventListener(
+      'mouseout',
+      (e) => {
+        const target = e.target
+        if (
+          target.nodeType === 1 &&
           (target.classList.contains('highlight-diff-deleted') ||
-           target.classList.contains('highlight-diff-inserted'))) {
-        hidePopoverDelayed()
-      }
-    }, true)
+            target.classList.contains('highlight-diff-inserted'))
+        ) {
+          hidePopoverDelayed()
+        }
+      },
+      true
+    )
 
     popover.addEventListener('mouseenter', () => {
       if (hideTimeout) {
@@ -610,7 +628,7 @@ setupTextDiffPopover()
 // ---------------------------
 
 // 1. Inline Toolbar
-function setupInlineToolbar () {
+function setupInlineToolbar() {
   const container = document.querySelector('.text-diff-inline-toolbar')
   if (!container) return
 
@@ -628,7 +646,7 @@ function setupInlineToolbar () {
   let currentPair = null
   let hideTimeout = null
 
-  function showToolbar (element) {
+  function showToolbar(element) {
     currentHighlight = element
     currentPair = findRelatedPair(element)
     // Toolbar should always show when hovering over deleted or inserted text
@@ -642,12 +660,12 @@ function setupInlineToolbar () {
 
     toolbar.style.display = 'block'
     const toolbarRect = toolbar.getBoundingClientRect()
-    let top = (rect.top + scrollTop) - (toolbarRect.height + 8)
-    let left = (rect.left + scrollLeft) + ((rect.width / 2) - (toolbarRect.width / 2))
+    let top = rect.top + scrollTop - (toolbarRect.height + 8)
+    let left = rect.left + scrollLeft + (rect.width / 2 - toolbarRect.width / 2)
 
     if (left < scrollLeft + 8) left = scrollLeft + 8
-    if ((left + toolbarRect.width) > ((scrollLeft + window.innerWidth) - 8)) {
-      left = ((scrollLeft + window.innerWidth) - toolbarRect.width) - 8
+    if (left + toolbarRect.width > scrollLeft + window.innerWidth - 8) {
+      left = scrollLeft + window.innerWidth - toolbarRect.width - 8
     }
     if (top < scrollTop) {
       top = rect.bottom + scrollTop + 8
@@ -660,12 +678,14 @@ function setupInlineToolbar () {
     toolbar.style.top = `${top}px`
   }
 
-  function hideToolbar () {
+  function hideToolbar() {
     if (hideTimeout) clearTimeout(hideTimeout)
     hideTimeout = setTimeout(() => {
-      if (!toolbar.matches(':hover') &&
-          !container.querySelector(':hover')?.classList?.contains('highlight-diff-deleted') &&
-          !container.querySelector(':hover')?.classList?.contains('highlight-diff-inserted')) {
+      if (
+        !toolbar.matches(':hover') &&
+        !container.querySelector(':hover')?.classList?.contains('highlight-diff-deleted') &&
+        !container.querySelector(':hover')?.classList?.contains('highlight-diff-inserted')
+      ) {
         toolbar.style.display = 'none'
         currentHighlight = null
         currentPair = null
@@ -673,23 +693,35 @@ function setupInlineToolbar () {
     }, 150)
   }
 
-  container.addEventListener('mouseover', (e) => {
-    const target = e.target
-    if (target.nodeType === 1 &&
+  container.addEventListener(
+    'mouseover',
+    (e) => {
+      const target = e.target
+      if (
+        target.nodeType === 1 &&
         (target.classList.contains('highlight-diff-deleted') ||
-         target.classList.contains('highlight-diff-inserted'))) {
-      showToolbar(target)
-    }
-  }, true)
+          target.classList.contains('highlight-diff-inserted'))
+      ) {
+        showToolbar(target)
+      }
+    },
+    true
+  )
 
-  container.addEventListener('mouseout', (e) => {
-    const target = e.target
-    if (target.nodeType === 1 &&
+  container.addEventListener(
+    'mouseout',
+    (e) => {
+      const target = e.target
+      if (
+        target.nodeType === 1 &&
         (target.classList.contains('highlight-diff-deleted') ||
-         target.classList.contains('highlight-diff-inserted'))) {
-      hideToolbar()
-    }
-  }, true)
+          target.classList.contains('highlight-diff-inserted'))
+      ) {
+        hideToolbar()
+      }
+    },
+    true
+  )
 
   toolbar.addEventListener('mouseenter', () => {
     if (hideTimeout) clearTimeout(hideTimeout)
@@ -709,7 +741,7 @@ function setupInlineToolbar () {
 }
 
 // 2. Side Panel
-function setupSidePanel () {
+function setupSidePanel() {
   const wrapper = document.querySelector('.text-diff-side-panel-wrapper')
   const container = document.querySelector('.text-diff-side-panel')
   const panel = document.querySelector('.text-diff-side-panel-ui')
@@ -717,26 +749,28 @@ function setupSidePanel () {
 
   let pairs = []
 
-  function updatePanel () {
-    const allHighlights = container.querySelectorAll('.highlight-diff-deleted, .highlight-diff-inserted')
+  function updatePanel() {
+    const allHighlights = container.querySelectorAll(
+      '.highlight-diff-deleted, .highlight-diff-inserted'
+    )
     const processedElements = new Set()
     const uniquePairs = []
 
     // Group highlights into unique pairs
-    Array.from(allHighlights).forEach(el => {
+    Array.from(allHighlights).forEach((el) => {
       // Skip if this element was already processed as part of another pair
       if (processedElements.has(el)) return
 
       const pair = findRelatedPair(el)
-      const deletedText = pair.deleted.map(e => e.textContent).join('')
-      const insertedText = pair.inserted.map(e => e.textContent).join('')
+      const deletedText = pair.deleted.map((e) => e.textContent).join('')
+      const insertedText = pair.inserted.map((e) => e.textContent).join('')
 
       // Skip if pair has no changes
       if (pair.deleted.length === 0 && pair.inserted.length === 0) return
 
       // Mark all elements in this pair as processed
-      pair.deleted.forEach(e => processedElements.add(e))
-      pair.inserted.forEach(e => processedElements.add(e))
+      pair.deleted.forEach((e) => processedElements.add(e))
+      pair.inserted.forEach((e) => processedElements.add(e))
 
       // Use first element as representative for acceptChange/rejectChange
       const representativeElement = pair.deleted[0] || pair.inserted[0]
@@ -751,9 +785,13 @@ function setupSidePanel () {
 
     pairs = uniquePairs
 
-    panel.innerHTML = pairs.length > 0 ? `
+    panel.innerHTML =
+      pairs.length > 0
+        ? `
       <div class="side-panel-header">Changes (${pairs.length})</div>
-      ${pairs.map((pairData, idx) => `
+      ${pairs
+        .map(
+          (pairData, idx) => `
         <div class="side-panel-item" data-index="${idx}">
           <div class="side-panel-text">
             ${pairData.deletedText ? `<div class="side-panel-deleted"><span class="side-panel-label">Deleted:</span> <span class="side-panel-content">${pairData.deletedText}</span></div>` : ''}
@@ -764,10 +802,13 @@ function setupSidePanel () {
             <button class="text-diff-reject" data-index="${idx}">Reject</button>
           </div>
         </div>
-      `).join('')}
-    ` : '<div class="side-panel-empty">No changes</div>'
+      `
+        )
+        .join('')}
+    `
+        : '<div class="side-panel-empty">No changes</div>'
 
-    panel.querySelectorAll('.text-diff-accept').forEach(btn => {
+    panel.querySelectorAll('.text-diff-accept').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.target.dataset.index)
         const pairData = pairs[idx]
@@ -778,7 +819,7 @@ function setupSidePanel () {
       })
     })
 
-    panel.querySelectorAll('.text-diff-reject').forEach(btn => {
+    panel.querySelectorAll('.text-diff-reject').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.target.dataset.index)
         const pairData = pairs[idx]
@@ -790,20 +831,26 @@ function setupSidePanel () {
     })
   }
 
-  container.addEventListener('mouseover', (e) => {
-    const target = e.target
-    if (target.nodeType === 1 &&
+  container.addEventListener(
+    'mouseover',
+    (e) => {
+      const target = e.target
+      if (
+        target.nodeType === 1 &&
         (target.classList.contains('highlight-diff-deleted') ||
-         target.classList.contains('highlight-diff-inserted'))) {
-      updatePanel()
-    }
-  }, true)
+          target.classList.contains('highlight-diff-inserted'))
+      ) {
+        updatePanel()
+      }
+    },
+    true
+  )
 
   updatePanel()
 }
 
 // 3. Floating Card
-function setupFloatingCard () {
+function setupFloatingCard() {
   const container = document.querySelector('.text-diff-floating-card')
   if (!container) return
 
@@ -816,7 +863,7 @@ function setupFloatingCard () {
   let currentPair = null
   let hideTimeout = null
 
-  function showCard (element) {
+  function showCard(element) {
     currentHighlight = element
     currentPair = findRelatedPair(element)
     if (currentPair.deleted.length === 0 && currentPair.inserted.length === 0) return
@@ -826,8 +873,8 @@ function setupFloatingCard () {
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop
     const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
 
-    const deletedText = currentPair.deleted.map(el => el.textContent).join('')
-    const insertedText = currentPair.inserted.map(el => el.textContent).join('')
+    const deletedText = currentPair.deleted.map((el) => el.textContent).join('')
+    const insertedText = currentPair.inserted.map((el) => el.textContent).join('')
 
     card.innerHTML = `
       <div class="card-header">Change Summary</div>
@@ -841,12 +888,12 @@ function setupFloatingCard () {
 
     card.style.display = 'block'
     const cardRect = card.getBoundingClientRect()
-    let top = (rect.top + scrollTop) - (cardRect.height + 12)
-    let left = (rect.left + scrollLeft) + ((rect.width / 2) - (cardRect.width / 2))
+    let top = rect.top + scrollTop - (cardRect.height + 12)
+    let left = rect.left + scrollLeft + (rect.width / 2 - cardRect.width / 2)
 
     if (left < scrollLeft + 8) left = scrollLeft + 8
-    if ((left + cardRect.width) > ((scrollLeft + window.innerWidth) - 8)) {
-      left = ((scrollLeft + window.innerWidth) - cardRect.width) - 8
+    if (left + cardRect.width > scrollLeft + window.innerWidth - 8) {
+      left = scrollLeft + window.innerWidth - cardRect.width - 8
     }
     if (top < scrollTop) {
       top = rect.bottom + scrollTop + 12
@@ -856,12 +903,14 @@ function setupFloatingCard () {
     card.style.top = `${top}px`
   }
 
-  function hideCard () {
+  function hideCard() {
     if (hideTimeout) clearTimeout(hideTimeout)
     hideTimeout = setTimeout(() => {
-      if (!card.matches(':hover') &&
-          !container.querySelector(':hover')?.classList?.contains('highlight-diff-deleted') &&
-          !container.querySelector(':hover')?.classList?.contains('highlight-diff-inserted')) {
+      if (
+        !card.matches(':hover') &&
+        !container.querySelector(':hover')?.classList?.contains('highlight-diff-deleted') &&
+        !container.querySelector(':hover')?.classList?.contains('highlight-diff-inserted')
+      ) {
         card.style.display = 'none'
         currentHighlight = null
         currentPair = null
@@ -869,23 +918,35 @@ function setupFloatingCard () {
     }, 150)
   }
 
-  container.addEventListener('mouseover', (e) => {
-    const target = e.target
-    if (target.nodeType === 1 &&
+  container.addEventListener(
+    'mouseover',
+    (e) => {
+      const target = e.target
+      if (
+        target.nodeType === 1 &&
         (target.classList.contains('highlight-diff-deleted') ||
-         target.classList.contains('highlight-diff-inserted'))) {
-      showCard(target)
-    }
-  }, true)
+          target.classList.contains('highlight-diff-inserted'))
+      ) {
+        showCard(target)
+      }
+    },
+    true
+  )
 
-  container.addEventListener('mouseout', (e) => {
-    const target = e.target
-    if (target.nodeType === 1 &&
+  container.addEventListener(
+    'mouseout',
+    (e) => {
+      const target = e.target
+      if (
+        target.nodeType === 1 &&
         (target.classList.contains('highlight-diff-deleted') ||
-         target.classList.contains('highlight-diff-inserted'))) {
-      hideCard()
-    }
-  }, true)
+          target.classList.contains('highlight-diff-inserted'))
+      ) {
+        hideCard()
+      }
+    },
+    true
+  )
 
   card.addEventListener('mouseenter', () => {
     if (hideTimeout) clearTimeout(hideTimeout)
@@ -905,7 +966,7 @@ function setupFloatingCard () {
 }
 
 // 4. In-Place Icons (Improved Side-by-Side)
-function setupInlineIcons () {
+function setupInlineIcons() {
   const container = document.querySelector('.text-diff-inline-icons')
   if (!container) return
 
@@ -914,14 +975,14 @@ function setupInlineIcons () {
   let currentDiffBlock = null
   let hideTimeout = null
 
-  function createDiffBlock (element) {
+  function createDiffBlock(element) {
     hideDiffBlock()
     currentHighlight = element
     currentPair = findRelatedPair(element)
     if (currentPair.deleted.length === 0 && currentPair.inserted.length === 0) return
 
-    const deletedText = currentPair.deleted.map(el => el.textContent).join('')
-    const insertedText = currentPair.inserted.map(el => el.textContent).join('')
+    const deletedText = currentPair.deleted.map((el) => el.textContent).join('')
+    const insertedText = currentPair.inserted.map((el) => el.textContent).join('')
 
     // Get position of the first element in the pair
     const firstElement = currentPair.deleted[0] || currentPair.inserted[0]
@@ -958,10 +1019,10 @@ function setupInlineIcons () {
     // Adjust if would go off screen
     const blockRect = diffBlock.getBoundingClientRect()
     if (blockRect.right > window.innerWidth - 8) {
-      diffBlock.style.left = `${(scrollLeft + window.innerWidth) - blockRect.width - 8}px`
+      diffBlock.style.left = `${scrollLeft + window.innerWidth - blockRect.width - 8}px`
     }
     if (blockRect.bottom > window.innerHeight - 8) {
-      diffBlock.style.top = `${(rect.top + scrollTop) - blockRect.height - 8}px`
+      diffBlock.style.top = `${rect.top + scrollTop - blockRect.height - 8}px`
     }
 
     diffBlock.querySelector('.icon-accept')?.addEventListener('click', (e) => {
@@ -980,13 +1041,15 @@ function setupInlineIcons () {
     firstElement._diffBlock = diffBlock
   }
 
-  function hideDiffBlock () {
+  function hideDiffBlock() {
     if (hideTimeout) clearTimeout(hideTimeout)
-    container.querySelectorAll('.highlight-diff-deleted, .highlight-diff-inserted').forEach(el => {
-      if (el._diffBlock) {
-        delete el._diffBlock
-      }
-    })
+    container
+      .querySelectorAll('.highlight-diff-deleted, .highlight-diff-inserted')
+      .forEach((el) => {
+        if (el._diffBlock) {
+          delete el._diffBlock
+        }
+      })
     if (currentDiffBlock) {
       currentDiffBlock.remove()
       currentDiffBlock = null
@@ -995,30 +1058,44 @@ function setupInlineIcons () {
     currentPair = null
   }
 
-  container.addEventListener('mouseover', (e) => {
-    const target = e.target
-    if (target.nodeType === 1 &&
+  container.addEventListener(
+    'mouseover',
+    (e) => {
+      const target = e.target
+      if (
+        target.nodeType === 1 &&
         (target.classList.contains('highlight-diff-deleted') ||
-         target.classList.contains('highlight-diff-inserted'))) {
-      if (hideTimeout) clearTimeout(hideTimeout)
-      createDiffBlock(target)
-    }
-  }, true)
+          target.classList.contains('highlight-diff-inserted'))
+      ) {
+        if (hideTimeout) clearTimeout(hideTimeout)
+        createDiffBlock(target)
+      }
+    },
+    true
+  )
 
-  container.addEventListener('mouseout', (e) => {
-    const target = e.target
-    if (target.nodeType === 1 &&
+  container.addEventListener(
+    'mouseout',
+    (e) => {
+      const target = e.target
+      if (
+        target.nodeType === 1 &&
         (target.classList.contains('highlight-diff-deleted') ||
-         target.classList.contains('highlight-diff-inserted'))) {
-      hideTimeout = setTimeout(() => {
-        if (!currentDiffBlock?.matches(':hover') &&
+          target.classList.contains('highlight-diff-inserted'))
+      ) {
+        hideTimeout = setTimeout(() => {
+          if (
+            !currentDiffBlock?.matches(':hover') &&
             !container.querySelector(':hover')?.classList?.contains('highlight-diff-deleted') &&
-            !container.querySelector(':hover')?.classList?.contains('highlight-diff-inserted')) {
-          hideDiffBlock()
-        }
-      }, 150)
-    }
-  }, true)
+            !container.querySelector(':hover')?.classList?.contains('highlight-diff-inserted')
+          ) {
+            hideDiffBlock()
+          }
+        }, 150)
+      }
+    },
+    true
+  )
 
   // Keep diff block visible when hovering over it
   document.addEventListener('mouseover', (e) => {
@@ -1029,7 +1106,7 @@ function setupInlineIcons () {
 }
 
 // 5. Hover Preview
-function setupHoverPreview () {
+function setupHoverPreview() {
   const container = document.querySelector('.text-diff-hover-preview')
   if (!container) return
 
@@ -1042,7 +1119,7 @@ function setupHoverPreview () {
   let currentPair = null
   let hideTimeout = null
 
-  function showPreview (element) {
+  function showPreview(element) {
     if (!element.classList.contains('highlight-diff-deleted')) return
 
     currentHighlight = element
@@ -1055,7 +1132,7 @@ function setupHoverPreview () {
 
     if (hideTimeout) clearTimeout(hideTimeout)
 
-    const insertedText = currentPair.inserted.map(el => el.textContent).join('')
+    const insertedText = currentPair.inserted.map((el) => el.textContent).join('')
 
     popover.innerHTML = `
       <div class="preview-content">
@@ -1073,19 +1150,19 @@ function setupHoverPreview () {
     const popoverRect = popover.getBoundingClientRect()
 
     // Position below the deleted text
-    let top = (rect.bottom + scrollTop) + 8
-    let left = (rect.left + scrollLeft) + ((rect.width / 2) - (popoverRect.width / 2))
+    let top = rect.bottom + scrollTop + 8
+    let left = rect.left + scrollLeft + (rect.width / 2 - popoverRect.width / 2)
 
     // Adjust if popover would go off screen horizontally
-    if (left < (scrollLeft + 8)) {
+    if (left < scrollLeft + 8) {
       left = scrollLeft + 8
-    } else if ((left + popoverRect.width) > ((scrollLeft + window.innerWidth) - 8)) {
-      left = (((scrollLeft + window.innerWidth) - popoverRect.width) - 8)
+    } else if (left + popoverRect.width > scrollLeft + window.innerWidth - 8) {
+      left = scrollLeft + window.innerWidth - popoverRect.width - 8
     }
 
     // If no space below, position above
-    if ((top + popoverRect.height) > ((scrollTop + window.innerHeight) - 8)) {
-      top = ((rect.top + scrollTop) - popoverRect.height) - 8
+    if (top + popoverRect.height > scrollTop + window.innerHeight - 8) {
+      top = rect.top + scrollTop - popoverRect.height - 8
       popover.classList.add('preview-above')
     } else {
       popover.classList.remove('preview-above')
@@ -1100,11 +1177,13 @@ function setupHoverPreview () {
     popover.style.top = `${top}px`
   }
 
-  function hidePreview () {
+  function hidePreview() {
     if (hideTimeout) clearTimeout(hideTimeout)
     hideTimeout = setTimeout(() => {
-      if (!popover.matches(':hover') &&
-          !container.querySelector(':hover')?.classList?.contains('highlight-diff-deleted')) {
+      if (
+        !popover.matches(':hover') &&
+        !container.querySelector(':hover')?.classList?.contains('highlight-diff-deleted')
+      ) {
         popover.style.display = 'none'
         currentHighlight = null
         currentPair = null
@@ -1112,19 +1191,27 @@ function setupHoverPreview () {
     }, 150)
   }
 
-  container.addEventListener('mouseover', (e) => {
-    const target = e.target
-    if (target.nodeType === 1 && target.classList.contains('highlight-diff-deleted')) {
-      showPreview(target)
-    }
-  }, true)
+  container.addEventListener(
+    'mouseover',
+    (e) => {
+      const target = e.target
+      if (target.nodeType === 1 && target.classList.contains('highlight-diff-deleted')) {
+        showPreview(target)
+      }
+    },
+    true
+  )
 
-  container.addEventListener('mouseout', (e) => {
-    const target = e.target
-    if (target.nodeType === 1 && target.classList.contains('highlight-diff-deleted')) {
-      hidePreview()
-    }
-  }, true)
+  container.addEventListener(
+    'mouseout',
+    (e) => {
+      const target = e.target
+      if (target.nodeType === 1 && target.classList.contains('highlight-diff-deleted')) {
+        hidePreview()
+      }
+    },
+    true
+  )
 
   popover.addEventListener('mouseenter', () => {
     if (hideTimeout) clearTimeout(hideTimeout)

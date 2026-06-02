@@ -1,5 +1,4 @@
-
-import {createElement} from '../src/util/dom.js'
+import { createElement } from '../src/util/dom.js'
 import NodeIterator from '../src/node-iterator.js'
 import highlightText from '../src/highlight-text.js'
 
@@ -7,7 +6,7 @@ describe('NodeIterator', function () {
   // Helper methods
   // --------------
 
-  function callnTimes (object: any, methodName: string, count: number) {
+  function callnTimes(object: any, methodName: string, count: number) {
     let returnValue
     while (count--) returnValue = object[methodName]()
     return returnValue
@@ -56,16 +55,18 @@ describe('NodeIterator', function () {
   })
 
   describe('replaceCurrent() after using highlightText.wrapPortion()', function () {
-
     it('replaces the text node', function () {
       const element = createElement('<div>a</div>') as HTMLElement
       const iterator = new NodeIterator(element)
       const current = callnTimes(iterator, 'getNext', 2) as Text
-      const replacement = highlightText.wrapPortion({
-        element: current,
-        offset: 0,
-        length: 1
-      }, createElement('<span>'))
+      const replacement = highlightText.wrapPortion(
+        {
+          element: current,
+          offset: 0,
+          length: 1
+        },
+        createElement('<span>')
+      )
 
       iterator.replaceCurrent(replacement)
       expect(iterator.current).toBe(replacement)
@@ -76,11 +77,14 @@ describe('NodeIterator', function () {
       const element = createElement('<div>word</div>') as HTMLElement
       const iterator = new NodeIterator(element)
       let current = callnTimes(iterator, 'getNext', 2) as Text
-      const replacement = highlightText.wrapPortion({
-        element: current,
-        offset: 0,
-        length: 1
-      }, createElement('<span>'))
+      const replacement = highlightText.wrapPortion(
+        {
+          element: current,
+          offset: 0,
+          length: 1
+        },
+        createElement('<span>')
+      )
 
       iterator.replaceCurrent(replacement)
       current = iterator.getNext() as Text

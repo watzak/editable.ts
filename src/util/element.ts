@@ -7,10 +7,13 @@ export function textNodesUnder(node: Node): Text[] {
 
 // NOTE: if there is only one text node, then just that node and
 // the abs offset are returned
-export function getTextNodeAndRelativeOffset({textNodes, absOffset}: {
+export function getTextNodeAndRelativeOffset({
+  textNodes,
+  absOffset
+}: {
   textNodes: Text[]
   absOffset: number
-}): {node: Text | undefined, relativeOffset: number} {
+}): { node: Text | undefined; relativeOffset: number } {
   let cumulativeOffset = 0
   let relativeOffset = 0
   let targetNode: Text | undefined
@@ -24,7 +27,7 @@ export function getTextNodeAndRelativeOffset({textNodes, absOffset}: {
     }
     cumulativeOffset += nodeLength
   }
-  return {node: targetNode, relativeOffset}
+  return { node: targetNode, relativeOffset }
 }
 
 export function getTotalCharCount(element: Node): number {
@@ -32,4 +35,3 @@ export function getTotalCharCount(element: Node): number {
   const reducer = (acc: number, node: Text) => acc + (node.textContent?.length || 0)
   return textNodes.reduce(reducer, 0)
 }
-

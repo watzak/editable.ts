@@ -1,10 +1,10 @@
 import createDefaultBehavior from './create-default-behavior.js'
-import type {Editable} from './core.js'
+import type { Editable } from './core.js'
 import type Cursor from './cursor.js'
 import type Selection from './selection.js'
-import type {EventHandlerMap, DispatcherEventMap} from './event-types.js'
+import type { EventHandlerMap, DispatcherEventMap } from './event-types.js'
 
-export default function createDefaultEvents (editable: Editable) {
+export default function createDefaultEvents(editable: Editable) {
   const behavior = createDefaultBehavior(editable)
 
   return {
@@ -16,7 +16,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @event focus
      * @param {HTMLElement} element The element triggering the event.
      */
-    focus (element: HTMLElement): void {
+    focus(element: HTMLElement): void {
       behavior.focus(element)
     },
 
@@ -28,7 +28,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @event blur
      * @param {HTMLElement} element The element triggering the event.
      */
-    blur (element: HTMLElement): void {
+    blur(element: HTMLElement): void {
       behavior.blur(element)
     },
 
@@ -41,7 +41,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @param {HTMLElement} element The element triggering the event.
      * @param {Selection} selection The actual Selection object.
      */
-    selection (element: HTMLElement, selection: Selection): void {
+    selection(element: HTMLElement, selection: Selection): void {
       behavior.selection(element, selection)
     },
 
@@ -53,7 +53,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @param {HTMLElement} element The element triggering the event.
      * @param {Cursor} cursor The actual Cursor object.
      */
-    cursor (element: HTMLElement, cursor: Cursor): void {
+    cursor(element: HTMLElement, cursor: Cursor): void {
       behavior.cursor(element, cursor)
     },
 
@@ -66,7 +66,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @param {HTMLElement} element The element triggering the event.
      * @param {Cursor} cursor The actual cursor object.
      */
-    newline (element: HTMLElement, cursor: Cursor): void {
+    newline(element: HTMLElement, cursor: Cursor): void {
       behavior.newline(element, cursor)
     },
 
@@ -83,7 +83,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @param {String} after The HTML string after the split.
      * @param {Cursor} cursor The actual cursor object.
      */
-    split (element: HTMLElement, before: string, after: string, cursor: Cursor): void {
+    split(element: HTMLElement, before: string, after: string, cursor: Cursor): void {
       behavior.split(element, before, after, cursor)
     },
 
@@ -100,7 +100,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @param {String} direction The insert direction: "before" or "after".
      * @param {Cursor} cursor The actual cursor object.
      */
-    insert (element: HTMLElement, direction: string, cursor: Cursor): void {
+    insert(element: HTMLElement, direction: string, cursor: Cursor): void {
       behavior.insert(element, direction, cursor)
     },
 
@@ -118,7 +118,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @param {String} direction The merge direction: "before" or "after".
      * @param {Cursor} cursor The actual cursor object.
      */
-    merge (element: HTMLElement, direction: string, cursor: Cursor): void {
+    merge(element: HTMLElement, direction: string, cursor: Cursor): void {
       behavior.merge(element, direction, cursor)
     },
 
@@ -129,7 +129,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @event empty
      * @param {HTMLElement} element The element triggering the event.
      */
-    empty (element: HTMLElement): void {
+    empty(element: HTMLElement): void {
       behavior.empty(element)
     },
 
@@ -144,7 +144,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @param {String} direction The switch direction: "before" or "after".
      * @param {Cursor} cursor The actual cursor object.*
      */
-    switch (element: HTMLElement, direction: string, cursor: Cursor): void {
+    switch(element: HTMLElement, direction: string, cursor: Cursor): void {
       behavior.switch(element, direction, cursor)
     },
 
@@ -159,7 +159,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @param {Selection} selection The actual Selection object.
      * @param {String} direction The move direction: "before" or "after".
      */
-    move (element: HTMLElement, selection: Selection, direction: string): void {
+    move(element: HTMLElement, selection: Selection, direction: string): void {
       behavior.move(element, selection, direction)
     },
 
@@ -172,7 +172,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @param {String} action The clipboard action: "copy" or "cut".
      * @param {Selection} selection A selection object around the copied content.
      */
-    clipboard (element: HTMLElement, action: string, selection: Selection): void {
+    clipboard(element: HTMLElement, action: string, selection: Selection): void {
       behavior.clipboard(element, action, selection)
     },
 
@@ -184,7 +184,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @param {Array of String} The pasted blocks
      * @param {Cursor} The cursor object.
      */
-    paste (element: HTMLElement, blocks: string[], cursor: Cursor): void {
+    paste(element: HTMLElement, blocks: string[], cursor: Cursor): void {
       behavior.paste(element, blocks, cursor)
     },
 
@@ -194,7 +194,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @event toggleBold
      * @param {Selection} The selection object.
      */
-    toggleBold (selection: Selection): void {
+    toggleBold(selection: Selection): void {
       behavior.toggleBold(selection)
     },
 
@@ -204,7 +204,7 @@ export default function createDefaultEvents (editable: Editable) {
      * @event toggleEmphasis
      * @param {Selection} The selection object.
      */
-    toggleEmphasis (selection: Selection): void {
+    toggleEmphasis(selection: Selection): void {
       behavior.toggleEmphasis(selection)
     }
   } as EventHandlerMap<DispatcherEventMap, Editable>

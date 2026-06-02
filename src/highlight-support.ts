@@ -1,7 +1,7 @@
 import * as content from './content.js'
 import highlightText from './highlight-text.js'
-import {searchText, type Match} from './plugins/highlighting/text-search.js'
-import {createElement, createRange, toCharacterRange} from './util/dom.js'
+import { searchText, type Match } from './plugins/highlighting/text-search.js'
+import { createElement, createRange, toCharacterRange } from './util/dom.js'
 import type Dispatcher from './dispatcher.js'
 
 interface ExtendedMatch extends Match {
@@ -9,10 +9,16 @@ interface ExtendedMatch extends Match {
 }
 
 const highlightSupport = {
-
   // Used to highlight arbitrary text in an editable. All occurrences
   // will be highlighted.
-  highlightText (editableHost: HTMLElement, text: string, highlightId: string, type: string, dispatcher: Dispatcher | undefined, win?: Window): number | undefined {
+  highlightText(
+    editableHost: HTMLElement,
+    text: string,
+    highlightId: string,
+    type: string,
+    dispatcher: Dispatcher | undefined,
+    win?: Window
+  ): number | undefined {
     if (this.hasHighlight(editableHost, highlightId)) return
     const blockText = highlightText.extractText(editableHost)
 
@@ -23,7 +29,7 @@ const highlightSupport = {
       winWindow = doc?.defaultView || undefined
     }
     if (!winWindow) {
-      winWindow = (typeof window !== 'undefined' && window.document ? window : undefined)
+      winWindow = typeof window !== 'undefined' && window.document ? window : undefined
     }
     if (!winWindow) {
       throw new Error('Could not determine window object for highlightText')
@@ -51,7 +57,16 @@ const highlightSupport = {
   // multiple white spaces will fail.
   // Browsers change the white spaces to &nbsp and the function works,
   // and the tests in highlight.spec.js have been updated to represent this.
-  highlightRange (editableHost: HTMLElement, text: string, highlightId: string, startIndex: number, endIndex: number, dispatcher: Dispatcher | undefined, win?: Window, type: string = 'comment'): number {
+  highlightRange(
+    editableHost: HTMLElement,
+    text: string,
+    highlightId: string,
+    startIndex: number,
+    endIndex: number,
+    dispatcher: Dispatcher | undefined,
+    win?: Window,
+    type: string = 'comment'
+  ): number {
     if (this.hasHighlight(editableHost, highlightId)) {
       this.removeHighlight(editableHost, highlightId, dispatcher)
     }
@@ -65,7 +80,7 @@ const highlightSupport = {
       winWindow = doc?.defaultView || undefined
     }
     if (!winWindow) {
-      winWindow = (typeof window !== 'undefined' && window.document ? window : undefined)
+      winWindow = typeof window !== 'undefined' && window.document ? window : undefined
     }
     if (!winWindow) {
       throw new Error('Could not determine window object for highlightRange')
@@ -81,20 +96,31 @@ const highlightSupport = {
     const actualStartIndex = startIndex
     const actualEndIndex = endIndex
 
-    highlightText.highlightMatches(editableHost, [{
-      startIndex: actualStartIndex,
-      endIndex: actualEndIndex,
-      match: text.substring(actualStartIndex, actualEndIndex),
-      id: highlightId,
-      marker
-    }], false)
+    highlightText.highlightMatches(
+      editableHost,
+      [
+        {
+          startIndex: actualStartIndex,
+          endIndex: actualEndIndex,
+          match: text.substring(actualStartIndex, actualEndIndex),
+          id: highlightId,
+          marker
+        }
+      ],
+      false
+    )
 
     if (dispatcher) dispatcher.notify('change', editableHost)
 
     return actualStartIndex
   },
 
-  updateHighlight (editableHost: HTMLElement, highlightId: string, addCssClass?: string, removeCssClass?: string): void {
+  updateHighlight(
+    editableHost: HTMLElement,
+    highlightId: string,
+    addCssClass?: string,
+    removeCssClass?: string
+  ): void {
     if (!document.documentElement.classList) return
 
     const elems = editableHost.querySelectorAll(`[data-word-id="${highlightId}"]`)
@@ -104,7 +130,7 @@ const highlightSupport = {
     }
   },
 
-  removeHighlight (editableHost: HTMLElement, highlightId: string, dispatcher?: Dispatcher): void {
+  removeHighlight(editableHost: HTMLElement, highlightId: string, dispatcher?: Dispatcher): void {
     const elems = editableHost.querySelectorAll(`[data-word-id="${highlightId}"]`)
     for (const elem of Array.from(elems)) {
       content.unwrap(elem)
@@ -116,12 +142,15 @@ const highlightSupport = {
     if (dispatcher) dispatcher.notify('change', editableHost)
   },
 
-  hasHighlight (editableHost: HTMLElement, highlightId: string): boolean {
+  hasHighlight(editableHost: HTMLElement, highlightId: string): boolean {
     const matches = editableHost.querySelectorAll(`[data-word-id="${highlightId}"]`)
     return !!matches.length
   },
 
-  extractHighlightedRanges (editableHost: HTMLElement, type?: string): Record<string, {start: number, end: number, text: string, nativeRange: Range}> | undefined {
+  extractHighlightedRanges(
+    editableHost: HTMLElement,
+    type?: string
+  ): Record<string, { start: number; end: number; text: string; nativeRange: Range }> | undefined {
     let findMarkersQuery = '[data-word-id]'
     if (type) findMarkersQuery += `[data-highlight="${type}"]`
     const markers = editableHost.querySelectorAll(findMarkersQuery)
@@ -137,7 +166,7 @@ const highlightSupport = {
       groups[highlightId].push(marker)
     }
 
-    const res: Record<string, {start: number, end: number, text: string, nativeRange: Range}> = {}
+    const res: Record<string, { start: number; end: number; text: string; nativeRange: Range }> = {}
     for (const highlightId in groups) {
       const position = this.extractMarkerNodePosition(editableHost, groups[highlightId])
       if (position) res[highlightId] = position
@@ -146,7 +175,10 @@ const highlightSupport = {
     return res
   },
 
-  extractMarkerNodePosition (editableHost: HTMLElement, markers: Element[] | NodeListOf<Element>): {start: number, end: number, text: string, nativeRange: Range} | undefined {
+  extractMarkerNodePosition(
+    editableHost: HTMLElement,
+    markers: Element[] | NodeListOf<Element>
+  ): { start: number; end: number; text: string; nativeRange: Range } | undefined {
     if (markers.length === 0) return undefined
 
     const markerArray = Array.isArray(markers) ? markers : Array.from(markers)
@@ -167,7 +199,7 @@ const highlightSupport = {
     }
   },
 
-  cleanupStaleMarkerNodes (editableHost: HTMLElement, highlightType: string): void {
+  cleanupStaleMarkerNodes(editableHost: HTMLElement, highlightType: string): void {
     const nodes = editableHost.querySelectorAll(`span[data-highlight="${highlightType}"]`)
     for (const node of Array.from(nodes)) {
       if (!node.textContent || !node.textContent.length) {
@@ -176,14 +208,18 @@ const highlightSupport = {
     }
   },
 
-  createMarkerNode (markerMarkup: string, highlightType: string, win?: Window): HTMLElement | null {
+  createMarkerNode(markerMarkup: string, highlightType: string, win?: Window): HTMLElement | null {
     let winWindow: Window | null = win || null
     if (!winWindow) {
       // Try to get window from global scope
-      winWindow = (typeof window !== 'undefined' && window.document ? window : null) as Window | null
+      winWindow = (
+        typeof window !== 'undefined' && window.document ? window : null
+      ) as Window | null
     }
     if (!winWindow || !winWindow.document) {
-      throw new Error(`Window object with document is required. win: ${typeof win}, window: ${typeof window}`)
+      throw new Error(
+        `Window object with document is required. win: ${typeof win}, window: ${typeof window}`
+      )
     }
     const marker = createElement(markerMarkup, winWindow)
     if (!marker) return null

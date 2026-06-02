@@ -2,11 +2,18 @@ import * as nodeType from './node-type.js'
 import * as rangeSaveRestore from './range-save-restore.js'
 import * as parser from './parser.js'
 import * as string from './util/string.js'
-import {createElement, createRange, getNodes, normalizeBoundaries, splitBoundaries, containsNodeText} from './util/dom.js'
+import {
+  createElement,
+  createRange,
+  getNodes,
+  normalizeBoundaries,
+  splitBoundaries,
+  containsNodeText
+} from './util/dom.js'
 import config from './config.js'
-import {unwrapElement, type MaybeWrapped} from './dom-compat.js'
+import { unwrapElement, type MaybeWrapped } from './dom-compat.js'
 
-function restoreRange (host: HTMLElement, range: Range, func: () => void): Range | undefined {
+function restoreRange(host: HTMLElement, range: Range, func: () => void): Range | undefined {
   const savedRange = rangeSaveRestore.save(range)
   func()
   return rangeSaveRestore.restore(host, savedRange)
@@ -21,7 +28,7 @@ const leadingWhitespace = /^\s+/
 const trailingWhitespace = /\s+$/
 
 // Clean up the Html.
-export function tidyHtml (element: HTMLElement): void {
+export function tidyHtml(element: HTMLElement): void {
   // if (element.normalize) element.normalize()
   normalizeTags(element)
 }
@@ -31,7 +38,7 @@ export function tidyHtml (element: HTMLElement): void {
 //
 // @method normalizeTags
 // @param  {HTMLElement} element The element to process.
-export function normalizeTags (element: HTMLElement): void {
+export function normalizeTags(element: HTMLElement): void {
   // Remove line breaks at the beginning of a content block
   removeWhitespaces(element, 'firstChild')
 
@@ -71,7 +78,7 @@ export function normalizeTags (element: HTMLElement): void {
   }
 }
 
-export function normalizeWhitespace (text: string): string {
+export function normalizeWhitespace(text: string): string {
   return text.replace(whitespaceExceptSpace, ' ')
 }
 
@@ -79,7 +86,7 @@ export function normalizeWhitespace (text: string): string {
 //
 // @method cleanInternals
 // @param  {HTMLElement} element The element to process.
-export function cleanInternals (element: HTMLElement): void {
+export function cleanInternals(element: HTMLElement): void {
   // Uses extract content for simplicity. A custom method
   // that does not clone the element could be faster if needed.
   element.innerHTML = extractContent(element, true)
@@ -93,11 +100,15 @@ export function cleanInternals (element: HTMLElement): void {
 // If you pass a document fragment it will be empty after this call.
 // @param {Boolean} Flag whether to keep ui elements like spellchecking highlights.
 // @returns {String} The cleaned innerHTML of the passed element or document fragment.
-export function extractContent (element: HTMLElement | DocumentFragment | null | undefined, keepUiElements?: boolean): string {
+export function extractContent(
+  element: HTMLElement | DocumentFragment | null | undefined,
+  keepUiElements?: boolean
+): string {
   if (!element) return ''
-  const innerHtml = (element.nodeType === nodeType.documentFragmentNode
-    ? getInnerHtmlOfFragment(element as DocumentFragment)
-    : (element as HTMLElement).innerHTML
+  const innerHtml = (
+    element.nodeType === nodeType.documentFragmentNode
+      ? getInnerHtmlOfFragment(element as DocumentFragment)
+      : (element as HTMLElement).innerHTML
   )
     .replace(zeroWidthNonBreakingSpace, '') // Used for forcing inline elements to have a height
     .replace(zeroWidthSpace, '<br>') // Used for cross-browser newlines
@@ -115,7 +126,9 @@ export function extractContent (element: HTMLElement | DocumentFragment | null |
   return clone.innerHTML
 }
 
-export function getInnerHtmlOfFragment (documentFragment: DocumentFragment | null | undefined): string {
+export function getInnerHtmlOfFragment(
+  documentFragment: DocumentFragment | null | undefined
+): string {
   if (!documentFragment || !documentFragment.childNodes) {
     return ''
   }
@@ -131,7 +144,7 @@ export function getInnerHtmlOfFragment (documentFragment: DocumentFragment | nul
 
 // Create a document fragment from an html string
 // @param {String} e.g. 'some html <span>text</span>.'
-export function createFragmentFromString (htmlString: string): DocumentFragment {
+export function createFragmentFromString(htmlString: string): DocumentFragment {
   const wrapper = document.createElement('div')
   wrapper.innerHTML = htmlString
 
@@ -140,7 +153,7 @@ export function createFragmentFromString (htmlString: string): DocumentFragment 
   return fragment
 }
 
-export function adoptElement (node: Node | string, doc: Document): HTMLElement {
+export function adoptElement(node: Node | string, doc: Document): HTMLElement {
   if (typeof node === 'string') {
     // If node is a string (selector), query for it
     const element = doc.querySelector(node)
@@ -158,7 +171,7 @@ export function adoptElement (node: Node | string, doc: Document): HTMLElement {
 //
 // @param {Range}
 // @return {DocumentFragment}
-export function cloneRangeContents (range: Range): DocumentFragment {
+export function cloneRangeContents(range: Range): DocumentFragment {
   const rangeFragment = range.cloneContents()
   const parent = rangeFragment.childNodes[0]
   const fragment = document.createDocumentFragment()
@@ -166,7 +179,11 @@ export function cloneRangeContents (range: Range): DocumentFragment {
   return fragment
 }
 
-function removeWhitespaces (node: HTMLElement, type: 'firstChild' | 'lastChild', firstCall = true): void {
+function removeWhitespaces(
+  node: HTMLElement,
+  type: 'firstChild' | 'lastChild',
+  firstCall = true
+): void {
   let elem
   // loop through all children:
   // from left to right if type = 'firstChild',
@@ -195,7 +212,10 @@ function removeWhitespaces (node: HTMLElement, type: 'firstChild' | 'lastChild',
   // Remove whitespaces at the end or start of a block with content
   //   e.g. '  Hello world' > 'Hello World'
   if (config.trimLeadingAndTrailingWhitespaces && elem.textContent) {
-    elem.textContent = elem.textContent.replace(type.startsWith('last') ? trailingWhitespace : leadingWhitespace, '')
+    elem.textContent = elem.textContent.replace(
+      type.startsWith('last') ? trailingWhitespace : leadingWhitespace,
+      ''
+    )
   }
 }
 
@@ -205,7 +225,7 @@ function removeWhitespaces (node: HTMLElement, type: 'firstChild' | 'lastChild',
 // @param {Boolean} whether to keep ui elements like spellchecking highlights
 // Currently:
 // - Saved ranges
-export function unwrapInternalNodes (sibling: Node | null, keepUiElements?: boolean): void {
+export function unwrapInternalNodes(sibling: Node | null, keepUiElements?: boolean): void {
   while (sibling) {
     const nextSibling = sibling.nextSibling
 
@@ -230,14 +250,22 @@ export function unwrapInternalNodes (sibling: Node | null, keepUiElements?: bool
 }
 
 // Get all tags that start or end inside the range
-export function getTags (host: HTMLElement, range: Range, filterFunc?: ((node: Node) => boolean) | null): Node[] {
+export function getTags(
+  host: HTMLElement,
+  range: Range,
+  filterFunc?: ((node: Node) => boolean) | null
+): Node[] {
   const innerTags = getInnerTags(range, filterFunc)
   const ancestorTags = getAncestorTags(host, range, filterFunc)
   return innerTags.concat(ancestorTags)
 }
 
 // Get all ancestor tags that start or end inside the range
-export function getAncestorTags (host: HTMLElement, range: Range, filterFunc?: ((node: Node) => boolean) | null): Node[] {
+export function getAncestorTags(
+  host: HTMLElement,
+  range: Range,
+  filterFunc?: ((node: Node) => boolean) | null
+): Node[] {
   const tags: Node[] = []
   let node: Node | null = range.commonAncestorContainer
   while (node && node !== host) {
@@ -248,21 +276,27 @@ export function getAncestorTags (host: HTMLElement, range: Range, filterFunc?: (
   return tags
 }
 
-export function getTagsByName (host: HTMLElement, range: Range, tagName: string): Node[] {
+export function getTagsByName(host: HTMLElement, range: Range, tagName: string): Node[] {
   return getTags(host, range, (node) => {
     return node.nodeName.toUpperCase() === tagName.toUpperCase()
   })
 }
 
-export function getTagsByNameAndAttributes (host: HTMLElement, range: Range, elem: HTMLElement): Node[] {
+export function getTagsByNameAndAttributes(
+  host: HTMLElement,
+  range: Range,
+  elem: HTMLElement
+): Node[] {
   return getTags(host, range, (node) => {
-    return node.nodeName.toUpperCase() === elem.nodeName.toUpperCase() &&
+    return (
+      node.nodeName.toUpperCase() === elem.nodeName.toUpperCase() &&
       node.nodeType === nodeType.elementNode &&
       areSameAttributes((node as Element).attributes, elem.attributes)
+    )
   })
 }
 
-export function areSameAttributes (attrs1: NamedNodeMap, attrs2: NamedNodeMap): boolean {
+export function areSameAttributes(attrs1: NamedNodeMap, attrs2: NamedNodeMap): boolean {
   if (attrs1.length !== attrs2.length) return false
 
   for (let i = 0; i < attrs1.length; i++) {
@@ -275,39 +309,44 @@ export function areSameAttributes (attrs1: NamedNodeMap, attrs2: NamedNodeMap): 
 }
 
 // Get all tags that start or end inside the range
-export function getInnerTags (range: Range, filterFunc?: ((node: Node) => boolean) | null): Node[] {
+export function getInnerTags(range: Range, filterFunc?: ((node: Node) => boolean) | null): Node[] {
   return getNodes(range, [nodeType.elementNode], filterFunc)
 }
 
 // Get all tags whose text is completely within the current selection.
-export function getContainedTags (range: Range, filterFunc?: ((node: Node) => boolean) | null): Node[] {
-  return getNodes(range, [nodeType.elementNode], filterFunc)
-    .filter(elem => containsNodeText(range, elem))
+export function getContainedTags(
+  range: Range,
+  filterFunc?: ((node: Node) => boolean) | null
+): Node[] {
+  return getNodes(range, [nodeType.elementNode], filterFunc).filter((elem) =>
+    containsNodeText(range, elem)
+  )
 }
 
 // Transform an array of elements into an array
 // of tagnames in uppercase
 //
 // @return example: ['STRONG', 'B']
-export function getTagNames (elements: Node[] = []): string[] {
+export function getTagNames(elements: Node[] = []): string[] {
   return elements.map((element: Node) => element.nodeName)
 }
 
-export function isAffectedBy (host: HTMLElement, range: Range, tagName: string): boolean {
-  return getTags(host, range, null)
-    .some((elem) => elem.nodeName === tagName.toUpperCase())
+export function isAffectedBy(host: HTMLElement, range: Range, tagName: string): boolean {
+  return getTags(host, range, null).some((elem) => elem.nodeName === tagName.toUpperCase())
 }
 
 // select a whole element
-export function selectNodeContents (element: HTMLElement): Range {
+export function selectNodeContents(element: HTMLElement): Range {
   const range = createRange()
   range.selectNodeContents(element)
   return range
 }
 
-function intersectsRange (range1: Range, range2: Range): boolean {
-  return range1.compareBoundaryPoints(Range.END_TO_START, range2) === -1 &&
+function intersectsRange(range1: Range, range2: Range): boolean {
+  return (
+    range1.compareBoundaryPoints(Range.END_TO_START, range2) === -1 &&
     range2.compareBoundaryPoints(Range.END_TO_START, range1) === -1
+  )
 }
 
 // Check if the range selects all of the elements contents,
@@ -315,7 +354,11 @@ function intersectsRange (range1: Range, range2: Range): boolean {
 //
 // @param visible: Only compare visible text. That way it does not
 //   matter if the user selects an additional whitespace or not.
-export function isExactSelection (range: Range, elem: MaybeWrapped<Node>, visible?: boolean): boolean {
+export function isExactSelection(
+  range: Range,
+  elem: MaybeWrapped<Node>,
+  visible?: boolean
+): boolean {
   const unwrappedElem = unwrapElement(elem)
   const elemRange = createRange()
   elemRange.selectNodeContents(unwrappedElem)
@@ -333,17 +376,19 @@ export function isExactSelection (range: Range, elem: MaybeWrapped<Node>, visibl
   return rangeText !== '' && rangeText === elemText
 }
 
-export function expandTo (host: HTMLElement, range: Range, elem: HTMLElement): Range {
+export function expandTo(host: HTMLElement, range: Range, elem: HTMLElement): Range {
   range.selectNodeContents(elem)
   return range
 }
 
-export function toggleTag (host: HTMLElement, range: Range, elem: HTMLElement): Range {
+export function toggleTag(host: HTMLElement, range: Range, elem: HTMLElement): Range {
   const elems = getTagsByNameAndAttributes(host, range, elem)
 
-  if (elems.length === 1 &&
+  if (
+    elems.length === 1 &&
     elems[0].nodeType === nodeType.elementNode &&
-    isExactSelection(range, elems[0] as HTMLElement, true)) {
+    isExactSelection(range, elems[0] as HTMLElement, true)
+  ) {
     const result = removeFormattingElem(host, range, elem)
     if (!result) return range
     return result
@@ -352,11 +397,11 @@ export function toggleTag (host: HTMLElement, range: Range, elem: HTMLElement): 
   return forceWrap(host, range, elem)
 }
 
-export function isWrappable (range: Range): boolean {
+export function isWrappable(range: Range): boolean {
   return canSurroundContents(range)
 }
 
-export function forceWrap (host: HTMLElement, range: Range, elem: HTMLElement): Range {
+export function forceWrap(host: HTMLElement, range: Range, elem: HTMLElement): Range {
   let restoredRange = restoreRange(host, range, () => {
     nukeElem(host, range, elem)
   })
@@ -374,7 +419,7 @@ export function forceWrap (host: HTMLElement, range: Range, elem: HTMLElement): 
   return restoredRange
 }
 
-export function wrap (range: Range, elem: HTMLElement | string): void {
+export function wrap(range: Range, elem: HTMLElement | string): void {
   if (!isWrappable(range)) {
     console.log('content.wrap(): can not surround range')
     return
@@ -393,7 +438,7 @@ export function wrap (range: Range, elem: HTMLElement | string): void {
   range.surroundContents(element)
 }
 
-export function unwrap (elem: MaybeWrapped<Element>): void {
+export function unwrap(elem: MaybeWrapped<Element>): void {
   const unwrappedElem = unwrapElement(elem)
   const parent = unwrappedElem.parentNode
   if (!parent) return
@@ -401,13 +446,21 @@ export function unwrap (elem: MaybeWrapped<Element>): void {
   parent.removeChild(unwrappedElem)
 }
 
-export function removeFormattingElem (host: HTMLElement, range: Range, elem: HTMLElement): Range | undefined {
+export function removeFormattingElem(
+  host: HTMLElement,
+  range: Range,
+  elem: HTMLElement
+): Range | undefined {
   return restoreRange(host, range, () => {
     nukeElem(host, range, elem)
   })
 }
 
-export function removeFormatting (host: HTMLElement, range: Range, selector: string | null): Range | undefined {
+export function removeFormatting(
+  host: HTMLElement,
+  range: Range,
+  selector: string | null
+): Range | undefined {
   return restoreRange(host, range, () => {
     nuke(host, range, selector)
   })
@@ -415,9 +468,12 @@ export function removeFormatting (host: HTMLElement, range: Range, selector: str
 
 // Unwrap all tags this range is affected by.
 // Can also affect content outside of the range.
-export function nuke (host: HTMLElement, range: Range, selector: string | null): void {
+export function nuke(host: HTMLElement, range: Range, selector: string | null): void {
   getTags(host, range, null).forEach((elem) => {
-    if (elem.nodeName.toUpperCase() !== 'BR' && (!selector || (elem as Element).matches(selector))) {
+    if (
+      elem.nodeName.toUpperCase() !== 'BR' &&
+      (!selector || (elem as Element).matches(selector))
+    ) {
       unwrap(elem as HTMLElement)
     }
   })
@@ -425,11 +481,14 @@ export function nuke (host: HTMLElement, range: Range, selector: string | null):
 
 // Unwrap all tags this range is affected by.
 // Can also affect content outside of the range.
-export function nukeElem (host: HTMLElement, range: Range, node: HTMLElement | null): void {
+export function nukeElem(host: HTMLElement, range: Range, node: HTMLElement | null): void {
   getTags(host, range, null).forEach((elem) => {
-    if (elem.nodeName.toUpperCase() !== 'BR' && (!node ||
+    if (
+      elem.nodeName.toUpperCase() !== 'BR' &&
+      (!node ||
         (elem.nodeName.toUpperCase() === node.nodeName.toUpperCase() &&
-          areSameAttributes((elem as Element).attributes, node.attributes)))) {
+          areSameAttributes((elem as Element).attributes, node.attributes)))
+    ) {
       unwrap(elem as HTMLElement)
     }
   })
@@ -437,7 +496,7 @@ export function nukeElem (host: HTMLElement, range: Range, node: HTMLElement | n
 
 // Insert a single character (or string) before or after
 // the range.
-export function insertCharacter (range: Range, character: string, atStart: boolean): void {
+export function insertCharacter(range: Range, character: string, atStart: boolean): void {
   const insertEl = document.createTextNode(character)
   const boundaryRange = range.cloneRange()
   boundaryRange.collapse(atStart)
@@ -449,7 +508,12 @@ export function insertCharacter (range: Range, character: string, atStart: boole
 // Surround the range with characters like start and end quotes.
 //
 // @method surround
-export function surround (host: HTMLElement, range: Range, startCharacter: string, endCharacter?: string): Range {
+export function surround(
+  host: HTMLElement,
+  range: Range,
+  startCharacter: string,
+  endCharacter?: string
+): Range {
   insertCharacter(range, endCharacter || startCharacter, false)
   insertCharacter(range, startCharacter, true)
   return range
@@ -458,7 +522,7 @@ export function surround (host: HTMLElement, range: Range, startCharacter: strin
 // Removes a character from the text within a range.
 //
 // @method deleteCharacter
-export function deleteCharacter (host: HTMLElement, range: Range, character: string): Range {
+export function deleteCharacter(host: HTMLElement, range: Range, character: string): Range {
   if (!containsString(range, character)) return range
 
   // check for selection.rangeCount > 0 ?
@@ -467,14 +531,16 @@ export function deleteCharacter (host: HTMLElement, range: Range, character: str
   const restoredRange = restoreRange(host, range, () => {
     getNodes(range, [nodeType.textNode], (node: Node) => {
       return (node as Text).nodeValue !== null && (node as Text).nodeValue!.indexOf(character) >= 0
+    }).forEach((node) => {
+      const textNode = node as Text
+      if (textNode.nodeValue) {
+        // Use replace with global regex instead of replaceAll for better compatibility
+        textNode.nodeValue = textNode.nodeValue.replace(
+          new RegExp(character.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+          ''
+        )
+      }
     })
-      .forEach((node) => {
-        const textNode = node as Text
-        if (textNode.nodeValue) {
-          // Use replace with global regex instead of replaceAll for better compatibility
-          textNode.nodeValue = textNode.nodeValue.replace(new RegExp(character.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '')
-        }
-      })
   })
 
   if (restoredRange) {
@@ -484,23 +550,26 @@ export function deleteCharacter (host: HTMLElement, range: Range, character: str
   return range
 }
 
-export function containsString (range: Range, str: string): boolean {
+export function containsString(range: Range, str: string): boolean {
   return range.toString().indexOf(str) >= 0
 }
 
 // Unwrap all tags this range is affected by.
 // Can also affect content outside of the range.
-export function nukeTag (host: HTMLElement, range: Range, tagName: string): void {
+export function nukeTag(host: HTMLElement, range: Range, tagName: string): void {
   getTags(host, range, null).forEach((elem) => {
     if (elem.nodeName.toUpperCase() === tagName.toUpperCase()) unwrap(elem as HTMLElement)
   })
 }
 
-function createNodeIterator (root: Node, filter: ((node: Node) => boolean) | null): {next: () => Node | null} {
+function createNodeIterator(
+  root: Node,
+  filter: ((node: Node) => boolean) | null
+): { next: () => Node | null } {
   let currentNode: Node | null = root
   let previousNode: Node | null = null
 
-  function nextNode () {
+  function nextNode() {
     if (!currentNode) {
       return null
     }
@@ -533,14 +602,16 @@ function createNodeIterator (root: Node, filter: ((node: Node) => boolean) | nul
   }
 }
 
-function isNodeFullyContained (node: Node, range: Range): boolean {
+function isNodeFullyContained(node: Node, range: Range): boolean {
   const nodeRange = document.createRange()
   nodeRange.selectNodeContents(node)
-  return range.compareBoundaryPoints(Range.START_TO_START, nodeRange) <= 0 &&
-         range.compareBoundaryPoints(Range.END_TO_END, nodeRange) >= 0
+  return (
+    range.compareBoundaryPoints(Range.START_TO_START, nodeRange) <= 0 &&
+    range.compareBoundaryPoints(Range.END_TO_END, nodeRange) >= 0
+  )
 }
 
-function canSurroundContents (range: Range): boolean {
+function canSurroundContents(range: Range): boolean {
   if (!range || !range.startContainer || !range.endContainer) {
     return false
   }

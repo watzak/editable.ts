@@ -1,5 +1,4 @@
-
-import {createElement, createRange, rangeToHtml} from '../src/util/dom.js'
+import { createElement, createRange, rangeToHtml } from '../src/util/dom.js'
 import * as rangeSaveRestore from '../src/range-save-restore.js'
 
 describe('RangeSaveRestore', function () {
@@ -40,13 +39,13 @@ describe('RangeSaveRestore', function () {
     range.setEnd(host.querySelector('em:nth-child(2)') as HTMLElement, 1)
     const savedRange = rangeSaveRestore.save(range)
 
-    expect(host.innerHTML)
-      .toBe(`<em><span id="${savedRange.startMarkerId}" data-editable="remove" style="line-height: 0; display: none;">\ufeff</span>a</em><em>b<span id="${savedRange.endMarkerId}" data-editable="remove" style="line-height: 0; display: none;">\ufeff</span></em>`)
+    expect(host.innerHTML).toBe(
+      `<em><span id="${savedRange.startMarkerId}" data-editable="remove" style="line-height: 0; display: none;">\ufeff</span>a</em><em>b<span id="${savedRange.endMarkerId}" data-editable="remove" style="line-height: 0; display: none;">\ufeff</span></em>`
+    )
 
     rangeSaveRestore.restore(host, savedRange)
 
-    expect(host.innerHTML)
-      .toBe('<em>a</em><em>b</em>', 'after restore')
+    expect(host.innerHTML).toBe('<em>a</em><em>b</em>', 'after restore')
   })
 
   it('handles a range in text nodes of two adjacent elements', function () {
@@ -62,13 +61,13 @@ describe('RangeSaveRestore', function () {
     // the range is added outside the element instead of inside where the text node is
     // (compare with the previous test).
     // Use regex to match any ID numbers instead of hardcoded values (IDs can vary between test runs)
-    const expectedPattern = /<span id="editable-range-boundary-\d+" data-editable="remove" style="line-height: 0; display: none;">\ufeff<\/span><em>a<\/em><em>b<\/em><span id="editable-range-boundary-\d+" data-editable="remove" style="line-height: 0; display: none;">\ufeff<\/span>/
+    const expectedPattern =
+      /<span id="editable-range-boundary-\d+" data-editable="remove" style="line-height: 0; display: none;">\ufeff<\/span><em>a<\/em><em>b<\/em><span id="editable-range-boundary-\d+" data-editable="remove" style="line-height: 0; display: none;">\ufeff<\/span>/
     expect(host.innerHTML).toMatch(expectedPattern)
 
     rangeSaveRestore.restore(host, savedRange)
 
-    expect(host.innerHTML)
-      .toBe('<em>a</em><em>b</em>', 'after restore')
+    expect(host.innerHTML).toBe('<em>a</em><em>b</em>', 'after restore')
   })
 
   it('handles a range around two adjacent elements', function () {
@@ -78,12 +77,12 @@ describe('RangeSaveRestore', function () {
     range.setEnd(host, 2)
     const savedRange = rangeSaveRestore.save(range)
 
-    expect(host.innerHTML)
-      .toBe(`<span id="${savedRange.startMarkerId}" data-editable="remove" style="line-height: 0; display: none;">\ufeff</span><em>a</em><em>b</em><span id="${savedRange.endMarkerId}" data-editable="remove" style="line-height: 0; display: none;">\ufeff</span>`)
+    expect(host.innerHTML).toBe(
+      `<span id="${savedRange.startMarkerId}" data-editable="remove" style="line-height: 0; display: none;">\ufeff</span><em>a</em><em>b</em><span id="${savedRange.endMarkerId}" data-editable="remove" style="line-height: 0; display: none;">\ufeff</span>`
+    )
 
     rangeSaveRestore.restore(host, savedRange)
 
-    expect(host.innerHTML)
-      .toBe('<em>a</em><em>b</em>', 'after restore')
+    expect(host.innerHTML).toBe('<em>a</em><em>b</em>', 'after restore')
   })
 })

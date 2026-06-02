@@ -1,19 +1,18 @@
-
-import {createRange, createElement} from '../src/util/dom.js'
+import { createRange, createElement } from '../src/util/dom.js'
 
 import * as parser from '../src/parser.js'
 import config from '../src/config.js'
 
 describe('Parser', function () {
   // helper methods
-  function createCursorAfter (node) {
+  function createCursorAfter(node) {
     const range = createRange()
     range.setStartAfter(node)
     range.setEndAfter(node)
     return range
   }
 
-  function createCursorAtEnd (node) {
+  function createCursorAtEnd(node) {
     const range = createRange()
     range.selectNodeContents(node)
     range.collapse(false)
@@ -33,7 +32,9 @@ describe('Parser', function () {
   const textWithLink = createElement('<div>foo <a href="#">bar</a>.</div>')
   const linkWithWhitespace = createElement('<div><a href="#">bar</a> </div>')
   const link = createElement('<div><a href="#">foo bar</a></div>')
-  const linkWithSpan = createElement('<div><a href="#">foo <span class="important">bar</span></a></div>')
+  const linkWithSpan = createElement(
+    '<div><a href="#">foo <span class="important">bar</span></a></div>'
+  )
 
   describe('getHost()', function () {
     let host
@@ -58,7 +59,6 @@ describe('Parser', function () {
   })
 
   describe('getNodeIndex()', function () {
-
     it('gets element index of link in text', function () {
       const linkNode = textWithLink.querySelector('a')
       expect(parser.getNodeIndex(linkNode)).toBe(1)
@@ -66,7 +66,6 @@ describe('Parser', function () {
   })
 
   describe('isVoid()', function () {
-
     it('detects an empty node', function () {
       expect(empty.childNodes.length).toBe(0)
       expect(parser.isVoid(empty)).toBe(true)
@@ -79,7 +78,6 @@ describe('Parser', function () {
   })
 
   describe('isWhitespaceOnly()', function () {
-
     it('works with void element', function () {
       const node = document.createTextNode('')
       expect(parser.isWhitespaceOnly(node)).toBe(true)
@@ -99,9 +97,7 @@ describe('Parser', function () {
   })
 
   describe('lastOffsetWithContent()', function () {
-
     describe('called with a text node', function () {
-
       it('works for single character', function () {
         // <div>a|</div>
         expect(parser.lastOffsetWithContent(singleCharacter.firstChild)).toBe(1)
@@ -142,7 +138,6 @@ describe('Parser', function () {
   })
 
   describe('isEndOffset()', function () {
-
     it('works for single child node', function () {
       // <div>foobar|</div>
       const range = createCursorAfter(oneWord.firstChild)
@@ -185,7 +180,6 @@ describe('Parser', function () {
   })
 
   describe('isTextEndOffset()', function () {
-
     it('ignores whitespace at the end', function () {
       // <div> fooba|r </div>
       expect(parser.isTextEndOffset(oneWordWithWhitespace.firstChild, 6)).toBe(false)
@@ -238,7 +232,6 @@ describe('Parser', function () {
   })
 
   describe('isStartOffset()', function () {
-
     it('works for single child node', function () {
       // <div>|foobar</div>
       expect(parser.isStartOffset(oneWord, 0)).toBe(true)
@@ -274,7 +267,6 @@ describe('Parser', function () {
   })
 
   describe('isEndOfHost()', function () {
-
     it('works with text node in nested content', function () {
       const endContainer = linkWithSpan.querySelector('span').firstChild
       // <div><a href='#'>foo <span class='important'>bar|</span></a></div>
@@ -304,7 +296,6 @@ describe('Parser', function () {
   })
 
   describe('isBeginningOfHost()', function () {
-
     it('works with link node in nested content', function () {
       const endContainer = linkWithSpan.querySelector('a')
       // <div><a href='#'>|foo <span class='important'>bar</span></a></div>
@@ -325,7 +316,6 @@ describe('Parser', function () {
   })
 
   describe('isSameNode()', function () {
-
     it('fails when tags are different', function () {
       const source = text.firstChild
       const target = link.firstChild
@@ -347,7 +337,6 @@ describe('Parser', function () {
   })
 
   describe('lastChild()', function () {
-
     it('returns the deepest last child', function () {
       const source = linkWithSpan
       const target = document.createTextNode('bar')

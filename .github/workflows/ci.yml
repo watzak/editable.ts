@@ -10,7 +10,7 @@ jobs:
   test:
     name: Test and Lint
     runs-on: ubuntu-latest
-       
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,6 +28,9 @@ jobs:
 
       - name: Run linter
         run: npm run lint
+
+      - name: Run formatter check
+        run: npm run fmt:check
 
       - name: Build project
         run: npm run build

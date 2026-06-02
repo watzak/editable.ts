@@ -6,19 +6,19 @@ import type {
 } from '../../plugin-types.js'
 
 /**
-* Spellcheck class.
-*
-* @class Spellcheck
-* @constructor
-*/
+ * Spellcheck class.
+ *
+ * @class Spellcheck
+ * @constructor
+ */
 export default class SpellcheckService {
   private spellcheckService: SpellcheckServiceHandler
 
-  constructor (spellcheckService: SpellcheckServiceHandler) {
+  constructor(spellcheckService: SpellcheckServiceHandler) {
     this.spellcheckService = spellcheckService
   }
 
-  check (text: string, callback: SpellcheckCheckCallback): void {
+  check(text: string, callback: SpellcheckCheckCallback): void {
     if (!text) return callback(null)
 
     const condensedText = content.normalizeWhitespace(text)
@@ -30,5 +30,4 @@ export default class SpellcheckService {
       return callback(null)
     })
   }
-
 }

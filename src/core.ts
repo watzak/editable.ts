@@ -7,11 +7,11 @@ import * as clipboard from './clipboard.js'
 import Dispatcher from './dispatcher.js'
 import Cursor from './cursor.js'
 import createDefaultEvents from './create-default-events.js'
-import {textNodesUnder, getTextNodeAndRelativeOffset} from './util/element.js'
-import {binaryCursorSearch, BinaryCursorSearchResult} from './util/binary_search.js'
-import {domArray, createRange, nodeContainsRange} from './util/dom.js'
-import type {Config} from './config.js'
-import type {SmartQuotesConfig} from './smartQuotes.js'
+import { textNodesUnder, getTextNodeAndRelativeOffset } from './util/element.js'
+import { binaryCursorSearch, BinaryCursorSearchResult } from './util/binary_search.js'
+import { domArray, createRange, nodeContainsRange } from './util/dom.js'
+import type { Config } from './config.js'
+import type { SmartQuotesConfig } from './smartQuotes.js'
 import type {
   EditableEvent,
   EditableEventHandler,
@@ -109,16 +109,13 @@ export class Editable {
   }
 
   enable(target?: HTMLElement | HTMLElement[] | string, options?: EnableOptions | boolean): this {
-    const opts = typeof options === 'boolean' ? {normalize: options} : (options ?? {})
-    const {
-      normalize = false,
-      plainText = false
-    } = opts
+    const opts = typeof options === 'boolean' ? { normalize: options } : (options ?? {})
+    const { normalize = false, plainText = false } = opts
     const shouldSpellcheck = this.config.browserSpellcheck
     const targets = domArray(target || `.${config.editableDisabledClass}`, this.win.document)
 
     for (const element of targets) {
-      block.init(element, {normalize, plainText, shouldSpellcheck})
+      block.init(element, { normalize, plainText, shouldSpellcheck })
       this.dispatcher.notify('init', element)
     }
 
@@ -171,9 +168,15 @@ export class Editable {
     return new Cursor(host, range)
   }
 
-  createCursorAtCharacterOffset({element, offset}: {element: HTMLElement, offset: number}): Cursor {
+  createCursorAtCharacterOffset({
+    element,
+    offset
+  }: {
+    element: HTMLElement
+    offset: number
+  }): Cursor {
     const textNodes = textNodesUnder(element)
-    const {node, relativeOffset} = getTextNodeAndRelativeOffset({textNodes, absOffset: offset})
+    const { node, relativeOffset } = getTextNodeAndRelativeOffset({ textNodes, absOffset: offset })
     if (!node) throw new Error('Could not find text node for offset')
     const newRange = createRange(this.win)
     newRange.setStart(node, relativeOffset)
@@ -212,21 +215,26 @@ export class Editable {
 
     const cursor = this.createCursor(element, 'end')
     if (!cursor) throw new Error('Could not create cursor')
-    cursor.insertAfter(typeof contentToAppend === 'string'
-      ? content.createFragmentFromString(contentToAppend)
-      : contentToAppend
+    cursor.insertAfter(
+      typeof contentToAppend === 'string'
+        ? content.createFragmentFromString(contentToAppend)
+        : contentToAppend
     )
     return cursor
   }
 
-  prependTo(inputElement: HTMLElement | string, contentToPrepend: string | DocumentFragment): Cursor {
+  prependTo(
+    inputElement: HTMLElement | string,
+    contentToPrepend: string | DocumentFragment
+  ): Cursor {
     const element = content.adoptElement(inputElement, this.win.document)
 
     const cursor = this.createCursor(element, 'beginning')
     if (!cursor) throw new Error('Could not create cursor')
-    cursor.insertBefore(typeof contentToPrepend === 'string'
-      ? content.createFragmentFromString(contentToPrepend)
-      : contentToPrepend
+    cursor.insertBefore(
+      typeof contentToPrepend === 'string'
+        ? content.createFragmentFromString(contentToPrepend)
+        : contentToPrepend
     )
     return cursor
   }
@@ -243,12 +251,17 @@ export class Editable {
     return undefined
   }
 
-  on<TEventName extends EditableEvent>(event: TEventName, handler: EditableEventHandler<TEventName>): this {
+  on<TEventName extends EditableEvent>(
+    event: TEventName,
+    handler: EditableEventHandler<TEventName>
+  ): this {
     this.dispatcher.on(event, handler)
     return this
   }
 
-  off: EventOff<EditableEventMap, Editable> = ((...args: Parameters<EventOff<EditableEventMap, Editable>>) => {
+  off: EventOff<EditableEventMap, Editable> = ((
+    ...args: Parameters<EventOff<EditableEventMap, Editable>>
+  ) => {
     this.dispatcher.off(...args)
     return this
   }) as EventOff<EditableEventMap, Editable>
@@ -269,9 +282,10 @@ export class Editable {
     requiredOnFirstLine?: boolean
     requiredOnLastLine?: boolean
   }): BinaryCursorSearchResult {
-    const positionX: number = this.dispatcher.switchContext && this.dispatcher.switchContext.positionX !== undefined
-      ? this.dispatcher.switchContext.positionX
-      : origCoordinates.left
+    const positionX: number =
+      this.dispatcher.switchContext && this.dispatcher.switchContext.positionX !== undefined
+        ? this.dispatcher.switchContext.positionX
+        : origCoordinates.left
 
     return binaryCursorSearch({
       host: element,
@@ -287,9 +301,25 @@ Editable.parser = parser
 Editable.content = content
 
 // Set up callback functions for several events.
-const eventNames: EditableEvent[] = ['focus', 'blur', 'flow', 'selection', 'cursor', 'newline',
-  'insert', 'split', 'merge', 'empty', 'change', 'switch',
-  'move', 'clipboard', 'paste', 'spellcheckUpdated', 'selectToBoundary']
+const eventNames: EditableEvent[] = [
+  'focus',
+  'blur',
+  'flow',
+  'selection',
+  'cursor',
+  'newline',
+  'insert',
+  'split',
+  'merge',
+  'empty',
+  'change',
+  'switch',
+  'move',
+  'clipboard',
+  'paste',
+  'spellcheckUpdated',
+  'selectToBoundary'
+]
 
 eventNames.forEach((name) => {
   // Generate a callback function to subscribe to an event.

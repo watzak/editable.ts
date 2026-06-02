@@ -1,7 +1,7 @@
-import {vi} from 'vitest'
-import {Editable} from '../../src/features.js'
+import { vi } from 'vitest'
+import { Editable } from '../../src/features.js'
 import TextDiff from '../../src/plugins/text-diff/text-diff.js'
-import {createElement} from '../../src/util/dom.js'
+import { createElement } from '../../src/util/dom.js'
 import highlightText from '../../src/highlight-text.js'
 
 function setupTextDiffEnv(text: string, config?: any) {
@@ -11,7 +11,7 @@ function setupTextDiffEnv(text: string, config?: any) {
   document.body.appendChild(context.div)
   context.editable = new Editable()
   context.editable.add(context.div)
-  
+
   if (config !== false) {
     context.editable.setupTextDiff(config || {})
     context.textDiff = context.editable.textDiff
@@ -92,37 +92,37 @@ describe('TextDiff:', function () {
     it('sets up init listener when checkOnInit is true', function () {
       const editable = new Editable()
       const onSpy = vi.spyOn(editable, 'on')
-      const textDiff = new TextDiff(editable, {checkOnInit: true})
+      const textDiff = new TextDiff(editable, { checkOnInit: true })
       expect(onSpy).toHaveBeenCalledWith('init', expect.any(Function))
     })
 
     it('does not set up init listener when checkOnInit is false', function () {
       const editable = new Editable()
       const onSpy = vi.spyOn(editable, 'on')
-      const textDiff = new TextDiff(editable, {checkOnInit: false})
-      const initCalls = onSpy.mock.calls.filter(call => call[0] === 'init')
+      const textDiff = new TextDiff(editable, { checkOnInit: false })
+      const initCalls = onSpy.mock.calls.filter((call) => call[0] === 'init')
       expect(initCalls.length).toBe(0)
     })
 
     it('sets up focus listener when checkOnFocus is true', function () {
       const editable = new Editable()
       const onSpy = vi.spyOn(editable, 'on')
-      const textDiff = new TextDiff(editable, {checkOnFocus: true})
+      const textDiff = new TextDiff(editable, { checkOnFocus: true })
       expect(onSpy).toHaveBeenCalledWith('focus', expect.any(Function))
     })
 
     it('sets up change listener when enabled is true', function () {
       const editable = new Editable()
       const onSpy = vi.spyOn(editable, 'on')
-      const textDiff = new TextDiff(editable, {enabled: true})
+      const textDiff = new TextDiff(editable, { enabled: true })
       expect(onSpy).toHaveBeenCalledWith('change', expect.any(Function))
     })
 
     it('does not set up change listener when enabled is false', function () {
       const editable = new Editable()
       const onSpy = vi.spyOn(editable, 'on')
-      const textDiff = new TextDiff(editable, {enabled: false})
-      const changeCalls = onSpy.mock.calls.filter(call => call[0] === 'change')
+      const textDiff = new TextDiff(editable, { enabled: false })
+      const changeCalls = onSpy.mock.calls.filter((call) => call[0] === 'change')
       expect(changeCalls.length).toBe(0)
     })
   })
@@ -142,7 +142,7 @@ describe('TextDiff:', function () {
       span.setAttribute('data-highlight', 'diff-deleted')
       span.textContent = 'test'
       context.div.appendChild(span)
-      
+
       context.textDiff.captureOriginalText(context.div)
       // Original text should be captured (extracted text, not including highlights)
       const originalText = context.textDiff.getOriginalText(context.div)
@@ -222,7 +222,7 @@ describe('TextDiff:', function () {
 
   describe('onInit:', function () {
     it('captures original text on init event', function () {
-      context = setupTextDiffEnv('hello', {checkOnInit: true})
+      context = setupTextDiffEnv('hello', { checkOnInit: true })
       const captureSpy = vi.spyOn(context.textDiff, 'captureOriginalText')
       context.editable.dispatcher.notify('init', context.div)
       expect(captureSpy).toHaveBeenCalledWith(context.div)
@@ -231,14 +231,14 @@ describe('TextDiff:', function () {
 
   describe('onFocus:', function () {
     it('captures original text on focus when checkOnFocus is true', function () {
-      context = setupTextDiffEnv('hello', {checkOnFocus: true})
+      context = setupTextDiffEnv('hello', { checkOnFocus: true })
       const captureSpy = vi.spyOn(context.textDiff, 'captureOriginalText')
       context.editable.dispatcher.notify('focus', context.div)
       expect(captureSpy).toHaveBeenCalledWith(context.div)
     })
 
     it('does not capture on focus when checkOnFocus is false', function () {
-      context = setupTextDiffEnv('hello', {checkOnFocus: false})
+      context = setupTextDiffEnv('hello', { checkOnFocus: false })
       const captureSpy = vi.spyOn(context.textDiff, 'captureOriginalText')
       context.editable.dispatcher.notify('focus', context.div)
       expect(captureSpy).not.toHaveBeenCalled()
@@ -255,36 +255,36 @@ describe('TextDiff:', function () {
     })
 
     it('triggers diff computation after throttle delay', function () {
-      context = setupTextDiffEnv('hello', {throttle: 300})
+      context = setupTextDiffEnv('hello', { throttle: 300 })
       context.textDiff.captureOriginalText(context.div)
       const computeSpy = vi.spyOn(context.textDiff, 'computeAndApplyDiff')
-      
+
       context.editable.dispatcher.notify('change', context.div)
       expect(computeSpy).not.toHaveBeenCalled()
-      
+
       vi.advanceTimersByTime(300)
       expect(computeSpy).toHaveBeenCalledWith(context.div)
     })
 
     it('does not trigger when disabled', function () {
-      context = setupTextDiffEnv('hello', {enabled: false})
+      context = setupTextDiffEnv('hello', { enabled: false })
       context.textDiff.captureOriginalText(context.div)
       const computeSpy = vi.spyOn(context.textDiff, 'computeAndApplyDiff')
-      
+
       context.editable.dispatcher.notify('change', context.div)
       vi.advanceTimersByTime(300)
       expect(computeSpy).not.toHaveBeenCalled()
     })
 
     it('cancels previous timeout on rapid changes', function () {
-      context = setupTextDiffEnv('hello', {throttle: 300})
+      context = setupTextDiffEnv('hello', { throttle: 300 })
       context.textDiff.captureOriginalText(context.div)
       const computeSpy = vi.spyOn(context.textDiff, 'computeAndApplyDiff')
-      
+
       context.editable.dispatcher.notify('change', context.div)
       context.editable.dispatcher.notify('change', context.div)
       context.editable.dispatcher.notify('change', context.div)
-      
+
       vi.advanceTimersByTime(300)
       // Should only be called once after all rapid changes
       expect(computeSpy).toHaveBeenCalledTimes(1)
@@ -295,7 +295,7 @@ describe('TextDiff:', function () {
       context.textDiff.captureOriginalText(context.div)
       context.textDiff.isApplyingDiff = true
       const computeSpy = vi.spyOn(context.textDiff, 'computeAndApplyDiff')
-      
+
       context.editable.dispatcher.notify('change', context.div)
       vi.advanceTimersByTime(300)
       expect(computeSpy).not.toHaveBeenCalled()
@@ -310,12 +310,12 @@ describe('TextDiff:', function () {
       deletedSpan.setAttribute('data-highlight', 'diff-deleted')
       deletedSpan.textContent = 'deleted'
       context.div.appendChild(deletedSpan)
-      
+
       const insertedSpan = document.createElement('span')
       insertedSpan.setAttribute('data-highlight', 'diff-inserted')
       insertedSpan.textContent = 'inserted'
       context.div.appendChild(insertedSpan)
-      
+
       context.textDiff.clearDiffHighlights(context.div)
       expect(context.div.querySelector('[data-highlight="diff-deleted"]')).toBeNull()
       expect(context.div.querySelector('[data-highlight="diff-inserted"]')).toBeNull()

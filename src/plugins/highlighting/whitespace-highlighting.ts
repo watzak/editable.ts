@@ -1,7 +1,7 @@
 // See: https://en.wikipedia.org/wiki/Whitespace_character
 
 const characters = {
-  'A0': 'no-break space', // \\u00A0
+  A0: 'no-break space', // \\u00A0
   '2000': 'en quad', // \\u2000
   '2001': 'em quad', // \\u2001
   '2002': 'en space', // \\u2002
@@ -36,18 +36,18 @@ export interface WhitespaceMatch {
 export default class WhitespaceHighlighting {
   public marker: HTMLElement
 
-  constructor (markerNode: HTMLElement) {
+  constructor(markerNode: HTMLElement) {
     this.marker = markerNode
   }
 
-  findMatches (text: string): WhitespaceMatch[] | undefined {
+  findMatches(text: string): WhitespaceMatch[] | undefined {
     if (!text) return
 
     const matches = [...text.matchAll(specialWhitespaceCharsRegex)]
     return matches.map((entry) => this.prepareMatch(entry))
   }
 
-  prepareMatch (match: RegExpMatchArray): WhitespaceMatch {
+  prepareMatch(match: RegExpMatchArray): WhitespaceMatch {
     const startIndex = match.index!
     const unicode = getUnicode(match[0])
     const description = characters[unicode as keyof typeof characters] || 'unknown whitespace'
@@ -61,7 +61,7 @@ export default class WhitespaceHighlighting {
   }
 }
 
-function getUnicode (character: string): string {
+function getUnicode(character: string): string {
   const code = character.charCodeAt(0)
   return `${code.toString(16).toUpperCase()}`
 }

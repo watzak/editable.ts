@@ -1,4 +1,4 @@
-import {vi} from 'vitest'
+import { vi } from 'vitest'
 
 // Vitest setup - no configuration needed
 // Vitest has better default assertion truncation than Chai
@@ -51,7 +51,7 @@ if (typeof globalThis.DataTransfer === 'undefined') {
   globalThis.DataTransfer = DataTransferMock
   // Also set on window for browser compatibility
   if (typeof window !== 'undefined') {
-    (window as any).DataTransfer = DataTransferMock
+    ;(window as any).DataTransfer = DataTransferMock
   }
 }
 
@@ -67,6 +67,6 @@ if (typeof globalThis.ClipboardEvent === 'undefined') {
 
   globalThis.ClipboardEvent = ClipboardEventMock as any
   if (typeof window !== 'undefined') {
-    (window as any).ClipboardEvent = ClipboardEventMock
+    ;(window as any).ClipboardEvent = ClipboardEventMock
   }
 }

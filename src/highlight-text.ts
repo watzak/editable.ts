@@ -1,7 +1,7 @@
 import NodeIterator from './node-iterator.js'
 import * as nodeType from './node-type.js'
-import {createRange} from './util/dom.js'
-import type {Match} from './plugins/highlighting/text-search.js'
+import { createRange } from './util/dom.js'
+import type { Match } from './plugins/highlighting/text-search.js'
 
 interface ExtendedMatch extends Match {
   id?: string | number
@@ -18,13 +18,14 @@ interface Portion {
 }
 
 export default {
-
   // Get the text from an editable block with a NodeIterator.
   // This must work the same as when later iterating over the text
   // in highlightMatches().
-  extractText (element: HTMLElement, convertBRs: boolean = true): string {
+  extractText(element: HTMLElement, convertBRs: boolean = true): string {
     let text = ''
-    getText(element, convertBRs, (part: string) => { text += part })
+    getText(element, convertBRs, (part: string) => {
+      text += part
+    })
     return text
   },
 
@@ -43,7 +44,7 @@ export default {
   //         id: 'a7382', // used in word-id attribute
   //         title: 'The World' // used in title attribute (optional)
   //       }]
-  highlightMatches (element: HTMLElement, matches: ExtendedMatch[], countBRs: boolean = true): void {
+  highlightMatches(element: HTMLElement, matches: ExtendedMatch[], countBRs: boolean = true): void {
     if (!matches || matches.length === 0) {
       return
     }
@@ -62,7 +63,11 @@ export default {
       // Account for <br> elements
       if (next.nodeType === nodeType.textNode && (next as Text).data !== '') {
         textNode = next as Text
-      } else if (countBRs && next.nodeType === nodeType.elementNode && (next as Element).nodeName === 'BR') {
+      } else if (
+        countBRs &&
+        next.nodeType === nodeType.elementNode &&
+        (next as Element).nodeName === 'BR'
+      ) {
         totalOffset += 1
         continue
       } else {
@@ -92,7 +97,7 @@ export default {
 
         let length: number
         if (isLastPortion) {
-          length = (currentMatch.endIndex - totalOffset) - offset
+          length = currentMatch.endIndex - totalOffset - offset
         } else {
           length = nodeText.length - offset
         }
@@ -131,11 +136,15 @@ export default {
   },
 
   // @return the last wrapped element
-  wrapMatch (portions: Portion[], stencilElement: HTMLElement, title?: string): HTMLElement | undefined {
+  wrapMatch(
+    portions: Portion[],
+    stencilElement: HTMLElement,
+    title?: string
+  ): HTMLElement | undefined {
     return portions.map((portion) => this.wrapPortion(portion, stencilElement, title)).pop()
   },
 
-  wrapPortion (portion: Portion, stencilElement: HTMLElement, title?: string): HTMLElement {
+  wrapPortion(portion: Portion, stencilElement: HTMLElement, title?: string): HTMLElement {
     const range = createRange()
     range.setStart(portion.element, portion.offset)
     range.setEnd(portion.element, portion.offset + portion.length)
@@ -154,7 +163,6 @@ export default {
 
     return node
   }
-
 }
 
 // Extract the text of an element.
@@ -163,13 +171,17 @@ export default {
 //   with data-editable="remove"
 // - It returns a \n for <br> elements
 //   (The only block level element allowed inside of editables)
-function getText (element: HTMLElement, convertBRs: boolean, func: (text: string) => void): void {
+function getText(element: HTMLElement, convertBRs: boolean, func: (text: string) => void): void {
   const iterator = new NodeIterator(element)
   let next: Node | undefined
   while ((next = iterator.getNext())) {
     if (next.nodeType === nodeType.textNode && (next as Text).data !== '') {
       func((next as Text).data)
-    } else if (convertBRs && next.nodeType === nodeType.elementNode && (next as Element).nodeName === 'BR') {
+    } else if (
+      convertBRs &&
+      next.nodeType === nodeType.elementNode &&
+      (next as Element).nodeName === 'BR'
+    ) {
       func('\n')
     }
   }

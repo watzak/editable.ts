@@ -59,6 +59,7 @@
   "scripts": {
     "start": "npm run dev",
     "dev": "vite --config vite/vite.config.docs.mjs",
+    "dev:e2e": "vite --config vite/vite.config.docs.mjs --host 127.0.0.1 --port 9050 --strictPort",
     "build:ts": "rimraf ./lib && tsc",
     "build:dist": "rimraf ./dist && vite build --config vite/vite.config.dist.mjs",
     "build:docs": "rimraf ./examples/dist && vite build --config vite/vite.config.docs.bundle.mjs && vite build --config vite/vite.config.docs.styles.mjs",
@@ -71,6 +72,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "fmt": "oxfmt .",
@@ -78,6 +81,7 @@
     "release": "commit-and-tag-version && git push --follow-tags && npm publish"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@preact/preset-vite": "2.10.5",
     "@types/node": "25.5.0",
     "@vitest/coverage-v8": "4.1.2",

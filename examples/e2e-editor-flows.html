@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>editable.ts — e2e editor flows</title>
+    <script type="module" src="/examples/styles-entry.js"></script>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 720px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+
+      section {
+        margin-bottom: 2rem;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+      }
+
+      h2 {
+        margin-top: 0;
+        font-size: 1.1rem;
+      }
+
+      .example-sheet p {
+        padding: 0.75rem;
+        border: 1px dashed #bbb;
+        min-height: 1.5rem;
+      }
+
+      .lifecycle-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+
+      .lifecycle-controls button {
+        padding: 0.35rem 0.75rem;
+        cursor: pointer;
+      }
+
+      [data-testid='event-log'] {
+        font-family: ui-monospace, monospace;
+        font-size: 0.85rem;
+        white-space: pre-wrap;
+        min-height: 1.25rem;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>editable.ts — e2e editor flows</h1>
+
+    <section data-testid="paragraph-section">
+      <h2>Paragraph (Enter / Split / Merge)</h2>
+      <div class="e2e-paragraph-example example-sheet">
+        <p data-testid="paragraph-first">
+          Alpha block with enough text to split in the middle.
+        </p>
+      </div>
+      <div class="e2e-merge-example example-sheet">
+        <p data-testid="merge-first">Merge alpha block.</p>
+        <p data-testid="merge-second">Merge beta block.</p>
+      </div>
+      <h3>Events</h3>
+      <div data-testid="event-log" data-events=""></div>
+    </section>
+
+    <section data-testid="formatting-section">
+      <h2>Formatting toolbar</h2>
+      <div class="e2e-formatting-example example-sheet">
+        <p data-testid="formatting-block">
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        </p>
+      </div>
+      <pre data-testid="formatting-html"></pre>
+    </section>
+
+    <section data-testid="paste-section">
+      <h2>Paste</h2>
+      <div class="e2e-pasting-example example-sheet">
+        <p data-testid="paste-block">Paste here...</p>
+      </div>
+    </section>
+
+    <section data-testid="lifecycle-section">
+      <h2>Mount / Unmount</h2>
+      <div class="e2e-lifecycle-example example-sheet">
+        <p data-testid="lifecycle-block">Lifecycle editable block.</p>
+      </div>
+      <div class="lifecycle-controls">
+        <button type="button" data-testid="btn-disable">Disable</button>
+        <button type="button" data-testid="btn-enable">Enable</button>
+        <button type="button" data-testid="btn-suspend">Suspend</button>
+        <button type="button" data-testid="btn-continue">Continue</button>
+        <button type="button" data-testid="btn-remove">Remove</button>
+        <button type="button" data-testid="btn-readd">Re-add</button>
+      </div>
+      <p>
+        Status:
+        <span data-testid="lifecycle-status">mounted</span>
+      </p>
+    </section>
+
+    <script type="module" src="/examples/e2e-editor-flows.js"></script>
+  </body>
+</html>

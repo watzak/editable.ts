@@ -19,6 +19,7 @@ npm run dev          # Demo app (Vite dev server)
 npm test             # Vitest + lint + format check
 npm run test:watch   # Vitest in watch mode
 npm run test:coverage
+npm run test:e2e     # Playwright browser tests (examples/e2e-editor-flows.html)
 npm run lint         # oxlint
 npm run fmt          # oxfmt (auto-format)
 npm run build        # TypeScript → lib/, bundle → dist/, demo → examples/dist/

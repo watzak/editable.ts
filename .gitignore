@@ -10,3 +10,5 @@ docs/dist
 .autopilot.json
 .cursor
 tmp/
+test-results/
+playwright-report/

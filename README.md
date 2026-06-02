@@ -8,8 +8,8 @@
 <p align="center">
   <a href="https://watzak.github.io/editable.ts/examples/">
     <picture>
-      <source media="(prefers-reduced-motion: reduce)" srcset="docs/assets/demo.png">
-      <img src="docs/assets/demo.gif" alt="editable.ts demo — text selection with floating formatting toolbar" width="860">
+      <source media="(prefers-reduced-motion: reduce)" srcset=".github/assets/demo.png">
+      <img src=".github/assets/demo.gif" alt="editable.ts demo — text selection with floating formatting toolbar" width="860">
     </picture>
   </a>
 </p>

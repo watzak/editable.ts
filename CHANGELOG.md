@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- README demo GIF and screenshot (`docs/assets/demo.gif`, `docs/assets/demo.png`)
+- README demo GIF and screenshot (`.github/assets/demo.gif`, `.github/assets/demo.png`)
 - `npm run capture:readme` script to regenerate demo assets from the examples build
 
 ## [1.0.0] - 2026-06-02

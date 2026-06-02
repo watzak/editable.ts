@@ -12,7 +12,7 @@ import { chromium } from 'playwright'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = join(__dirname, '..')
 const examplesDir = join(root, 'examples')
-const assetsDir = join(root, 'docs', 'assets')
+const assetsDir = join(root, '.github', 'assets')
 const port = 8765
 
 const mimeTypes = {
@@ -108,7 +108,7 @@ async function capture() {
     await screenshotSection(join(assetsDir, 'frame-2.png'))
     await screenshotSection(join(assetsDir, 'demo.png'))
 
-    console.log('Captured docs/assets/demo.png and frame-*.png')
+    console.log('Captured .github/assets/demo.png and frame-*.png')
   } finally {
     await browser.close()
     server.close()
@@ -138,7 +138,7 @@ async function buildGif() {
     proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg exit ${code}`))))
   })
 
-  console.log('Created docs/assets/demo.gif')
+  console.log('Created .github/assets/demo.gif')
 }
 
 capture()

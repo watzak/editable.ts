@@ -68,7 +68,7 @@
     "prepublishOnly": "npm run build -s",
     "test:ci": "vitest run",
     "test": "vitest run",
-    "posttest": "npm run lint -s && npm run fmt:check -s",
+    "posttest": "npm run lint -s && npm run format:check -s",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",

@@ -13,7 +13,7 @@ export default defineConfig({
       formats: ['umd']
     },
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: false,
     minify: 'terser',
     rollupOptions: {
       output: {

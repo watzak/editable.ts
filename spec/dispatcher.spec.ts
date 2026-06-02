@@ -1,4 +1,5 @@
 import { createRange, rangesAreEqual } from '../src/util/dom.js'
+import { vi } from 'vitest'
 import * as content from '../src/content.js'
 import Cursor from '../src/cursor.js'
 import Keyboard from '../src/keyboard.js'
@@ -596,6 +597,24 @@ describe('Dispatcher:', function () {
           elem.dispatchEvent(new Event('input', { bubbles: true }))
         })
       })
+    })
+  })
+
+  describe('document listeners:', function () {
+    it('shares native document listeners across editable instances', function () {
+      const addEventListener = vi.spyOn(document, 'addEventListener')
+      const first = new Editable()
+      const second = new Editable()
+
+      const keydownListeners = addEventListener.mock.calls.filter(
+        ([event, _listener, capture]) => event === 'keydown' && capture === true
+      )
+
+      expect(keydownListeners.length).toBe(1)
+
+      first.unload()
+      second.unload()
+      addEventListener.mockRestore()
     })
   })
 })

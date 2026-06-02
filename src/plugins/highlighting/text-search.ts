@@ -5,6 +5,9 @@ export interface Match {
   marker?: HTMLElement
 }
 
+const regexCache = new Map<string, RegExp>()
+const maxRegexCacheSize = 100
+
 export function searchText(text: string, searchTerm: string, marker?: HTMLElement): Match[] {
   const matchMode = 'text'
   return findMatches(text, [searchTerm], matchMode, marker)
@@ -30,9 +33,7 @@ function findMatches(
   if (marker && !isElement(marker)) return []
   if (!searchTexts?.length) return []
 
-  const createRegex = matchMode === 'word' ? createWordRegex : createHighlightRegex
-
-  const regex = createRegex(searchTexts)
+  const regex = getCachedRegex(matchMode, searchTexts)
   const matches = [...text.matchAll(regex)]
 
   return matches.map((match) => {
@@ -53,6 +54,21 @@ function findMatches(
       marker
     }
   })
+}
+
+function getCachedRegex(matchMode: 'text' | 'word', words: string[]): RegExp {
+  const key = `${matchMode}:${words.join('\u0000')}`
+  let regex = regexCache.get(key)
+  if (!regex) {
+    regex = matchMode === 'word' ? createWordRegex(words) : createHighlightRegex(words)
+    if (regexCache.size >= maxRegexCacheSize) {
+      const oldestKey = regexCache.keys().next().value
+      if (oldestKey) regexCache.delete(oldestKey)
+    }
+    regexCache.set(key, regex)
+  }
+  regex.lastIndex = 0
+  return regex
 }
 
 function isElement(obj: unknown): obj is HTMLElement {

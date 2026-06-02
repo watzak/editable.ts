@@ -124,7 +124,7 @@ const highlightSupport = {
     if (!document.documentElement.classList) return
 
     const elems = editableHost.querySelectorAll(`[data-word-id="${highlightId}"]`)
-    for (const elem of Array.from(elems)) {
+    for (const elem of elems) {
       if (removeCssClass) elem.classList.remove(removeCssClass)
       if (addCssClass) elem.classList.add(addCssClass)
     }
@@ -132,7 +132,7 @@ const highlightSupport = {
 
   removeHighlight(editableHost: HTMLElement, highlightId: string, dispatcher?: Dispatcher): void {
     const elems = editableHost.querySelectorAll(`[data-word-id="${highlightId}"]`)
-    for (const elem of Array.from(elems)) {
+    for (const elem of elems) {
       content.unwrap(elem)
     }
 
@@ -143,8 +143,7 @@ const highlightSupport = {
   },
 
   hasHighlight(editableHost: HTMLElement, highlightId: string): boolean {
-    const matches = editableHost.querySelectorAll(`[data-word-id="${highlightId}"]`)
-    return !!matches.length
+    return editableHost.querySelector(`[data-word-id="${highlightId}"]`) !== null
   },
 
   extractHighlightedRanges(
@@ -157,7 +156,7 @@ const highlightSupport = {
     if (!markers.length) return undefined
 
     const groups: Record<string, Element[]> = {}
-    for (const marker of Array.from(markers)) {
+    for (const marker of markers) {
       const highlightId = marker.getAttribute('data-word-id')
       if (!highlightId) continue
       if (!groups[highlightId]) {
@@ -201,7 +200,7 @@ const highlightSupport = {
 
   cleanupStaleMarkerNodes(editableHost: HTMLElement, highlightType: string): void {
     const nodes = editableHost.querySelectorAll(`span[data-highlight="${highlightType}"]`)
-    for (const node of Array.from(nodes)) {
+    for (const node of nodes) {
       if (!node.textContent || !node.textContent.length) {
         node.remove()
       }

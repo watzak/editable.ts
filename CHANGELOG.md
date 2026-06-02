@@ -6,10 +6,9 @@ All notable changes to this project will be documented in this file. See [commit
 
 ## [1.1.0](https://github.com/watzak/editable.ts/compare/v1.0.0...v1.1.0) (2026-06-02)
 
-
 ### Features
 
-* end2end tests init ([658e511](https://github.com/watzak/editable.ts/commit/658e511b48d4e2833d7b080e680044cef295e70c))
+- end2end tests init ([658e511](https://github.com/watzak/editable.ts/commit/658e511b48d4e2833d7b080e680044cef295e70c))
 
 ## [1.0.0] - 2026-06-02
 

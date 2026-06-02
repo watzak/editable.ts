@@ -60,7 +60,7 @@
     "start": "npm run dev",
     "dev": "vite --config vite/vite.config.docs.mjs",
     "dev:e2e": "vite --config vite/vite.config.docs.mjs --host 127.0.0.1 --port 9050 --strictPort",
-    "build:ts": "rimraf ./lib && tsc",
+    "build:ts": "rimraf ./lib && tsc -p tsconfig.build.json",
     "build:dist": "rimraf ./dist && vite build --config vite/vite.config.dist.mjs",
     "build:docs": "rimraf ./examples/dist && vite build --config vite/vite.config.docs.bundle.mjs && vite build --config vite/vite.config.docs.styles.mjs",
     "capture:readme": "node scripts/capture-readme-demo.mjs",
@@ -76,25 +76,31 @@
     "test:e2e:ui": "playwright test --ui",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
-    "fmt": "oxfmt .",
-    "fmt:check": "oxfmt --check .",
+    "knip": "knip --include files,dependencies,unlisted,unresolved,binaries --no-config-hints",
+    "size": "size-limit",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
     "release": "commit-and-tag-version && git push --follow-tags && npm publish"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
     "@preact/preset-vite": "2.10.5",
+    "@size-limit/file": "^12.1.0",
     "@types/node": "25.5.0",
     "@vitest/coverage-v8": "4.1.2",
     "@vitest/ui": "4.1.2",
     "commit-and-tag-version": "12.7.3",
     "jsdom": "29.0.1",
+    "knip": "^6.15.0",
     "normalize.css": "8.0.1",
     "oxfmt": "^0.43.0",
     "oxlint": "^1.68.0",
+    "playwright": "^1.60.0",
     "preact": "10.29.0",
     "prismjs": "1.30.0",
     "prop-types": "15.8.1",
     "rimraf": "6.1.3",
+    "size-limit": "^12.1.0",
     "terser": "5.46.1",
     "typescript": "6.0.2",
     "vite": "^8.0.16",
@@ -104,6 +110,12 @@
   "overrides": {
     "rimraf": "6.1.3"
   },
+  "size-limit": [
+    {
+      "path": "dist/editable.umd.cjs",
+      "limit": "18 KB"
+    }
+  ],
   "engines": {
     "node": ">=22",
     "npm": ">=11"

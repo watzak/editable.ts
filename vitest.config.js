@@ -10,6 +10,12 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'text-summary'],
+      thresholds: {
+        branches: 60,
+        functions: 60,
+        lines: 60,
+        statements: 60
+      },
       exclude: ['node_modules/', 'spec/', 'examples/', 'lib/', 'dist/', '**/*.d.ts', '**/*.spec.ts']
     },
     // Test timeout

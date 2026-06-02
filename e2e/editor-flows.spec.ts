@@ -33,7 +33,12 @@ test.describe('Editor flows', () => {
     const blocks = page.locator(PARAGRAPH_SELECTOR)
     const countBefore = await blocks.count()
 
-    await placeCursorInText(page, '[data-testid="paragraph-first"]', 'split in the middle', 'middle')
+    await placeCursorInText(
+      page,
+      '[data-testid="paragraph-first"]',
+      'split in the middle',
+      'middle'
+    )
     await first.press('Enter')
 
     await waitForEvent(page, 'split')
@@ -65,12 +70,14 @@ test.describe('Editor flows', () => {
     const toolbar = page.locator('[data-testid="selection-tip"]')
     await expect(toolbar).toBeVisible()
     await page.evaluate(() => {
-      document.querySelector('[data-testid="format-bold"]')?.dispatchEvent(
-        new MouseEvent('click', { bubbles: true })
-      )
+      document
+        .querySelector('[data-testid="format-bold"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
-    await expect(page.locator('[data-testid="formatting-html"]')).toContainText(/<(strong|b)[^>]*>/i)
+    await expect(page.locator('[data-testid="formatting-html"]')).toContainText(
+      /<(strong|b)[^>]*>/i
+    )
   })
 
   test('disable, enable, suspend, continue, remove, and re-add lifecycle', async ({ page }) => {

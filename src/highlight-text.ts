@@ -22,11 +22,11 @@ export default {
   // This must work the same as when later iterating over the text
   // in highlightMatches().
   extractText(element: HTMLElement, convertBRs: boolean = true): string {
-    let text = ''
+    const parts: string[] = []
     getText(element, convertBRs, (part: string) => {
-      text += part
+      parts.push(part)
     })
-    return text
+    return parts.join('')
   },
 
   // Go through the element to highlight the matches while keeping the

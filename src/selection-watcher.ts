@@ -83,6 +83,10 @@ export default class SelectionWatcher {
   getFreshSelection(): Cursor | Selection | undefined {
     const rangeContainer = this.getRangeContainer()
 
+    return this.getSelectionFromRangeContainer(rangeContainer)
+  }
+
+  getSelectionFromRangeContainer(rangeContainer: RangeContainer): Cursor | Selection | undefined {
     return rangeContainer.isCursor ? rangeContainer.getCursor() : rangeContainer.getSelection()
   }
 
@@ -104,8 +108,9 @@ export default class SelectionWatcher {
     return rangeContainer.forceCursor()
   }
 
-  selectionChanged() {
-    const newRangeContainer = this.getRangeContainer()
+  selectionChanged(
+    newRangeContainer: RangeContainer = this.getRangeContainer()
+  ): Cursor | Selection | undefined {
     if (newRangeContainer.isDifferentFrom(this.currentRange)) {
       const lastSelection = this.currentSelection
       this.currentRange = newRangeContainer
@@ -135,5 +140,7 @@ export default class SelectionWatcher {
         this.currentSelection = undefined
       }
     }
+
+    return this.currentSelection
   }
 }

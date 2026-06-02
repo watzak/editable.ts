@@ -5,12 +5,17 @@ import eventable from './eventable.js'
 import SelectionWatcher from './selection-watcher.js'
 import config from './config.js'
 import Keyboard from './keyboard.js'
+import {
+  addSharedDocumentListener,
+  type SharedDocumentListener
+} from './shared-document-listeners.js'
 import { closest } from './util/dom.js'
 import { replaceLast, endsWithSingleSpace } from './util/string.js'
 import { applySmartQuotes, shouldApplySmartQuotes } from './smartQuotes.js'
 import type { Editable } from './core.js'
 import type { QuotePair } from './smartQuotes.js'
 import type { DispatcherEventMap, EventNotify, EventOff, EventOn } from './event-types.js'
+import type Cursor from './cursor.js'
 import type Selection from './selection.js'
 
 /**
@@ -24,7 +29,7 @@ export default class Dispatcher {
   public editableSelector: string
   public selectionWatcher: SelectionWatcher
   public keyboard: Keyboard
-  public activeListeners: Array<{ event: string; listener: EventListener; capture: boolean }>
+  public activeListeners: SharedDocumentListener[]
   public suspended?: boolean
   public switchContext?: {
     events: string[]
@@ -53,10 +58,13 @@ export default class Dispatcher {
   }
 
   setupDocumentListener(event: string, func: (evt: Event) => void, capture: boolean = false): this {
-    const listener = { event, listener: func.bind(this) as EventListener, capture }
+    const listener = addSharedDocumentListener(
+      this.document,
+      event,
+      func.bind(this) as (evt: Event) => void,
+      capture
+    )
     this.activeListeners.push(listener)
-
-    this.document.addEventListener(event, listener.listener, capture)
     return this
   }
 
@@ -74,7 +82,7 @@ export default class Dispatcher {
   unload() {
     this.off()
     for (const l of this.activeListeners) {
-      this.document.removeEventListener(l.event, l.listener, l.capture)
+      l.remove()
     }
     this.activeListeners.length = 0
   }
@@ -83,7 +91,7 @@ export default class Dispatcher {
     if (this.suspended) return
     this.suspended = true
     for (const l of this.activeListeners) {
-      this.document.removeEventListener(l.event, l.listener, l.capture)
+      l.remove()
     }
     this.activeListeners.length = 0
   }
@@ -372,6 +380,18 @@ export default class Dispatcher {
       })
   }
 
+  notifySelectionBoundary(cursor: Cursor | Selection | undefined, evt: Event): void {
+    if (!cursor?.isSelection) return
+
+    if (cursor.isAtBeginning() && cursor.isAtEnd()) {
+      this.notify('selectToBoundary', cursor.host, evt, 'both')
+    } else if (cursor.isAtBeginning()) {
+      this.notify('selectToBoundary', cursor.host, evt, 'start')
+    } else if (cursor.isAtEnd()) {
+      this.notify('selectToBoundary', cursor.host, evt, 'end')
+    }
+  }
+
   /**
    * Sets up events that are triggered on a selection change.
    *
@@ -382,47 +402,65 @@ export default class Dispatcher {
     let suppressSelectionChanges = false
     const selectionWatcher = this.selectionWatcher
 
-    // fires on mousemove (thats probably a bit too much)
-    // catches changes like 'select all' from context menu
-    this.setupDocumentListener('selectionchange', (evt: Event) => {
-      let didSyncSelection = false
-      let cursor = this.selectionWatcher.getFreshSelection()
-      if (!cursor) {
-        selectionWatcher.selectionChanged()
-        didSyncSelection = true
-        cursor = this.selectionWatcher.getSelection()
-      }
+    const processSelectionChange = (evt: Event) => {
+      const rangeContainer = selectionWatcher.getFreshRange()
+      if (!rangeContainer.host && !selectionWatcher.currentRange?.host) return
 
-      if (cursor && cursor.isSelection && cursor.isAtBeginning() && cursor.isAtEnd()) {
-        this.notify('selectToBoundary', cursor.host, evt, 'both')
-      } else if (cursor && cursor.isSelection && cursor.isAtBeginning()) {
-        this.notify('selectToBoundary', cursor.host, evt, 'start')
-      } else if (cursor && cursor.isSelection && cursor.isAtEnd()) {
-        this.notify('selectToBoundary', cursor.host, evt, 'end')
-      }
+      const cursor = selectionWatcher.getSelectionFromRangeContainer(rangeContainer)
+      this.notifySelectionBoundary(cursor, evt)
 
       if (suppressSelectionChanges) {
         selectionDirty = true
-      } else if (!didSyncSelection) {
-        selectionWatcher.selectionChanged()
+      } else {
+        selectionWatcher.selectionChanged(rangeContainer)
       }
-    })
+    }
+
+    let selectionChangeQueued = false
+    let queuedSelectionEvent: Event | undefined
+    const queueSelectionChange = (evt: Event) => {
+      queuedSelectionEvent = evt
+      if (selectionChangeQueued) return
+
+      selectionChangeQueued = true
+      const flushSelectionChange = () => {
+        selectionChangeQueued = false
+        const queuedEvent = queuedSelectionEvent || evt
+        queuedSelectionEvent = undefined
+        processSelectionChange(queuedEvent)
+      }
+
+      const queueMicrotask = this.document.defaultView?.queueMicrotask || globalThis.queueMicrotask
+      if (queueMicrotask) {
+        queueMicrotask.call(this.document.defaultView || globalThis, flushSelectionChange)
+      } else {
+        Promise.resolve().then(flushSelectionChange)
+      }
+    }
+
+    const updateSelectionAfterMouseDown = () => {
+      const rangeContainer = selectionWatcher.getFreshRange()
+      if (!rangeContainer.host && !selectionWatcher.currentRange?.host) return
+      selectionWatcher.selectionChanged(rangeContainer)
+    }
+
+    // fires on mousemove (thats probably a bit too much)
+    // catches changes like 'select all' from context menu
+    this.setupDocumentListener('selectionchange', queueSelectionChange)
 
     // listen for selection changes by mouse so we can
     // suppress the selectionchange event and only fire the
     // change event on mouseup
     this.setupDocumentListener('mousedown', function (this: Dispatcher, evt: Event) {
-      const mouseEvent = evt as MouseEvent
       if (!this.getEditableBlockByEvent(evt)) return
       if (this.config.mouseMoveSelectionChanges === false) {
         suppressSelectionChanges = true
 
         // Without this timeout the previous selection is active
         // until the mouseup event (no. not good).
-        setTimeout(() => selectionWatcher.selectionChanged(), 0)
+        setTimeout(updateSelectionAfterMouseDown, 0)
       }
 
-      const self = this
       this.document.addEventListener(
         'mouseup',
         () => {
@@ -448,25 +486,14 @@ export default class Dispatcher {
    * @method setupSelectionChangeFallbackListeners
    */
   setupSelectionChangeFallbackListeners() {
-    const notifySelectionBoundary = (evt: Event) => {
-      const cursor = this.selectionWatcher.getFreshSelection()
-      if (cursor && cursor.isSelection && cursor.isAtBeginning() && cursor.isAtEnd()) {
-        this.notify('selectToBoundary', cursor.host, evt, 'both')
-      } else if (cursor && cursor.isSelection && cursor.isAtBeginning()) {
-        this.notify('selectToBoundary', cursor.host, evt, 'start')
-      } else if (cursor && cursor.isSelection && cursor.isAtEnd()) {
-        this.notify('selectToBoundary', cursor.host, evt, 'end')
-      }
-    }
-
     // listen for selection changes by mouse
     this.setupDocumentListener('mouseup', (evt: Event) => {
       // In Opera when clicking outside of a block
       // it does not update the selection as it should
       // without the timeout
       setTimeout(() => {
-        this.selectionWatcher.selectionChanged()
-        notifySelectionBoundary(evt)
+        const cursor = this.selectionWatcher.selectionChanged()
+        this.notifySelectionBoundary(cursor, evt)
       }, 0)
     })
 
@@ -476,8 +503,8 @@ export default class Dispatcher {
       // when pressing Command + Shift + Left for example the keyup is only triggered
       // after at least two keys are released. Strange. The culprit seems to be the
       // Command key. Do we need a workaround?
-      this.selectionWatcher.selectionChanged()
-      notifySelectionBoundary(evt)
+      const cursor = this.selectionWatcher.selectionChanged()
+      this.notifySelectionBoundary(cursor, evt)
     })
   }
 }

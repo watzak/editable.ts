@@ -1,0 +1,38 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/core.ts",
+    "src/features.ts",
+    "spec/**/*.spec.ts",
+    "e2e/**/*.ts",
+    "examples/index.js",
+    "examples/e2e-editor-flows.js",
+    "examples/events.jsx",
+    "examples/styles-entry.js",
+    "scripts/**/*.mjs",
+    "vite/**/*.{js,mjs}",
+    "vitest.config.js",
+    "playwright.config.ts"
+  ],
+  "project": [
+    "src/**/*.ts",
+    "spec/**/*.ts",
+    "e2e/**/*.ts",
+    "examples/**/*.{js,jsx}",
+    "scripts/**/*.mjs",
+    "vite/**/*.{js,mjs}",
+    "*.config.{js,ts}"
+  ],
+  "ignoreDependencies": [
+    "@vitest/coverage-v8",
+    "@vitest/ui",
+    "commit-and-tag-version",
+    "normalize.css",
+    "oxfmt",
+    "oxlint",
+    "rimraf",
+    "size-limit",
+    "terser",
+    "typescript"
+  ]
+}

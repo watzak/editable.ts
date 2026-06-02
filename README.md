@@ -81,12 +81,12 @@ import { Editable } from 'editable.ts/features'
 
 ### Bundle size
 
-| Artifact                 | Size (approx.)       | Notes                                                      |
-| ------------------------ | -------------------- | ---------------------------------------------------------- |
-| `lib/core.js` (ESM)      | ~8 KB (~2 KB gzip)   | Core entry; bundlers tree-shake further modules            |
-| `lib/features.js`        | ~3 KB (~1 KB gzip)   | Optional entry; pulls in highlight/text-diff code          |
-| `dist/editable.umd.cjs`  | ~58 KB (~17 KB gzip) | Single file for `<script>` / legacy bundlers               |
-| `lib/` (total, unpacked) | ~1 MB                | All `.js` + `.d.ts`; bundlers include only what you import |
+| Artifact                 | Size (approx.)       | Notes                                                                  |
+| ------------------------ | -------------------- | ---------------------------------------------------------------------- |
+| `lib/core.js` (ESM)      | ~8 KB (~2 KB gzip)   | Core entry; bundlers tree-shake further modules                        |
+| `lib/features.js`        | ~3 KB (~1 KB gzip)   | Optional entry; pulls in highlight/text-diff code                      |
+| `dist/editable.umd.cjs`  | ~58 KB (~17 KB gzip) | Single file for `<script>` / legacy bundlers                           |
+| `lib/` (total, unpacked) | <1 MB                | Publish build omits source maps; bundlers include only what you import |
 
 Verify locally after `npm run build`:
 
@@ -94,6 +94,13 @@ Verify locally after `npm run build`:
 ls -la dist/ lib/core.js
 gzip -c dist/editable.umd.cjs | wc -c
 ```
+
+### Performance notes
+
+- Create one `Editable` instance for a group of blocks when possible. Document-level DOM listeners are shared internally, but each instance still owns its event subscriptions.
+- Keep `mouseMoveSelectionChanges: false` (the default) for documents with many blocks; it suppresses noisy selection updates while dragging.
+- Call `editable.unload()` when an editor view is removed so shared document listeners and subscriptions can be released.
+- Import `editable.ts/features` only when highlighting, spellcheck overlays, or text diff are needed. Tune `setupSpellcheck({ throttle })` for long blocks or remote spellcheck services.
 
 ## Quick start
 
@@ -278,9 +285,11 @@ interface EditableConfig {
 
 ```bash
 npm install
-npm start          # demo (Vite dev server)
+npm run dev        # demo (Vite dev server)
 npm test           # Vitest + lint + format
 npm run build      # lib/ + dist/ + demo bundle
+npm run size       # bundle-size guard
+npm run knip       # unused file/dependency check
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for pull request guidelines.

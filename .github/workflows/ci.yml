@@ -26,6 +26,9 @@ jobs:
       - name: Run tests
         run: npm run test:ci
 
+      - name: Check coverage
+        run: npm run test:coverage
+
       - name: Install Playwright browser
         run: npx playwright install chromium --with-deps
 
@@ -38,5 +41,11 @@ jobs:
       - name: Run formatter check
         run: npm run fmt:check
 
+      - name: Check unused files and dependencies
+        run: npm run knip
+
       - name: Build project
         run: npm run build
+
+      - name: Check bundle size
+        run: npm run size

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- README demo GIF and screenshot (`docs/assets/demo.gif`, `docs/assets/demo.png`)
+- `npm run capture:readme` script to regenerate demo assets from the examples build
+
 ## [1.0.0] - 2026-06-02
 
 First stable release. The public API is considered stable; future 1.x releases will follow [SemVer](https://semver.org/).

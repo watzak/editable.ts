@@ -62,6 +62,7 @@
     "build:ts": "rimraf ./lib && tsc",
     "build:dist": "rimraf ./dist && vite build --config vite/vite.config.dist.mjs",
     "build:docs": "rimraf ./examples/dist && vite build --config vite/vite.config.docs.bundle.mjs && vite build --config vite/vite.config.docs.styles.mjs",
+    "capture:readme": "node scripts/capture-readme-demo.mjs",
     "build": "npm run build:ts -s && npm run build:dist -s && npm run build:docs -s",
     "prepublishOnly": "npm run build -s",
     "test:ci": "vitest run",

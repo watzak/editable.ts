@@ -5,6 +5,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![bundle size](https://img.shields.io/badge/gzip%20core-~2%20KB-brightgreen)](#bundle-size)
 
+<p align="center">
+  <a href="https://watzak.github.io/editable.ts/examples/">
+    <picture>
+      <source media="(prefers-reduced-motion: reduce)" srcset="docs/assets/demo.png">
+      <img src="docs/assets/demo.gif" alt="editable.ts demo — text selection with floating formatting toolbar" width="860">
+    </picture>
+  </a>
+</p>
+
 **A lightweight, typed API for block-level `contenteditable` editing.**
 
 editable.ts wraps the browser's native `contenteditable` with cross-browser Selection/Range handling, a typed event system, and optional highlighting — without imposing a document model. Forked from [editable.js](https://github.com/livingdocsIO/editable.js) and modernized with TypeScript, Vitest, and Vite.

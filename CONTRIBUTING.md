@@ -22,6 +22,7 @@ npm run test:coverage
 npm run lint         # oxlint
 npm run fmt          # oxfmt (auto-format)
 npm run build        # TypeScript → lib/, bundle → dist/, demo → examples/dist/
+npm run capture:readme  # Regenerate README demo GIF (needs: npx playwright install chromium)
 ```
 
 ## Pull request guidelines

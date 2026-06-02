@@ -1,6 +1,7 @@
 # editable.ts
 
 [![npm version](https://img.shields.io/npm/v/editable.ts.svg)](https://www.npmjs.com/package/editable.ts)
+[![GitHub stars](https://img.shields.io/github/stars/watzak/editable.ts?style=flat&logo=github)](https://github.com/watzak/editable.ts)
 [![CI](https://github.com/watzak/editable.ts/actions/workflows/ci.yml/badge.svg)](https://github.com/watzak/editable.ts/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![bundle size](https://img.shields.io/badge/gzip%20core-~2%20KB-brightgreen)](#bundle-size)
@@ -18,9 +19,11 @@
 
 editable.ts wraps the browser's native `contenteditable` with cross-browser Selection/Range handling, a typed event system, and optional highlighting — without imposing a document model. Forked from [editable.js](https://github.com/livingdocsIO/editable.js) and modernized with TypeScript, Vitest, and Vite.
 
-**[Live demo](https://watzak.github.io/editable.ts/examples/)** · **[npm](https://www.npmjs.com/package/editable.ts)** · **[Migration from editable.js](docs/MIGRATION.md)** · **[Architecture](docs/ARCHITECTURE.md)**
+**[GitHub](https://github.com/watzak/editable.ts)** · **[Live demo](https://watzak.github.io/editable.ts/examples/)** · **[npm](https://www.npmjs.com/package/editable.ts)** · **[Migration from editable.js](docs/MIGRATION.md)** · **[Architecture](docs/ARCHITECTURE.md)**
 
 > **Privacy:** the demo page includes a Matomo image tracker (`matomo.kamod.ch`) for anonymous usage statistics. The npm library contains no analytics.
+
+> **Support:** if editable.ts is helpful, [star the repository on GitHub](https://github.com/watzak/editable.ts) — thank you!
 
 ## Why editable.ts?
 

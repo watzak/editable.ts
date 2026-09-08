@@ -97,7 +97,9 @@ gzip -c dist/editable.umd.cjs | wc -c
 
 ### Performance notes
 
-- Create one `Editable` instance for a group of blocks when possible. Document-level DOM listeners are shared internally, but each instance still owns its event subscriptions.
+- Create one `Editable` instance per logical editor (or group of blocks that share the same configuration). Document-level DOM listeners are shared internally, but each instance tracks its own blocks and event subscriptions.
+- Multiple instances in the same document are supported: each block is owned by exactly one instance. Adding a block to a second instance transfers ownership to that instance.
+- Per-instance paste rules can be set via the constructor (`pastedHtmlRules`) without affecting other instances. `Editable.globalConfig()` still defines defaults for newly created instances.
 - Keep `mouseMoveSelectionChanges: false` (the default) for documents with many blocks; it suppresses noisy selection updates while dragging.
 - Call `editable.unload()` when an editor view is removed so shared document listeners and subscriptions can be released.
 - Import `editable.ts/features` only when highlighting, spellcheck overlays, or text diff are needed. Tune `setupSpellcheck({ throttle })` for long blocks or remote spellcheck services.
@@ -112,7 +114,15 @@ const editable = new Editable({
   browserSpellcheck: true,
   smartQuotes: true,
   quotes: ['“', '”'],
-  singleQuotes: ['‘', '’']
+  singleQuotes: ['‘', '’'],
+  pastedHtmlRules: {
+    allowedElements: {
+      a: { href: true },
+      strong: {},
+      em: {},
+      br: {}
+    }
+  }
 })
 
 const element = document.querySelector('.my-editable')

@@ -4,17 +4,10 @@ import * as string from './util/string.js'
 import * as nodeType from './node-type.js'
 import * as quotes from './quotes.js'
 import { isPlainTextBlock } from './block.js'
+import { compilePasteRules, type PasteRules } from './paste-rules.js'
 import type Cursor from './cursor.js'
 import type Selection from './selection.js'
 
-let allowedElements: Record<string, Record<string, boolean>>
-let allowedPlainTextElements: Record<string, Record<string, boolean>>
-let requiredAttributes: Record<string, string[]>
-let transformElements: Record<string, string>
-let blockLevelElements: Record<string, boolean>
-let replaceQuotes: { quotes?: string[]; singleQuotes?: string[]; apostrophe?: string }
-let splitIntoBlocks: Record<string, boolean>
-let blacklistedElements: string[]
 const whitespaceOnly = /^\s*$/
 const blockPlaceholder = '<!-- BLOCK -->'
 const URL_ATTRIBUTES = new Set(['href'])
@@ -23,41 +16,32 @@ const BLOCKED_URL_PROTOCOLS = new Set(['javascript', 'data', 'vbscript', 'file']
 const LEADING_URL_WHITESPACE = /^[\s\u0000-\u001f\u007f]+/
 const URL_CONTROL_CHARS = /[\u0000-\u001f\u007f]/g
 const URL_PROTOCOL_PATTERN = /^([a-zA-Z][a-zA-Z0-9+.-]*):/
-let keepInternalRelativeLinks: boolean
 
 interface FilterOptions {
   allowedElements: Record<string, Record<string, boolean>>
   keepInternalRelativeLinks: boolean
 }
 
+interface ParseContext {
+  pasteRules: PasteRules
+  plainText: boolean
+}
+
+let defaultPasteRules: PasteRules = compilePasteRules(config)
+
 updateConfig(config)
 export function updateConfig(conf: Config): void {
-  const rules = conf.pastedHtmlRules
-  allowedElements = rules.allowedElements || {}
-  allowedPlainTextElements = rules.allowedPlainTextElements || {}
-  requiredAttributes = rules.requiredAttributes || {}
-  transformElements = rules.transformElements || {}
-  blacklistedElements = rules.blacklistedElements || []
-  keepInternalRelativeLinks = rules.keepInternalRelativeLinks || false
-  replaceQuotes = rules.replaceQuotes || {}
-
-  blockLevelElements = {}
-  rules.blockLevelElements.forEach((name: string) => {
-    blockLevelElements[name] = true
-  })
-  splitIntoBlocks = {}
-  rules.splitIntoBlocks.forEach((name: string) => {
-    splitIntoBlocks[name] = true
-  })
+  defaultPasteRules = compilePasteRules(conf)
 }
 
 export function paste(
   block: HTMLElement,
   cursor: Cursor | Selection,
-  clipboardContent: string
+  clipboardContent: string,
+  pasteRules: PasteRules = defaultPasteRules
 ): { blocks: string[]; cursor: Cursor | Selection } {
   const document = block.ownerDocument
-  block.setAttribute(config.pastingAttribute, 'true')
+  block.setAttribute(pasteRules.pastingAttribute, 'true')
 
   if (cursor.isSelection) {
     const selection = cursor as Selection
@@ -69,9 +53,9 @@ export function paste(
   pasteHolder.innerHTML = clipboardContent
 
   const isPlainText = isPlainTextBlock(block)
-  const blocks = parseContent(pasteHolder, { plainText: isPlainText })
+  const blocks = parseContent(pasteHolder, { plainText: isPlainText, pasteRules })
 
-  block.removeAttribute(config.pastingAttribute)
+  block.removeAttribute(pasteRules.pastingAttribute)
   return { blocks, cursor }
 }
 
@@ -87,26 +71,38 @@ export function paste(
  */
 export function parseContent(
   element: HTMLElement,
-  { plainText = false }: { plainText?: boolean } = {}
+  {
+    plainText = false,
+    pasteRules = defaultPasteRules
+  }: { plainText?: boolean; pasteRules?: PasteRules } = {}
 ): string[] {
+  const context: ParseContext = { pasteRules, plainText }
   const options: FilterOptions = {
-    allowedElements: plainText ? allowedPlainTextElements : allowedElements,
-    keepInternalRelativeLinks: plainText ? false : keepInternalRelativeLinks
+    allowedElements: plainText ? pasteRules.allowedPlainTextElements : pasteRules.allowedElements,
+    keepInternalRelativeLinks: plainText ? false : pasteRules.keepInternalRelativeLinks
   }
 
   // Filter pasted content
   return (
-    filterHtmlElements(element, options)
+    filterHtmlElements(element, options, context)
       // Handle Blocks
       .split(blockPlaceholder)
-      .map((entry: string) => string.trim(cleanWhitespace(replaceAllQuotes(entry))))
+      .map((entry: string) =>
+        string.trim(cleanWhitespace(replaceAllQuotes(entry, pasteRules.replaceQuotes)))
+      )
       .filter((entry: string) => !whitespaceOnly.test(entry))
   )
 }
 
-function filterHtmlElements(elem: HTMLElement, options: FilterOptions): string {
+function filterHtmlElements(
+  elem: HTMLElement,
+  options: FilterOptions,
+  context: ParseContext
+): string {
+  const { pasteRules } = context
+
   return Array.from(elem.childNodes).reduce<string>((content: string, child: Node) => {
-    if (blacklistedElements.indexOf(child.nodeName.toLowerCase()) !== -1) {
+    if (pasteRules.blacklistedElements.indexOf(child.nodeName.toLowerCase()) !== -1) {
       return ''
     }
 
@@ -129,8 +125,10 @@ function filterHtmlElements(elem: HTMLElement, options: FilterOptions): string {
     }
 
     if (child.nodeType === nodeType.elementNode) {
-      const childContent = filterHtmlElements(childElement as HTMLElement, options)
-      return content + conditionalNodeWrap(childElement as HTMLElement, childContent, options)
+      const childContent = filterHtmlElements(childElement as HTMLElement, options, context)
+      return (
+        content + conditionalNodeWrap(childElement as HTMLElement, childContent, options, context)
+      )
     }
 
     // Escape HTML characters <, > and &
@@ -141,16 +139,22 @@ function filterHtmlElements(elem: HTMLElement, options: FilterOptions): string {
   }, '')
 }
 
-function conditionalNodeWrap(child: HTMLElement, content: string, options: FilterOptions): string {
+function conditionalNodeWrap(
+  child: HTMLElement,
+  content: string,
+  options: FilterOptions,
+  context: ParseContext
+): string {
+  const { pasteRules } = context
   let nodeName = child.nodeName.toLowerCase()
-  nodeName = transformNodeName(nodeName)
+  nodeName = transformNodeName(nodeName, pasteRules.transformElements)
 
-  if (shouldKeepNode(nodeName, child, options)) {
+  if (shouldKeepNode(nodeName, child, options, pasteRules)) {
     const doc = child.ownerDocument
 
     if (nodeName === 'br') {
       const element = doc.createElement('br')
-      if (!applyAllowedAttributes(element, nodeName, child, options)) {
+      if (!applyAllowedAttributes(element, nodeName, child, options, pasteRules)) {
         return content
       }
       return element.outerHTML
@@ -158,8 +162,8 @@ function conditionalNodeWrap(child: HTMLElement, content: string, options: Filte
 
     if (!whitespaceOnly.test(content)) {
       const element = doc.createElement(nodeName)
-      if (!applyAllowedAttributes(element, nodeName, child, options)) {
-        return unwrapFilteredNode(nodeName, content)
+      if (!applyAllowedAttributes(element, nodeName, child, options, pasteRules)) {
+        return unwrapFilteredNode(nodeName, content, pasteRules)
       }
       appendSanitizedHtml(element, content, doc)
       return element.outerHTML
@@ -168,13 +172,13 @@ function conditionalNodeWrap(child: HTMLElement, content: string, options: Filte
     return content
   }
 
-  if (splitIntoBlocks[nodeName]) {
+  if (pasteRules.splitIntoBlocks[nodeName]) {
     return blockPlaceholder + content + blockPlaceholder
   }
 
   // prevent missing whitespace between text when block-level
   // elements are removed.
-  if (blockLevelElements[nodeName]) return `${content} `
+  if (pasteRules.blockLevelElements[nodeName]) return `${content} `
 
   return content
 }
@@ -220,7 +224,8 @@ function applyAllowedAttributes(
   target: Element,
   nodeName: string,
   source: Element,
-  options: FilterOptions
+  options: FilterOptions,
+  pasteRules: PasteRules
 ): boolean {
   const allowed = options.allowedElements[nodeName]
   if (!allowed) return true
@@ -249,7 +254,7 @@ function applyAllowedAttributes(
     target.setAttribute(name, value)
   }
 
-  const required = requiredAttributes[nodeName]
+  const required = pasteRules.requiredAttributes[nodeName]
   if (required?.includes('href') && !hrefApplied) return false
 
   if (targetValue === '_blank') {
@@ -267,27 +272,39 @@ function appendSanitizedHtml(element: Element, html: string, doc: Document): voi
   }
 }
 
-function unwrapFilteredNode(nodeName: string, content: string): string {
-  if (splitIntoBlocks[nodeName]) {
+function unwrapFilteredNode(nodeName: string, content: string, pasteRules: PasteRules): string {
+  if (pasteRules.splitIntoBlocks[nodeName]) {
     return blockPlaceholder + content + blockPlaceholder
   }
-  if (blockLevelElements[nodeName]) return `${content} `
+  if (pasteRules.blockLevelElements[nodeName]) return `${content} `
   return content
 }
 
-function transformNodeName(nodeName: string): string {
+function transformNodeName(nodeName: string, transformElements: Record<string, string>): string {
   return transformElements[nodeName] || nodeName
 }
 
-function hasRequiredAttributes(nodeName: string, node: Element): boolean {
+function hasRequiredAttributes(
+  nodeName: string,
+  node: Element,
+  requiredAttributes: Record<string, string[]>
+): boolean {
   const requiredAttrs = requiredAttributes[nodeName]
   if (!requiredAttrs) return true
 
   return !requiredAttrs.some((name: string) => !node.getAttribute(name))
 }
 
-function shouldKeepNode(nodeName: string, node: Element, options: FilterOptions): boolean {
-  return !!options.allowedElements[nodeName] && hasRequiredAttributes(nodeName, node)
+function shouldKeepNode(
+  nodeName: string,
+  node: Element,
+  options: FilterOptions,
+  pasteRules: PasteRules
+): boolean {
+  return (
+    !!options.allowedElements[nodeName] &&
+    hasRequiredAttributes(nodeName, node, pasteRules.requiredAttributes)
+  )
 }
 
 function cleanWhitespace(str: string): string {
@@ -300,7 +317,7 @@ function cleanWhitespace(str: string): string {
     )
 }
 
-function replaceAllQuotes(str: string): string {
+function replaceAllQuotes(str: string, replaceQuotes: PasteRules['replaceQuotes']): string {
   if (replaceQuotes.quotes || replaceQuotes.singleQuotes || replaceQuotes.apostrophe) {
     return quotes.replaceAllQuotes(str, replaceQuotes)
   }

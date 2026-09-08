@@ -45,6 +45,33 @@ describe('Editable configuration', function () {
       expect(originalConfig).toEqual(Editable.getGlobalConfig())
     })
 
+    it('returns a defensive copy from getGlobalConfig()', function () {
+      const snapshot = Editable.getGlobalConfig()
+      snapshot.editableClass = 'temporary-class'
+
+      expect(Editable.getGlobalConfig().editableClass).toBe('js-editable')
+      expect(snapshot).not.toBe(config)
+    })
+
+    it('deep-merges nested pastedHtmlRules via globalConfig()', function () {
+      Editable.globalConfig({
+        pastedHtmlRules: {
+          allowedElements: {
+            span: { class: true }
+          }
+        }
+      })
+
+      expect(Editable.getGlobalConfig().pastedHtmlRules.allowedElements.a).toEqual({
+        href: true,
+        rel: true,
+        target: true
+      })
+      expect(Editable.getGlobalConfig().pastedHtmlRules.allowedElements.span).toEqual({
+        class: true
+      })
+    })
+
     it('retrieves the current state of the config', function () {
       Editable.globalConfig({ editableClass: 'editable-instance' })
       expect(originalConfig).not.toBe(Editable.getGlobalConfig())

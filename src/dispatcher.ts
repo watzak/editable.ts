@@ -3,7 +3,6 @@ import * as clipboard from './clipboard.js'
 import * as content from './content.js'
 import eventable from './eventable.js'
 import SelectionWatcher from './selection-watcher.js'
-import config from './config.js'
 import Keyboard from './keyboard.js'
 import {
   addSharedDocumentListener,
@@ -53,7 +52,10 @@ export default class Dispatcher {
     this.setup()
     this.getEditableBlockByEvent = (evt: Event) => {
       const target = evt.target as Node
-      return target ? closest(target, editable.editableSelector) : undefined
+      if (!target) return undefined
+      const block = closest(target, editable.editableSelector)
+      if (!block) return undefined
+      return editable.ownsBlock(block) ? block : undefined
     }
   }
 
@@ -126,7 +128,7 @@ export default class Dispatcher {
         const block = this.getEditableBlockByEvent(evt)
         if (!block) return
         const target = evt.target as HTMLElement
-        if (target && target.getAttribute(config.pastingAttribute)) return
+        if (target && target.getAttribute(this.editable.globalSettings.pastingAttribute)) return
         this.selectionWatcher.syncSelection()
         this.notify('focus', block)
       },
@@ -137,7 +139,7 @@ export default class Dispatcher {
         function blurListener(this: Dispatcher, evt: Event) {
           const block = this.getEditableBlockByEvent(evt)
           if (!block) return
-          if (block.getAttribute(config.pastingAttribute)) return
+          if (block.getAttribute(this.editable.globalSettings.pastingAttribute)) return
           this.notify('blur', block)
         },
         true
@@ -170,7 +172,12 @@ export default class Dispatcher {
           clipEvent.clipboardData.getData('text/html') ||
           clipEvent.clipboardData.getData('text/plain')
 
-        const { blocks, cursor } = clipboard.paste(block, selection, clipboardContent)
+        const { blocks, cursor } = clipboard.paste(
+          block,
+          selection,
+          clipboardContent,
+          this.editable.pasteRules
+        )
         if (blocks.length) {
           const target = clipEvent.target as HTMLElement
           if (target && endsWithSingleSpace(target.innerText)) {

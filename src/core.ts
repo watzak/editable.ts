@@ -1,4 +1,5 @@
 import config from './config.js'
+import type { Config, PastedHtmlRules } from './config.js'
 import error from './util/error.js'
 import * as parser from './parser.js'
 import * as block from './block.js'
@@ -10,7 +11,10 @@ import createDefaultEvents from './create-default-events.js'
 import { textNodesUnder, getTextNodeAndRelativeOffset } from './util/element.js'
 import { binaryCursorSearch, BinaryCursorSearchResult } from './util/binary_search.js'
 import { domArray, createRange, nodeContainsRange } from './util/dom.js'
-import type { Config } from './config.js'
+import { cloneDeep } from './util/clone-deep.js'
+import { deepMerge } from './util/merge.js'
+import { claimBlock, releaseBlock, isBlockOwnedBy } from './instance-registry.js'
+import { compilePasteRules, type PasteRules } from './paste-rules.js'
 import type { SmartQuotesConfig } from './smartQuotes.js'
 import type {
   EditableEvent,
@@ -34,6 +38,7 @@ export interface EditableConfig {
   smartQuotes?: boolean
   quotes?: SmartQuotesConfig['quotes']
   singleQuotes?: SmartQuotesConfig['singleQuotes']
+  pastedHtmlRules?: Partial<PastedHtmlRules>
 }
 
 export interface EnableOptions {
@@ -44,15 +49,18 @@ export interface EnableOptions {
 export type CursorPosition = 'beginning' | 'end' | 'before' | 'after'
 
 export class Editable {
-  public config: Required<EditableConfig>
+  public config: Required<Omit<EditableConfig, 'pastedHtmlRules'>>
+  public globalSettings: Config
+  public pasteRules: PasteRules
   public win: Window
   public editableSelector: string
   public dispatcher: Dispatcher
+  private registeredBlocks = new Set<HTMLElement>()
   static parser: typeof parser
   static content: typeof content
 
   constructor(instanceConfig?: EditableConfig) {
-    const defaultInstanceConfig: Required<EditableConfig> = {
+    const defaultInstanceConfig: Required<Omit<EditableConfig, 'pastedHtmlRules'>> = {
       window: window,
       defaultBehavior: true,
       mouseMoveSelectionChanges: false,
@@ -64,7 +72,15 @@ export class Editable {
 
     this.config = Object.assign(defaultInstanceConfig, instanceConfig)
     this.win = this.config.window
-    this.editableSelector = `.${config.editableClass}`
+    this.globalSettings = cloneDeep(config)
+    if (instanceConfig?.pastedHtmlRules) {
+      this.globalSettings.pastedHtmlRules = deepMerge(
+        this.globalSettings.pastedHtmlRules,
+        instanceConfig.pastedHtmlRules
+      )
+    }
+    this.pasteRules = compilePasteRules(this.globalSettings)
+    this.editableSelector = `.${this.globalSettings.editableClass}`
 
     this.dispatcher = new Dispatcher(this)
     if (this.config.defaultBehavior === true) {
@@ -73,12 +89,41 @@ export class Editable {
   }
 
   static getGlobalConfig(): Config {
-    return config
+    return cloneDeep(config)
   }
 
   static globalConfig(globalConfig: Partial<Config>): void {
-    Object.assign(config, globalConfig)
+    const merged = deepMerge(cloneDeep(config), globalConfig)
+    Object.assign(config, merged)
     clipboard.updateConfig(config)
+  }
+
+  ownsBlock(element: HTMLElement): boolean {
+    return isBlockOwnedBy(element, this)
+  }
+
+  private claimBlock(element: HTMLElement): void {
+    const previousOwner = claimBlock(element, this)
+    if (previousOwner && previousOwner !== this) {
+      previousOwner.releaseOwnedBlock(element)
+    }
+    this.registeredBlocks.add(element)
+  }
+
+  releaseOwnedBlock(element: HTMLElement): void {
+    releaseBlock(element, this)
+    this.registeredBlocks.delete(element)
+  }
+
+  private ownedTargets(
+    target: HTMLElement | HTMLElement[] | string | undefined,
+    className: string
+  ): HTMLElement[] {
+    if (target) {
+      return domArray(target, this.win.document).filter((element) => this.ownsBlock(element))
+    }
+
+    return [...this.registeredBlocks].filter((element) => element.classList.contains(className))
   }
 
   add(target: HTMLElement | HTMLElement[] | string, options?: EnableOptions | boolean): this {
@@ -87,19 +132,20 @@ export class Editable {
   }
 
   remove(target: HTMLElement | HTMLElement[] | string): this {
-    const targets = domArray(target, this.win.document)
+    const targets = domArray(target, this.win.document).filter((element) => this.ownsBlock(element))
 
     this.disable(targets)
 
     for (const element of targets) {
-      element.classList.remove(config.editableDisabledClass)
+      element.classList.remove(this.globalSettings.editableDisabledClass)
+      this.releaseOwnedBlock(element)
     }
 
     return this
   }
 
   disable(target?: HTMLElement | HTMLElement[] | string): this {
-    const targets = domArray(target || `.${config.editableClass}`, this.win.document)
+    const targets = this.ownedTargets(target, this.globalSettings.editableClass)
 
     for (const element of targets) {
       block.disable(element)
@@ -112,9 +158,14 @@ export class Editable {
     const opts = typeof options === 'boolean' ? { normalize: options } : (options ?? {})
     const { normalize = false, plainText = false } = opts
     const shouldSpellcheck = this.config.browserSpellcheck
-    const targets = domArray(target || `.${config.editableDisabledClass}`, this.win.document)
+    const targets = target
+      ? domArray(target, this.win.document)
+      : [...this.registeredBlocks].filter((element) =>
+          element.classList.contains(this.globalSettings.editableDisabledClass)
+        )
 
     for (const element of targets) {
+      this.claimBlock(element)
       block.init(element, { normalize, plainText, shouldSpellcheck })
       this.dispatcher.notify('init', element)
     }
@@ -123,7 +174,7 @@ export class Editable {
   }
 
   suspend(target?: HTMLElement | HTMLElement[] | string): this {
-    const targets = domArray(target || `.${config.editableClass}`, this.win.document)
+    const targets = this.ownedTargets(target, this.globalSettings.editableClass)
 
     for (const element of targets) {
       element.removeAttribute('contenteditable')
@@ -134,7 +185,7 @@ export class Editable {
   }
 
   continue(target?: HTMLElement | HTMLElement[] | string): this {
-    const targets = domArray(target || `.${config.editableClass}`, this.win.document)
+    const targets = this.ownedTargets(target, this.globalSettings.editableDisabledClass)
 
     for (const element of targets) {
       element.setAttribute('contenteditable', 'true')
@@ -267,6 +318,10 @@ export class Editable {
   }) as EventOff<EditableEventMap, Editable>
 
   unload(): this {
+    for (const element of this.registeredBlocks) {
+      releaseBlock(element, this)
+    }
+    this.registeredBlocks.clear()
     this.dispatcher.unload()
     return this
   }

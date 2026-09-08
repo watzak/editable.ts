@@ -79,9 +79,23 @@ The main npm entry (`editable.ts`) and the lean public API: block editing, event
 **Key Responsibilities (core entry):**
 
 - Exposes the public API for end users
-- Manages instance-specific configuration
+- Manages instance-specific configuration snapshots (including optional `pastedHtmlRules`)
+- Registers block ownership so events are routed to the correct instance
 - Delegates to specialized modules
 - Provides cursor/selection creation utilities
+
+**Instance ownership:**
+
+Each `Editable` instance maintains a registry of its editable blocks (`WeakMap` globally, `Set` per instance for lifecycle). `add()` / `enable()` claim blocks; `remove()` releases them; `disable()` keeps ownership so a later `enable()` restores the same instance binding. If a block is added to a second instance, ownership transfers to the latest instance (controlled takeover).
+
+`getEditableBlockByEvent()` resolves the nearest editable host and returns it only when the current instance owns that block. Native document listeners remain shared per document/event/capture via `shared-document-listeners.ts`.
+
+**Configuration:**
+
+- `Editable.globalConfig()` deep-merges into the global defaults and affects new instances.
+- `Editable.getGlobalConfig()` returns a defensive copy.
+- Each instance stores an immutable snapshot in `globalSettings` at construction time; optional constructor `pastedHtmlRules` are deep-merged into that snapshot.
+- Paste sanitization uses the instance snapshot (`pasteRules`), not the live global singleton.
 
 **Key Methods (core entry):**
 

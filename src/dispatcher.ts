@@ -16,6 +16,16 @@ import { getInputCapabilities, isBeforeInputPreferred } from './input-capabiliti
 import { InputCommandTracker } from './input-command-tracker.js'
 import { mapCommandToInputType, mapInputTypeToCommand } from './input-normalizer.js'
 import type { TrackedInputCommand } from './input-command-tracker.js'
+import type { CommandSource, EditableCommand } from './command-types.js'
+import {
+  buildFormatCommand,
+  buildInsertBlockCommand,
+  buildInsertLineBreakCommand,
+  buildMergeBlockCommand,
+  buildPasteCommand,
+  buildSplitBlockCommand
+} from './command-builder.js'
+import { dispatchEditableCommand } from './command-pipeline.js'
 import type { Editable } from './core.js'
 import type { QuotePair } from './smartQuotes.js'
 import type { DispatcherEventMap, EventNotify, EventOff, EventOn } from './event-types.js'
@@ -133,7 +143,7 @@ export default class Dispatcher {
         const block = this.getEditableBlockByEvent(evt)
         if (!block) return
         setBlockComposing(block, false)
-        this.notify('change', block)
+        this.notify('change', block, { source: 'keyboard' })
       },
       true
     )
@@ -162,38 +172,60 @@ export default class Dispatcher {
 
         if (!isBeforeInputPreferred(capabilities, mapCommandToInputType(command))) return
 
-        if (this.executeEditingCommand(block, command, inputEvent)) {
+        if (this.executeEditingCommand(block, command, inputEvent, 'beforeinput')) {
           inputEvent.preventDefault()
           inputEvent.stopPropagation()
           this.inputCommandTracker.markBeforeInputHandled(block, command)
           this.inputCommandTracker.markStructuralChange(block)
-          this.notify('change', block)
         }
       },
       true
     )
   }
 
-  executeEditingCommand(block: HTMLElement, command: TrackedInputCommand, event: Event): boolean {
+  executeEditingCommand(
+    block: HTMLElement,
+    command: TrackedInputCommand,
+    event: Event,
+    source: CommandSource
+  ): boolean {
     switch (command) {
       case 'enter':
-        return this.handleEnter(block, event)
+        return this.handleEnter(block, event, source)
       case 'shiftEnter':
-        return this.handleShiftEnter(block, event)
+        return this.handleShiftEnter(block, event, source)
       case 'backspace':
-        return this.handleBackspace(block, event)
+        return this.handleBackspace(block, event, source)
       case 'delete':
-        return this.handleDelete(block, event)
+        return this.handleDelete(block, event, source)
       case 'bold':
-        return this.handleBold(block, event)
+        return this.handleBold(block, event, source)
       case 'italic':
-        return this.handleItalic(block, event)
+        return this.handleItalic(block, event, source)
       default:
         return false
     }
   }
 
-  handleBackspace(block: HTMLElement, event: Event): boolean {
+  private commandInputType(
+    source: CommandSource,
+    command: TrackedInputCommand,
+    event: Event
+  ): string | undefined {
+    if (source === 'beforeinput' && 'inputType' in event) {
+      return (event as InputEvent).inputType
+    }
+    return mapCommandToInputType(command)
+  }
+
+  private dispatchCommand(
+    command: EditableCommand,
+    runtime: { cursor?: Cursor; selection?: Selection }
+  ): void {
+    dispatchEditableCommand(this.notify, command, runtime)
+  }
+
+  handleBackspace(block: HTMLElement, event: Event, source: CommandSource): boolean {
     const rangeContainer = this.selectionWatcher.getFreshRange()
     if (!rangeContainer.isCursor) return false
 
@@ -202,11 +234,21 @@ export default class Dispatcher {
 
     event.preventDefault()
     event.stopPropagation()
-    this.notify('merge', block, 'before', cursor)
+    this.dispatchCommand(
+      buildMergeBlockCommand(
+        block,
+        'before',
+        cursor,
+        source,
+        event,
+        this.commandInputType(source, 'backspace', event)
+      ),
+      { cursor }
+    )
     return true
   }
 
-  handleDelete(block: HTMLElement, event: Event): boolean {
+  handleDelete(block: HTMLElement, event: Event, source: CommandSource): boolean {
     const rangeContainer = this.selectionWatcher.getFreshRange()
     if (!rangeContainer.isCursor) return false
 
@@ -215,59 +257,111 @@ export default class Dispatcher {
 
     event.preventDefault()
     event.stopPropagation()
-    this.notify('merge', block, 'after', cursor)
+    this.dispatchCommand(
+      buildMergeBlockCommand(
+        block,
+        'after',
+        cursor,
+        source,
+        event,
+        this.commandInputType(source, 'delete', event)
+      ),
+      { cursor }
+    )
     return true
   }
 
-  handleEnter(block: HTMLElement, event: Event): boolean {
+  handleEnter(block: HTMLElement, event: Event, source: CommandSource): boolean {
     event.preventDefault()
     event.stopPropagation()
     const rangeContainer = this.selectionWatcher.getFreshRange()
     const cursor = rangeContainer.forceCursor()
     if (!cursor) return false
 
+    const inputType = this.commandInputType(source, 'enter', event)
+
     if (cursor.isAtTextEnd()) {
-      this.notify('insert', block, 'after', cursor)
+      this.dispatchCommand(
+        buildInsertBlockCommand(block, 'after', cursor, source, event, inputType),
+        { cursor }
+      )
     } else if (cursor.isAtBeginning()) {
-      this.notify('insert', block, 'before', cursor)
+      this.dispatchCommand(
+        buildInsertBlockCommand(block, 'before', cursor, source, event, inputType),
+        { cursor }
+      )
     } else {
       const beforeFragment = cursor.before()
       const afterFragment = cursor.after()
-      this.notify(
-        'split',
-        block,
-        content.getInnerHtmlOfFragment(beforeFragment),
-        content.getInnerHtmlOfFragment(afterFragment),
-        cursor
+      this.dispatchCommand(
+        buildSplitBlockCommand(
+          block,
+          content.getInnerHtmlOfFragment(beforeFragment),
+          content.getInnerHtmlOfFragment(afterFragment),
+          cursor,
+          source,
+          event,
+          inputType
+        ),
+        { cursor }
       )
     }
     return true
   }
 
-  handleShiftEnter(block: HTMLElement, event: Event): boolean {
+  handleShiftEnter(block: HTMLElement, event: Event, source: CommandSource): boolean {
     event.preventDefault()
     event.stopPropagation()
     const cursor = this.selectionWatcher.forceCursor()
     if (!cursor) return false
-    this.notify('newline', block, cursor)
+    this.dispatchCommand(
+      buildInsertLineBreakCommand(
+        block,
+        cursor,
+        source,
+        event,
+        this.commandInputType(source, 'shiftEnter', event)
+      ),
+      { cursor }
+    )
     return true
   }
 
-  handleBold(block: HTMLElement, event: Event): boolean {
+  handleBold(block: HTMLElement, event: Event, source: CommandSource): boolean {
     const selection = this.selectionWatcher.getFreshSelection()
     if (!selection || !selection.isSelection) return false
     event.preventDefault()
     event.stopPropagation()
-    this.notify('toggleBold', selection as Selection)
+    this.dispatchCommand(
+      buildFormatCommand(
+        block,
+        'bold',
+        selection as Selection,
+        source,
+        event,
+        this.commandInputType(source, 'bold', event)
+      ),
+      { selection: selection as Selection }
+    )
     return true
   }
 
-  handleItalic(block: HTMLElement, event: Event): boolean {
+  handleItalic(block: HTMLElement, event: Event, source: CommandSource): boolean {
     const selection = this.selectionWatcher.getFreshSelection()
     if (!selection || !selection.isSelection) return false
     event.preventDefault()
     event.stopPropagation()
-    this.notify('toggleEmphasis', selection as Selection)
+    this.dispatchCommand(
+      buildFormatCommand(
+        block,
+        'italic',
+        selection as Selection,
+        source,
+        event,
+        this.commandInputType(source, 'italic', event)
+      ),
+      { selection: selection as Selection }
+    )
     return true
   }
 
@@ -337,8 +431,10 @@ export default class Dispatcher {
               block.innerHTML = replaceLast(block.innerHTML, '&nbsp;', ' ')
             })
           }
-          this.notify('paste', block, blocks, cursor)
-          this.notify('change', block)
+          this.dispatchCommand(
+            buildPasteCommand(block, blocks, cursor, 'paste', clipEvent, 'insertFromPaste'),
+            { cursor }
+          )
           this.inputCommandTracker.markStructuralChange(block)
         } else {
           cursor.setVisibleSelection()
@@ -373,14 +469,17 @@ export default class Dispatcher {
           }, 300)
         }
 
-        this.notify('change', block)
+        this.notify('change', block, {
+          source: 'keyboard',
+          inputType: (evt as InputEvent).inputType
+        })
       })
       .setupDocumentListener(
         'formatEditable',
         function formatEditableListener(this: Dispatcher, evt: Event) {
           const block = this.getEditableBlockByEvent(evt)
           if (!block) return
-          this.notify('change', block)
+          this.notify('change', block, { source: 'keyboard' })
         }
       )
   }
@@ -443,37 +542,25 @@ export default class Dispatcher {
         self.dispatchSwitchEvent(event, this, 'down')
       })
       .on('backspace', function (this: HTMLElement, event: KeyboardEvent) {
-        if (self.handleBackspace(this as HTMLElement, event)) {
-          self.notify('change', this as HTMLElement)
-        }
+        self.handleBackspace(this as HTMLElement, event, 'keyboard')
       })
       .on('delete', function (this: HTMLElement, event: KeyboardEvent) {
-        if (self.handleDelete(this as HTMLElement, event)) {
-          self.notify('change', this as HTMLElement)
-        }
+        self.handleDelete(this as HTMLElement, event, 'keyboard')
       })
       .on('enter', function (this: HTMLElement, event: KeyboardEvent) {
-        if (self.handleEnter(this as HTMLElement, event)) {
-          self.notify('change', this as HTMLElement)
-        }
+        self.handleEnter(this as HTMLElement, event, 'keyboard')
       })
       .on('shiftEnter', function (this: HTMLElement, event: KeyboardEvent) {
-        if (self.handleShiftEnter(this as HTMLElement, event)) {
-          self.notify('change', this as HTMLElement)
-        }
+        self.handleShiftEnter(this as HTMLElement, event, 'keyboard')
       })
       .on('bold', function (this: HTMLElement, event: KeyboardEvent) {
-        if (self.handleBold(this as HTMLElement, event)) {
-          self.notify('change', this as HTMLElement)
-        }
+        self.handleBold(this as HTMLElement, event, 'keyboard')
       })
       .on('italic', function (this: HTMLElement, event: KeyboardEvent) {
-        if (self.handleItalic(this as HTMLElement, event)) {
-          self.notify('change', this as HTMLElement)
-        }
+        self.handleItalic(this as HTMLElement, event, 'keyboard')
       })
       .on('character', function (this: HTMLElement) {
-        self.notify('change', this as HTMLElement)
+        self.notify('change', this as HTMLElement, { source: 'keyboard' })
       })
   }
 

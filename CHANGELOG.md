@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. See [commit
 
 ## [Unreleased]
 
+### Features
+
+- **Typed Command API:** Browser input is normalized into discriminated `EditableCommand` objects (`insertBlock`, `splitBlock`, `mergeBlock`, `insertLineBreak`, `paste`, `format`, `input`). New `beforeCommand` and `command` events; `change` accepts an optional `ChangeDetails` second argument. Legacy `insert`/`split`/`merge`/`paste`/`newline`/`toggleBold`/`toggleEmphasis` events remain and are emitted from the same pipeline. Cursor/selection offsets use UTF-16 code units. All public command types are exported from the core entry.
+
 ### Security
 
 - Harden paste sanitizer attribute serialization and link protocol filtering: attribute values are applied via DOM APIs instead of HTML string interpolation, dangerous URL schemes (`javascript:`, `data:`, `vbscript:`, `file:`) are rejected, and `target="_blank"` links receive `noopener`/`noreferrer` on `rel`.

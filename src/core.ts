@@ -30,6 +30,24 @@ export type {
   TextDiffOptions,
   TextRange
 } from './plugin-types.js'
+export type {
+  CharacterOffsetRange,
+  ChangeDetails,
+  CommandCursorPayload,
+  CommandSelectionPayload,
+  CommandSource,
+  EditableCommand,
+  FormatCommand,
+  InsertBlockCommand,
+  InsertLineBreakCommand,
+  InputChangeCommand,
+  MergeBlockCommand,
+  PasteCommand,
+  SplitBlockCommand,
+  StructuralCommand
+} from './command-types.js'
+export { CommandContext } from './command-context.js'
+export { getHostTextOffset, buildCommandCursor, buildCommandSelection } from './command-builder.js'
 
 export interface EditableConfig {
   window?: Window
@@ -380,10 +398,14 @@ const eventNames: EditableEvent[] = [
   'merge',
   'empty',
   'change',
+  'beforeCommand',
+  'command',
   'switch',
   'move',
   'clipboard',
   'paste',
+  'toggleBold',
+  'toggleEmphasis',
   'spellcheckUpdated',
   'selectToBoundary'
 ]

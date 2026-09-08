@@ -110,14 +110,35 @@ Each `Editable` instance maintains a registry of its editable blocks (`WeakMap` 
 ```
 native event (beforeinput preferred, keydown fallback)
   -> input normalization (inputType / key+code, composition guard)
-  -> semantic command (enter, split, merge, newline, bold, italic)
+  -> EditableCommand (typed discriminated union)
+  -> beforeCommand (optional cancel via CommandContext)
+  -> command event
+  -> legacy events (insert, split, merge, newline, paste, toggleBold, toggleEmphasis)
   -> default/custom behavior handlers
-  -> change (once per actual edit; suppressed during composition/intermediate states)
+  -> change (once per actual edit; optional ChangeDetails payload)
 ```
 
 - `beforeinput` handles editing `inputType`s when supported (`insertParagraph`, `insertLineBreak`, `deleteContentBackward`, `deleteContentForward`, `formatBold`, `formatItalic`). `insertFromPaste` is delegated to the existing secure `paste` listener.
 - `keydown` remains for arrow navigation, Tab/Esc, and as fallback when `beforeinput` is unavailable or did not run.
 - Composition state (`compositionstart`/`compositionend`, `isComposing`, keyCode `229`) blocks structural commands until composition completes.
+
+**Command API:**
+
+Structural browser input is normalized into a discriminated union (`EditableCommand`):
+
+| Command type      | Legacy event(s)                   |
+| ----------------- | --------------------------------- |
+| `insertBlock`     | `insert`                          |
+| `splitBlock`      | `split`                           |
+| `mergeBlock`      | `merge`                           |
+| `insertLineBreak` | `newline`                         |
+| `paste`           | `paste`                           |
+| `format`          | `toggleBold` / `toggleEmphasis`   |
+| `input`           | (metadata only; plain text input) |
+
+Each command carries `host`, `source` (`keyboard` | `beforeinput` | `paste` | `api`), optional `inputType`, optional `nativeEvent`, and stable **UTF-16 code unit** cursor/selection offsets (same indexing as JavaScript strings and DOM `Range#toString()` — emoji surrogate pairs count as two units; combining marks are separate units).
+
+`beforeCommand` receives a `CommandContext` with `cancel()` to prevent default DOM behavior without exposing native `preventDefault`. With `defaultBehavior: false`, listen to `command` and translate payloads into your document model; legacy events still fire once for 1.x compatibility.
 
 **Key Methods (core entry):**
 

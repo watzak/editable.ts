@@ -1,6 +1,8 @@
 import type Cursor from './cursor.js'
 import type Selection from './selection.js'
 import type { Editable } from './core.js'
+import type { ChangeDetails, EditableCommand } from './command-types.js'
+import type { CommandContext } from './command-context.js'
 
 export type EventMap = Record<string, unknown[]>
 
@@ -71,20 +73,21 @@ export interface EditableEventMap extends EventMap {
   split: [HTMLElement, string, string, Cursor]
   merge: [HTMLElement, BlockDirection, Cursor]
   empty: [HTMLElement]
-  change: [HTMLElement]
+  change: [HTMLElement, ChangeDetails?]
+  beforeCommand: [CommandContext]
+  command: [EditableCommand]
   switch: [HTMLElement, SwitchDirection, Cursor]
   move: [HTMLElement, Selection, BlockDirection]
   clipboard: [HTMLElement, ClipboardAction, Selection]
   paste: [HTMLElement, string[], Cursor]
+  toggleBold: [Selection]
+  toggleEmphasis: [Selection]
   spellcheckUpdated: [HTMLElement]
   selectToBoundary: [HTMLElement, Event, SelectionBoundary]
   init: [HTMLElement]
 }
 
-export interface DispatcherEventMap extends EditableEventMap {
-  toggleBold: [Selection]
-  toggleEmphasis: [Selection]
-}
+export interface DispatcherEventMap extends EditableEventMap {}
 
 export interface KeyboardEventMap extends EventMap {
   left: [KeyboardEvent]

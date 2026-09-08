@@ -250,7 +250,7 @@ editable.setupTextDiff({ checkOnInit: true, throttle: 0 })
 editable.removeHighlight({ editableHost: element, highlightId: 'search-1' })
 ```
 
-### Custom behavior
+### Custom behavior (legacy events)
 
 ```typescript
 const editable = new Editable({ defaultBehavior: false })
@@ -260,27 +260,90 @@ editable.on('insert', (element, direction, cursor) => {
 })
 ```
 
+### DOM editor with default behavior
+
+```typescript
+import { Editable } from 'editable.ts'
+
+const editable = new Editable({ defaultBehavior: true })
+editable.add(document.querySelector('.paragraph')!)
+
+// Optional: observe typed commands without replacing DOM handlers
+editable.on('command', (command) => {
+  console.log(command.type, command.source)
+})
+
+// Optional: cancel a specific default action
+editable.on('beforeCommand', (ctx) => {
+  if (ctx.command.type === 'mergeBlock') ctx.cancel()
+})
+
+editable.on('change', (element, details) => {
+  // details is optional — legacy handlers with one argument still work
+  saveSnapshot(element, details?.command)
+})
+```
+
+### Adapter for an external document model
+
+```typescript
+import { Editable, type EditableCommand } from 'editable.ts'
+
+const editable = new Editable({ defaultBehavior: false })
+
+editable.on('command', (command: EditableCommand) => {
+  switch (command.type) {
+    case 'splitBlock':
+      doc.splitBlock(command.host, command.cursor.offset, command.htmlAfter)
+      break
+    case 'insertBlock':
+      doc.insertBlock(command.host, command.direction)
+      break
+    case 'mergeBlock':
+      doc.mergeBlock(command.host, command.direction)
+      break
+    case 'paste':
+      doc.pasteBlocks(command.host, command.blocks, command.cursor.offset)
+      break
+    case 'format':
+      doc.toggleFormat(command.host, command.format, command.selection)
+      break
+  }
+})
+
+// Legacy events remain available for gradual migration
+editable.on('split', (element, before, after, cursor) => {
+  /* same payload as pre-1.2 handlers */
+})
+```
+
+Cursor and selection offsets in commands use **UTF-16 code units** (JavaScript string indices). Surrogate pairs such as emoji count as two units; combining diacritics are separate from their base character.
+
 ## Events
 
 ### Core
 
-| Event       | When                            |
-| ----------- | ------------------------------- |
-| `focus`     | Editable element receives focus |
-| `blur`      | Editable element loses focus    |
-| `selection` | Text is selected                |
-| `cursor`    | Cursor position changes         |
-| `change`    | Content changed                 |
+| Event       | When                                                       |
+| ----------- | ---------------------------------------------------------- |
+| `focus`     | Editable element receives focus                            |
+| `blur`      | Editable element loses focus                               |
+| `selection` | Text is selected                                           |
+| `cursor`    | Cursor position changes                                    |
+| `change`    | Content changed (optional `ChangeDetails` as 2nd argument) |
 
 ### Content modification
 
-| Event     | When                                                 |
-| --------- | ---------------------------------------------------- |
-| `insert`  | Enter at beginning or end of block                   |
-| `split`   | Enter in the middle of a block                       |
-| `merge`   | Backspace at start or Delete at end of block         |
-| `newline` | Shift+Enter                                          |
-| `switch`  | Arrow key at block boundary (move to adjacent block) |
+| Event            | When                                                 |
+| ---------------- | ---------------------------------------------------- |
+| `beforeCommand`  | Before default behavior; call `ctx.cancel()` to skip |
+| `command`        | Typed `EditableCommand` for every structural edit    |
+| `insert`         | Enter at beginning or end of block                   |
+| `split`          | Enter in the middle of a block                       |
+| `merge`          | Backspace at start or Delete at end of block         |
+| `newline`        | Shift+Enter                                          |
+| `switch`         | Arrow key at block boundary (move to adjacent block) |
+| `toggleBold`     | Bold shortcut (Ctrl/Cmd+B)                           |
+| `toggleEmphasis` | Italic shortcut (Ctrl/Cmd+I)                         |
 
 ### Clipboard & highlighting
 

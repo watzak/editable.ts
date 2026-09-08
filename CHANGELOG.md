@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [Unreleased]
+
+### Security
+
+- Harden paste sanitizer attribute serialization and link protocol filtering: attribute values are applied via DOM APIs instead of HTML string interpolation, dangerous URL schemes (`javascript:`, `data:`, `vbscript:`, `file:`) are rejected, and `target="_blank"` links receive `noopener`/`noreferrer` on `rel`.
+
 ## [1.1.2](https://github.com/watzak/editable.ts/compare/v1.1.1...v1.1.2) (2026-06-02)
 
 ## [1.1.1](https://github.com/watzak/editable.ts/compare/v1.1.0...v1.1.1) (2026-06-02)

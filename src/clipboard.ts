@@ -17,6 +17,12 @@ let splitIntoBlocks: Record<string, boolean>
 let blacklistedElements: string[]
 const whitespaceOnly = /^\s*$/
 const blockPlaceholder = '<!-- BLOCK -->'
+const URL_ATTRIBUTES = new Set(['href'])
+const ALLOWED_URL_PROTOCOLS = new Set(['http', 'https', 'mailto', 'tel'])
+const BLOCKED_URL_PROTOCOLS = new Set(['javascript', 'data', 'vbscript', 'file'])
+const LEADING_URL_WHITESPACE = /^[\s\u0000-\u001f\u007f]+/
+const URL_CONTROL_CHARS = /[\u0000-\u001f\u007f]/g
+const URL_PROTOCOL_PATTERN = /^([a-zA-Z][a-zA-Z0-9+.-]*):/
 let keepInternalRelativeLinks: boolean
 
 interface FilterOptions {
@@ -114,8 +120,11 @@ function filterHtmlElements(elem: HTMLElement, options: FilterOptions): string {
     ) {
       const hrefAttr = childElement.getAttribute('href')
       if (hrefAttr) {
-        const stripInternalHost = hrefAttr.replace(window.location.origin, '')
-        childElement.setAttribute('href', stripInternalHost)
+        const origin = childElement.ownerDocument.defaultView?.location.origin
+        if (origin) {
+          const stripInternalHost = hrefAttr.replace(origin, '')
+          childElement.setAttribute('href', stripInternalHost)
+        }
       }
     }
 
@@ -137,12 +146,23 @@ function conditionalNodeWrap(child: HTMLElement, content: string, options: Filte
   nodeName = transformNodeName(nodeName)
 
   if (shouldKeepNode(nodeName, child, options)) {
-    const attributes = filterAttributes(nodeName, child)
+    const doc = child.ownerDocument
 
-    if (nodeName === 'br') return `<${nodeName + attributes}>`
+    if (nodeName === 'br') {
+      const element = doc.createElement('br')
+      if (!applyAllowedAttributes(element, nodeName, child, options)) {
+        return content
+      }
+      return element.outerHTML
+    }
 
     if (!whitespaceOnly.test(content)) {
-      return `<${nodeName + attributes}>${content}</${nodeName}>`
+      const element = doc.createElement(nodeName)
+      if (!applyAllowedAttributes(element, nodeName, child, options)) {
+        return unwrapFilteredNode(nodeName, content)
+      }
+      appendSanitizedHtml(element, content, doc)
+      return element.outerHTML
     }
 
     return content
@@ -159,16 +179,100 @@ function conditionalNodeWrap(child: HTMLElement, content: string, options: Filte
   return content
 }
 
-// returns string of concatenated attributes e.g. 'target="_blank" rel="nofollow" href="/test.com"'
-function filterAttributes(nodeName: string, node: Element): string {
-  return Array.from(node.attributes).reduce<string>((attributes: string, attr: Attr) => {
-    const name = attr.name
-    const value = attr.value
-    if (allowedElements[nodeName]?.[name] && value) {
-      return `${attributes} ${name}="${value}"`
+function decodeUrlAttributeValue(value: string, doc: Document): string {
+  const textarea = doc.createElement('textarea')
+  textarea.innerHTML = value
+  return textarea.value.replace(URL_CONTROL_CHARS, '').replace(LEADING_URL_WHITESPACE, '')
+}
+
+function extractUrlProtocol(url: string): string | null {
+  const match = url.match(URL_PROTOCOL_PATTERN)
+  return match ? match[1].toLowerCase() : null
+}
+
+function isAllowedUrl(value: string, doc: Document): boolean {
+  const normalized = decodeUrlAttributeValue(value, doc)
+  if (!normalized) return false
+
+  if (normalized.startsWith('#') || normalized.startsWith('?')) return true
+  if (normalized.startsWith('//')) return true
+
+  const protocol = extractUrlProtocol(normalized)
+  if (!protocol) return true
+  if (BLOCKED_URL_PROTOCOLS.has(protocol)) return false
+
+  return ALLOWED_URL_PROTOCOLS.has(protocol)
+}
+
+function sanitizeUrlAttribute(value: string, doc: Document): string | null {
+  if (!isAllowedUrl(value, doc)) return null
+  return decodeUrlAttributeValue(value, doc)
+}
+
+function normalizeRelForBlankTarget(rel: string | undefined): string {
+  const tokens = new Set((rel || '').split(/\s+/).filter(Boolean))
+  tokens.add('noopener')
+  tokens.add('noreferrer')
+  return Array.from(tokens).join(' ')
+}
+
+function applyAllowedAttributes(
+  target: Element,
+  nodeName: string,
+  source: Element,
+  options: FilterOptions
+): boolean {
+  const allowed = options.allowedElements[nodeName]
+  if (!allowed) return true
+
+  let targetValue: string | undefined
+  let relValue: string | undefined
+  let hrefApplied = false
+
+  for (const attr of source.attributes) {
+    const name = attr.name.toLowerCase()
+    if (!allowed[name]) continue
+
+    let value = attr.value
+    if (!value) continue
+
+    if (URL_ATTRIBUTES.has(name)) {
+      const sanitized = sanitizeUrlAttribute(value, source.ownerDocument)
+      if (sanitized === null) continue
+      value = sanitized
+      if (name === 'href') hrefApplied = true
     }
-    return attributes
-  }, '')
+
+    if (name === 'target') targetValue = value
+    if (name === 'rel') relValue = value
+
+    target.setAttribute(name, value)
+  }
+
+  const required = requiredAttributes[nodeName]
+  if (required?.includes('href') && !hrefApplied) return false
+
+  if (targetValue === '_blank') {
+    target.setAttribute('rel', normalizeRelForBlankTarget(relValue))
+  }
+
+  return true
+}
+
+function appendSanitizedHtml(element: Element, html: string, doc: Document): void {
+  const container = doc.createElement('div')
+  container.innerHTML = html
+  while (container.firstChild) {
+    element.appendChild(container.firstChild)
+  }
+}
+
+function unwrapFilteredNode(nodeName: string, content: string): string {
+  if (splitIntoBlocks[nodeName]) {
+    return blockPlaceholder + content + blockPlaceholder
+  }
+  if (blockLevelElements[nodeName]) return `${content} `
+  return content
 }
 
 function transformNodeName(nodeName: string): string {

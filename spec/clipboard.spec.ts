@@ -1,3 +1,4 @@
+import { JSDOM } from 'jsdom'
 import { parseContent, updateConfig } from '../src/clipboard.js'
 import { cloneDeep } from '../src/util/clone-deep.js'
 import config from '../src/config.js'
@@ -51,7 +52,7 @@ describe('Clipboard', function () {
 
       updateConfig(updatedConfig)
       expect(extractSingleBlock('<a target="_blank" rel="nofollow" href="/link/1337">a</a>')).toBe(
-        '<a target="_blank" rel="nofollow" href="/link/1337">a</a>'
+        '<a target="_blank" rel="nofollow noopener noreferrer" href="/link/1337">a</a>'
       )
     })
 
@@ -167,6 +168,115 @@ describe('Clipboard', function () {
       expect(extractSingleBlock(`<a href="${window.location.origin}/test123">a</a>`)).toBe(
         '<a href="/test123">a</a>'
       )
+    })
+
+    // Paste sanitizer security
+    // ------------------------
+
+    describe('paste sanitizer security', function () {
+      beforeEach(function () {
+        const updatedConfig = cloneDeep(config)
+        updatedConfig.pastedHtmlRules.allowedElements = {
+          a: { href: true, rel: true, target: true },
+          strong: {},
+          em: {},
+          br: {}
+        }
+        updateConfig(updatedConfig)
+      })
+
+      it('removes javascript: href', function () {
+        expect(extractSingleBlock('<a href="javascript:alert(1)">a</a>')).toBe('a')
+      })
+
+      it('removes data: href', function () {
+        expect(extractSingleBlock('<a href="data:text/html,<script>alert(1)</script>">a</a>')).toBe(
+          'a'
+        )
+      })
+
+      it('removes vbscript: and file: href', function () {
+        expect(extractSingleBlock('<a href="vbscript:msgbox(1)">a</a>')).toBe('a')
+        expect(extractSingleBlock('<a href="file:///etc/passwd">a</a>')).toBe('a')
+      })
+
+      it('blocks mixed-case and whitespace-padded URL schemes', function () {
+        expect(extractSingleBlock('<a href="  JaVaScRiPt:alert(1)">a</a>')).toBe('a')
+        expect(extractSingleBlock('<a href="&#9;javascript:alert(1)">a</a>')).toBe('a')
+        expect(extractSingleBlock('<a href="DATA:text/html,foo">a</a>')).toBe('a')
+      })
+
+      it('does not allow attribute injection via href values', function () {
+        expect(
+          extractSingleBlock('<a href="http://example.com" onmouseover="alert(1)">a</a>')
+        ).toBe('<a href="http://example.com">a</a>')
+        expect(extractSingleBlock('<a href="http://example.com" style="color:red">a</a>')).toBe(
+          '<a href="http://example.com">a</a>'
+        )
+
+        const entityEncoded = extractSingleBlock(
+          '<a href="http://example.com&quot; onmouseover=&quot;alert(1)">a</a>'
+        )
+        const parsed = document.createElement('div')
+        parsed.innerHTML = entityEncoded
+        const anchor = parsed.querySelector('a')
+        expect(anchor?.getAttribute('onmouseover')).toBeNull()
+        expect(anchor?.getAttribute('style')).toBeNull()
+        expect(anchor?.attributes.length).toBe(1)
+      })
+
+      it('keeps safe absolute, relative, fragment, and query URLs', function () {
+        expect(extractSingleBlock('<a href="https://example.com/path">a</a>')).toBe(
+          '<a href="https://example.com/path">a</a>'
+        )
+        expect(extractSingleBlock('<a href="/relative/path">a</a>')).toBe(
+          '<a href="/relative/path">a</a>'
+        )
+        expect(extractSingleBlock('<a href="#section">a</a>')).toBe('<a href="#section">a</a>')
+        expect(extractSingleBlock('<a href="?query=1">a</a>')).toBe('<a href="?query=1">a</a>')
+      })
+
+      it('keeps mailto: and tel: href', function () {
+        expect(extractSingleBlock('<a href="mailto:user@example.com">a</a>')).toBe(
+          '<a href="mailto:user@example.com">a</a>'
+        )
+        expect(extractSingleBlock('<a href="tel:+1234567890">a</a>')).toBe(
+          '<a href="tel:+1234567890">a</a>'
+        )
+      })
+
+      it('adds noopener and noreferrer when target="_blank" is kept', function () {
+        const blankTarget = extractSingleBlock(
+          '<a target="_blank" href="https://example.com">a</a>'
+        )
+        const parsedBlank = document.createElement('div')
+        parsedBlank.innerHTML = blankTarget
+        const blankAnchor = parsedBlank.querySelector('a')
+        expect(blankAnchor?.getAttribute('target')).toBe('_blank')
+        expect(blankAnchor?.getAttribute('rel')).toBe('noopener noreferrer')
+
+        const withRel = extractSingleBlock(
+          '<a target="_blank" rel="nofollow" href="https://example.com">a</a>'
+        )
+        const parsedRel = document.createElement('div')
+        parsedRel.innerHTML = withRel
+        const relAnchor = parsedRel.querySelector('a')
+        expect(relAnchor?.getAttribute('rel')).toBe('nofollow noopener noreferrer')
+      })
+
+      it('uses the edited document origin for keepInternalRelativeLinks', function () {
+        const updatedConfig = cloneDeep(config)
+        updatedConfig.pastedHtmlRules.keepInternalRelativeLinks = true
+        updateConfig(updatedConfig)
+
+        const dom = new JSDOM('<!DOCTYPE html><html></html>', {
+          url: 'https://editor.example.com/article'
+        })
+        const div = dom.window.document.createElement('div')
+        div.innerHTML = '<a href="https://editor.example.com/test123">a</a>'
+
+        expect(parseContent(div)[0]).toBe('<a href="/test123">a</a>')
+      })
     })
 
     // Escape Content

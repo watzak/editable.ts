@@ -4,7 +4,9 @@ import {
   isWhitespace,
   isSeparatorOrWhitespace,
   isApostrophe,
-  replaceQuote
+  replaceQuote,
+  applySmartQuotes,
+  shouldApplySmartQuotes
 } from '../src/smartQuotes'
 
 const allSingleQuotes = ['‘', '’', '‹', '›', '‚', '‘', '›', '‹', `'`, `‘`]
@@ -151,5 +153,96 @@ describe('replaceQuote():', () => {
     const range = createRangeWithText(testString)
     const replacedTextNode = replaceQuote(range, 40, '`')
     expect(replacedTextNode.textContent).toBe(`${testString}${'`'}`)
+  })
+})
+
+describe('shouldApplySmartQuotes():', () => {
+  it('returns false when smart quotes are disabled or config is incomplete', () => {
+    const target = document.createElement('div')
+    Object.defineProperty(target, 'isContentEditable', { value: true })
+
+    expect(shouldApplySmartQuotes({}, target)).toBe(false)
+    expect(
+      shouldApplySmartQuotes({ smartQuotes: true, quotes: ['\u201C', '\u201D'] }, target)
+    ).toBe(false)
+    expect(
+      shouldApplySmartQuotes(
+        {
+          smartQuotes: true,
+          quotes: ['\u201C', '\u201D'],
+          singleQuotes: ['\u2018', '\u2019']
+        },
+        target
+      )
+    ).toBe(true)
+  })
+
+  it('returns false for non-editable targets', () => {
+    const target = document.createElement('div')
+    Object.defineProperty(target, 'isContentEditable', { value: false })
+    expect(
+      shouldApplySmartQuotes(
+        {
+          smartQuotes: true,
+          quotes: ['\u201C', '\u201D'],
+          singleQuotes: ['\u2018', '\u2019']
+        },
+        target
+      )
+    ).toBe(false)
+  })
+})
+
+describe('applySmartQuotes():', () => {
+  function createEditableRange(text: string, offset: number) {
+    const host = document.createElement('div')
+    host.contentEditable = 'true'
+    document.body.appendChild(host)
+    const textNode = document.createTextNode(text)
+    host.appendChild(textNode)
+    const range = document.createRange()
+    range.setStart(textNode, offset)
+    range.collapse(true)
+    window.getSelection()?.removeAllRanges()
+    window.getSelection()?.addRange(range)
+    return { host, range, textNode }
+  }
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('transforms a typed double quote into an opening smart quote', () => {
+    const { host, range } = createEditableRange('Hello "', 7)
+    applySmartQuotes(
+      range,
+      { quotes: ['\u201C', '\u201D'], singleQuotes: ['\u2018', '\u2019'] },
+      '"',
+      host
+    )
+    expect(host.textContent).toBe('Hello \u201C')
+  })
+
+  it('transforms a typed double quote into a closing smart quote after a word', () => {
+    const { host, range } = createEditableRange('Hello world"', 12)
+    applySmartQuotes(
+      range,
+      { quotes: ['\u201C', '\u201D'], singleQuotes: ['\u2018', '\u2019'] },
+      '"',
+      host
+    )
+    expect(host.textContent).toBe('Hello world\u201D')
+  })
+
+  it('ignores characters that are already configured quote glyphs', () => {
+    const { host, range } = createEditableRange(`Hello ${'\u201C'}`, 7)
+    const before = host.textContent
+    applySmartQuotes(
+      range,
+      { quotes: ['\u201C', '\u201D'], singleQuotes: ['\u2018', '\u2019'] },
+      '\u201C',
+      host
+    )
+    expect(host.textContent).toBe(before)
   })
 })

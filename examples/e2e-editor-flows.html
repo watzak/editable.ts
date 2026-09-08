@@ -43,7 +43,10 @@
         cursor: pointer;
       }
 
-      [data-testid='event-log'] {
+      [data-testid='event-log'],
+      [data-testid='instance-a-log'],
+      [data-testid='instance-b-log'],
+      [data-testid='composition-log'] {
         font-family: ui-monospace, monospace;
         font-size: 0.85rem;
         white-space: pre-wrap;
@@ -78,10 +81,69 @@
       <pre data-testid="formatting-html"></pre>
     </section>
 
+    <section data-testid="nested-formatting-section">
+      <h2>Nested markup formatting</h2>
+      <div class="e2e-nested-formatting example-sheet">
+        <p data-testid="nested-formatting-block">
+          Outer <strong>bold <em>italic inner</em> tail</strong> end.
+        </p>
+      </div>
+      <pre data-testid="nested-formatting-html"></pre>
+    </section>
+
     <section data-testid="paste-section">
       <h2>Paste</h2>
       <div class="e2e-pasting-example example-sheet">
         <p data-testid="paste-block">Paste here...</p>
+      </div>
+    </section>
+
+    <section data-testid="multiblock-paste-section">
+      <h2>Multi-block paste</h2>
+      <div class="e2e-multiblock-paste example-sheet">
+        <p data-testid="multiblock-paste-block">Multi paste target</p>
+      </div>
+    </section>
+
+    <section data-testid="paste-security-section">
+      <h2>Paste security</h2>
+      <div class="e2e-paste-security example-sheet">
+        <p data-testid="paste-security-block">Security paste target</p>
+      </div>
+      <pre data-testid="paste-security-html"></pre>
+    </section>
+
+    <section data-testid="dual-instance-section">
+      <h2>Two instances</h2>
+      <div class="e2e-instance-a example-sheet">
+        <p data-testid="instance-a-block">Instance A block</p>
+      </div>
+      <div data-testid="instance-a-log" data-events=""></div>
+      <div class="e2e-instance-b example-sheet">
+        <p data-testid="instance-b-block">Instance B block</p>
+      </div>
+      <div data-testid="instance-b-log" data-events=""></div>
+    </section>
+
+    <section data-testid="composition-section">
+      <h2>Composition / IME</h2>
+      <div class="e2e-composition-example example-sheet">
+        <p data-testid="composition-block">Composition block for IME guard.</p>
+      </div>
+      <div data-testid="composition-log" data-events=""></div>
+    </section>
+
+    <section data-testid="unicode-section">
+      <h2>Unicode text</h2>
+      <div class="e2e-unicode-example example-sheet">
+        <p data-testid="unicode-block">Unicode editing block.</p>
+      </div>
+    </section>
+
+    <section data-testid="undo-section">
+      <h2>Undo / Redo</h2>
+      <div class="e2e-undo-example example-sheet">
+        <p data-testid="undo-block">Undo structural test block.</p>
       </div>
     </section>
 
@@ -97,6 +159,7 @@
         <button type="button" data-testid="btn-continue">Continue</button>
         <button type="button" data-testid="btn-remove">Remove</button>
         <button type="button" data-testid="btn-readd">Re-add</button>
+        <button type="button" data-testid="btn-unload">Unload</button>
       </div>
       <p>
         Status:

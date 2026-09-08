@@ -380,12 +380,29 @@ interface EditableConfig {
 }
 ```
 
+## Browser support (automated)
+
+Cross-browser behavior is verified with Playwright E2E tests on desktop browser **engines** (not pinned vendor versions):
+
+| Engine   | Desktop profile | E2E coverage                                                                               |
+| -------- | --------------- | ------------------------------------------------------------------------------------------ |
+| Chromium | Desktop Chrome  | Enter/split/merge, paste, formatting, lifecycle, iframe, dual instance, IME guard, unicode |
+| Firefox  | Desktop Firefox | Same suite as Chromium                                                                     |
+| WebKit   | Desktop Safari  | Same suite as Chromium                                                                     |
+
+**Known limitations**
+
+- Native `document.execCommand('undo'/'redo')` after structural edits is engine-dependent; undo E2E tests skip when the browser undo stack is unavailable.
+- IME/composition is simulated via composition events; real OS input method behavior is not fully replicated in CI.
+- Mobile browsers and legacy IE are not covered by the automated matrix.
+
 ## Development
 
 ```bash
 npm install
 npm run dev        # demo (Vite dev server)
 npm test           # Vitest + lint + format
+npm run test:e2e   # Playwright (Chromium, Firefox, WebKit)
 npm run build      # lib/ + dist/ + demo bundle
 npm run size       # bundle-size guard
 npm run knip       # unused file/dependency check

@@ -155,4 +155,45 @@ describe('Cursor', function () {
       })
     })
   })
+
+  describe('with a collapsed range in the middle', function () {
+    let nestedHost: HTMLElement
+    let range: Range
+    let cursor: Cursor
+
+    beforeEach(function () {
+      nestedHost = createElement(
+        `<div class="${config.editableClass}">before <strong>bold <em>mid</em></strong> after</div>`
+      ) as HTMLElement
+      document.body.appendChild(nestedHost)
+      const em = nestedHost.querySelector('em')!.firstChild as Text
+      range = createRange()
+      range.setStart(em, 1)
+      range.collapse(true)
+      cursor = new Cursor(nestedHost, range)
+    })
+
+    afterEach(function () {
+      nestedHost.remove()
+    })
+
+    it('detects middle position flags', function () {
+      expect(cursor.isAtBeginning()).toBe(false)
+      expect(cursor.isAtEnd()).toBe(false)
+      expect(cursor.isAtTextEnd()).toBe(false)
+    })
+
+    it('reads surrounding text and html fragments', function () {
+      expect(cursor.textBefore()).toContain('before')
+      expect(cursor.textAfter()).toContain('after')
+      expect(cursor.beforeHtml()).toMatch(/bold/)
+      expect(cursor.afterHtml()).toMatch(/after/)
+    })
+
+    it('reports ancestor tags for nested markup', function () {
+      const ancestors = cursor.getAncestorTags().map((node) => node.nodeName.toLowerCase())
+      expect(ancestors).toContain('em')
+      expect(ancestors).toContain('strong')
+    })
+  })
 })

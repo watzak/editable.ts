@@ -5,8 +5,15 @@ import highlightSupport from '../src/highlight-support.js'
 import { createElement, createRange, toCharacterRange } from '../src/util/dom.js'
 import Selection from '../src/selection.js'
 
-function setupHighlightEnv(text) {
-  const context = {}
+function setupHighlightEnv(text: string) {
+  const context: {
+    text?: string
+    div?: HTMLElement
+    editable?: Editable
+    getCharacterRange?: () => ReturnType<Selection['getTextRange']>
+    highlightRange?: (...args: unknown[]) => unknown
+    [key: string]: unknown
+  } = {}
   context.text = text
   context.div = createElement(`<div>${context.text}</div>`)
   document.body.appendChild(context.div)
@@ -20,17 +27,24 @@ function setupHighlightEnv(text) {
     return selection.getTextRange()
   }
 
-  context.highlightRange = (highlightText, highlightId, start, end, dispatcher, type) => {
+  context.highlightRange = (
+    highlightText: unknown,
+    highlightId: unknown,
+    start: unknown,
+    end: unknown,
+    dispatcher: import('../src/dispatcher.js').default | undefined,
+    type?: string
+  ) => {
     const win =
       context.div.ownerDocument?.defaultView || (typeof window !== 'undefined' ? window : undefined)
     // Ensure win is actually a Window object, not a string
     if (win && typeof win === 'object' && win.document) {
       return highlightSupport.highlightRange(
-        context.div,
-        highlightText,
-        highlightId,
-        start,
-        end,
+        context.div!,
+        String(highlightText),
+        String(highlightId),
+        Number(start),
+        Number(end),
         dispatcher,
         win, // Window parameter (7th)
         type // type parameter (8th)
@@ -40,11 +54,11 @@ function setupHighlightEnv(text) {
     const doc = context.div?.ownerDocument || (typeof document !== 'undefined' ? document : null)
     const fallbackWin = doc?.defaultView || undefined
     return highlightSupport.highlightRange(
-      context.div,
-      highlightText,
-      highlightId,
-      start,
-      end,
+      context.div!,
+      String(highlightText),
+      String(highlightId),
+      Number(start),
+      Number(end),
       dispatcher,
       fallbackWin,
       type
@@ -65,7 +79,7 @@ function setupHighlightEnv(text) {
     const extracted = {}
     for (const id in positions) {
       const val = positions[id]
-      const withoutNativeRange = { ...val }
+      const withoutNativeRange = { ...val } as Record<string, unknown>
       delete withoutNativeRange.nativeRange
       extracted[id] = withoutNativeRange
     }
@@ -448,7 +462,7 @@ ke The <br> World Go Round`)
     // Generate a test for each test case
     for (const [char, expectedLength, expectedText] of cases) {
       it(`treats '${char}' as ${expectedLength} characters`, function () {
-        context = setupHighlightEnv(char)
+        context = setupHighlightEnv(String(char))
 
         const { start, end } = context.getCharacterRange()
         context.highlightRange(char, 'char', start, end)

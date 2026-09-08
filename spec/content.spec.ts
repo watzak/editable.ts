@@ -3,6 +3,10 @@ import { createElement, createRange } from '../src/util/dom.js'
 import * as content from '../src/content.js'
 import * as rangeSaveRestore from '../src/range-save-restore.js'
 
+function cloneElement(element: HTMLElement): HTMLElement {
+  return element.cloneNode(true) as HTMLElement
+}
+
 describe('Content', function () {
   describe('normalizeTags()', function () {
     const plain = createElement(
@@ -24,14 +28,14 @@ describe('Content', function () {
 
     it('works with plain block', function () {
       const expected = createElement('<div>Plain <strong>textblock</strong> example snippet</div>')
-      const actual = plain.cloneNode(true)
+      const actual = cloneElement(plain)
       content.normalizeTags(actual)
       expect(actual.innerHTML).toBe(expected.innerHTML)
     })
 
     it('does not merge tags if not consecutives', function () {
-      const expected = plainWithSpace.cloneNode(true)
-      const actual = plainWithSpace.cloneNode(true)
+      const expected = cloneElement(plainWithSpace)
+      const actual = cloneElement(plainWithSpace)
       content.normalizeTags(actual)
       expect(actual.innerHTML).toBe(expected.innerHTML)
     })
@@ -40,7 +44,7 @@ describe('Content', function () {
       const expected = createElement(
         '<div>Nested <strong><em>textblock</em></strong> example snippet</div>'
       )
-      const actual = nested.cloneNode(true)
+      const actual = cloneElement(nested)
       content.normalizeTags(actual)
       expect(actual.innerHTML).toBe(expected.innerHTML)
     })
@@ -49,14 +53,14 @@ describe('Content', function () {
       const expected = createElement(
         '<div>Nested <strong>and mixed <em>textblock</em> <em>examples</em></strong> snippet</div>'
       )
-      const actual = nestedMixed.cloneNode(true)
+      const actual = cloneElement(nestedMixed)
       content.normalizeTags(actual)
       expect(actual.innerHTML).toBe(expected.innerHTML)
     })
 
     it('does not merge consecutive new lines', function () {
-      const expected = consecutiveNewLines.cloneNode(true)
-      const actual = consecutiveNewLines.cloneNode(true)
+      const expected = cloneElement(consecutiveNewLines)
+      const actual = cloneElement(consecutiveNewLines)
       content.normalizeTags(actual)
       expect(actual.innerHTML).toBe(expected.innerHTML)
     })
@@ -65,7 +69,7 @@ describe('Content', function () {
       const expected = createElement(
         '<div>Example with <strong>empty nested</strong><br>tags</div>'
       )
-      const actual = emptyTags.cloneNode(true)
+      const actual = cloneElement(emptyTags)
       content.normalizeTags(actual)
       expect(actual.innerHTML).toBe(expected.innerHTML)
     })
@@ -332,7 +336,7 @@ describe('Content', function () {
       // show resulting nodes
       expect(host.childNodes.length).toBe(2)
       expect(host.childNodes[0].nodeValue).toBe('a')
-      expect(host.childNodes[1].tagName).toBe('EM')
+      expect((host.childNodes[1] as Element).tagName).toBe('EM')
     })
   })
 
@@ -369,7 +373,7 @@ describe('Content', function () {
       const host = createElement('<div><b>a</b></div>')
       range.setStart(host.querySelector('b'), 0)
       range.setEnd(host.querySelector('b'), 1)
-      content.nuke(host, range)
+      content.nuke(host, range, null)
       expect(host.innerHTML).toBe('a')
     })
 
@@ -378,7 +382,7 @@ describe('Content', function () {
       const host = createElement('<div><b>a<i>b</i><em>cd</em></b></div>')
       range.setStart(host.querySelector('b'), 0)
       range.setEnd(host.querySelector('em').firstChild, 1)
-      content.nuke(host, range)
+      content.nuke(host, range, null)
       expect(host.innerHTML).toBe('abcd')
     })
 
@@ -387,7 +391,7 @@ describe('Content', function () {
       const host = createElement('<div>a<br>b</div>')
       range.setStart(host, 0)
       range.setEnd(host, 3)
-      content.nuke(host, range)
+      content.nuke(host, range, null)
       expect(host.innerHTML).toBe('a<br>b')
     })
 
@@ -397,7 +401,7 @@ describe('Content', function () {
       range.setStart(host.querySelector('b'), 0)
       range.setEnd(host.querySelector('b'), 1)
       rangeSaveRestore.save(range)
-      content.nuke(host, range)
+      content.nuke(host, range, null)
       expect(host.querySelectorAll('span').length).toBe(2)
       expect(host.querySelectorAll('b').length).toBe(0)
     })

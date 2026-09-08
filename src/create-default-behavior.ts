@@ -1,7 +1,6 @@
 import * as parser from './parser.js'
 import * as content from './content.js'
 import log from './util/log.js'
-import * as block from './block.js'
 import * as nodeType from './node-type.js'
 import type { Editable } from './core.js'
 import type Cursor from './cursor.js'

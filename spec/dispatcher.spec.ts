@@ -1,11 +1,8 @@
 import { createRange, rangesAreEqual } from '../src/util/dom.js'
 import { vi } from 'vitest'
-import * as content from '../src/content.js'
 import Cursor from '../src/cursor.js'
-import Keyboard from '../src/keyboard.js'
 import { Editable } from '../src/core.js'
 import Selection from '../src/selection.js'
-const { key } = Keyboard
 
 describe('Dispatcher:', function () {
   let editable, elem
@@ -162,7 +159,7 @@ describe('Dispatcher:', function () {
 
     describe('on backspace:', function () {
       it('fires "merge" if cursor is at the beginning', function () {
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
           elem.innerHTML = 'foo'
           createCursor(createRangeAtBeginning(elem))
 
@@ -178,7 +175,7 @@ describe('Dispatcher:', function () {
 
     describe('on delete:', function () {
       it('fires "merge" if cursor is at the end', function () {
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
           elem.innerHTML = 'foo'
           createCursor(createRangeAtEnd(elem))
 
@@ -213,7 +210,7 @@ describe('Dispatcher:', function () {
       }
 
       it('fires newline when shift + enter is pressed', function () {
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
           on('newline', () => resolve())
           shiftReturn(elem)
           expect(elem.innerHTML).toBe('<br>\uFEFF')
@@ -245,7 +242,7 @@ describe('Dispatcher:', function () {
 
     describe('on bold:', function () {
       it('fires toggleBold when ctrl + b is pressed', function () {
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
           elem.innerHTML = 'foo'
           const range = createFullRange(elem)
           createSelection(range)
@@ -263,7 +260,7 @@ describe('Dispatcher:', function () {
 
     describe('on italic:', function () {
       it('fires toggleEmphasis when ctrl + i is pressed', function () {
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
           elem.innerHTML = 'foo'
           const range = createFullRange(elem)
           createSelection(range)
@@ -334,6 +331,7 @@ describe('Dispatcher:', function () {
               }
 
               if (position === 'both') {
+                expect(position).toBe('both')
                 resolve()
                 return
               }
@@ -404,6 +402,7 @@ describe('Dispatcher:', function () {
               }
 
               if (position === 'start') {
+                expect(position).toBe('start')
                 resolve()
                 return
               }
@@ -474,6 +473,7 @@ describe('Dispatcher:', function () {
               }
 
               if (position === 'end') {
+                expect(position).toBe('end')
                 resolve()
                 return
               }
@@ -491,7 +491,7 @@ describe('Dispatcher:', function () {
 
     describe('on paste:', function () {
       it('inserts plain text clipboard content', function () {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('Test timed out - paste event not fired'))
           }, 7000)
@@ -510,7 +510,7 @@ describe('Dispatcher:', function () {
       })
 
       it('inserts formatted clipboard content', function () {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('Test timed out - paste event not fired'))
           }, 7000)
@@ -529,7 +529,7 @@ describe('Dispatcher:', function () {
       })
 
       it(`replaces the last '&nbsp' with ' ' if text ends with a single '&nbsp'`, function () {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('Test timed out - paste event not fired'))
           }, 7000)
@@ -567,7 +567,7 @@ describe('Dispatcher:', function () {
       })
 
       it(`doesn't replaces the last '&nbsp' with ' ' if text ends with more than one '&nbsp'`, function () {
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
           on('paste', (block, blocks) => {
             expect(block.innerHTML).toBe(
               'some text that ends with more than one non breaking space&nbsp; &nbsp;'
@@ -585,7 +585,7 @@ describe('Dispatcher:', function () {
 
     describe('input event:', function () {
       it('fires "change" event', function () {
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
           elem.innerHTML = 'foo'
           createCursor(createRangeAtEnd(elem))
 

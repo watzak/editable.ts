@@ -63,9 +63,12 @@ describe('NodeIterator', function () {
         {
           element: current,
           offset: 0,
-          length: 1
+          length: 1,
+          text: current.textContent || '',
+          isLastPortion: true,
+          wordId: 0
         },
-        createElement('<span>')
+        createElement('<span>')!
       )
 
       iterator.replaceCurrent(replacement)
@@ -81,9 +84,12 @@ describe('NodeIterator', function () {
         {
           element: current,
           offset: 0,
-          length: 1
+          length: 1,
+          text: current.textContent || '',
+          isLastPortion: true,
+          wordId: 0
         },
-        createElement('<span>')
+        createElement('<span>')!
       )
 
       iterator.replaceCurrent(replacement)

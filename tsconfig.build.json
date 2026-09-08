@@ -1,7 +1,12 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./lib",
     "declarationMap": false,
-    "sourceMap": false
-  }
+    "sourceMap": false,
+    "noEmit": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "examples", "lib", "dist", "spec"]
 }

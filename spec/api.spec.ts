@@ -107,7 +107,7 @@ describe('Editable', function () {
 
     describe('change event', function () {
       it('gets triggered after format change', function () {
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
           editable.change((element) => {
             expect(element).toBe(div)
             resolve()
@@ -130,7 +130,7 @@ describe('Editable', function () {
         div.innerHTML = 'Der Spieler blieb bei fünf Champions-League-Titeln stehen.'
         const { wasFound, offset } = editable.findClosestCursorOffset({
           element: div,
-          origCoordinates: { top: 0, left: 130 }
+          origCoordinates: { top: 0, left: 130 } as unknown as DOMRect
         })
         expect(wasFound).toBe(true)
         // With JSDOM mock getBoundingClientRect, the offset calculation will differ
@@ -151,7 +151,7 @@ describe('Editable', function () {
           '<p>Der <em>Spieler</em> blieb bei fünf <span>Champions-League-Titeln</span> stehen.</p>'
         const { wasFound, offset } = editable.findClosestCursorOffset({
           element: div,
-          origCoordinates: { top: 0, left: 130 }
+          origCoordinates: { top: 0, left: 130 } as unknown as DOMRect
         })
         expect(wasFound).toBe(true)
         // With JSDOM mock getBoundingClientRect, the offset calculation will differ
@@ -165,7 +165,7 @@ describe('Editable', function () {
         div.innerHTML = ''
         const { wasFound } = editable.findClosestCursorOffset({
           element: div,
-          origCoordinates: { top: 0, left: 130 }
+          origCoordinates: { top: 0, left: 130 } as unknown as DOMRect
         })
         expect(wasFound).toBe(false)
       })
@@ -180,7 +180,7 @@ describe('Editable', function () {
         div.innerHTML = 'Foo'
         const { wasFound, offset } = editable.findClosestCursorOffset({
           element: div,
-          origCoordinates: { top: 0, left: 130 }
+          origCoordinates: { top: 0, left: 130 } as unknown as DOMRect
         })
         expect(wasFound).toBe(true)
         expect(offset).toBe(3)

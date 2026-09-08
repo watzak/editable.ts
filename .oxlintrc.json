@@ -20,7 +20,8 @@
       "warn",
       {
         "args": "none",
-        "caughtErrors": "none"
+        "caughtErrors": "none",
+        "varsIgnorePattern": "^_"
       }
     ],
     "no-shadow": [
@@ -38,6 +39,7 @@
           "selection"
         ]
       }
-    ]
+    ],
+    "typescript/no-unsafe-declaration-merging": "off"
   }
 }

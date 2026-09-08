@@ -1,0 +1,5 @@
+{
+  "excludeEntrypoints": ["editable.ts/dist/editable.umd.cjs"],
+  "ignoreRules": ["cjs-resolves-to-esm"],
+  "profile": "esm-only"
+}

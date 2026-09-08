@@ -2,12 +2,9 @@ import { JSDOM } from 'jsdom'
 import { parseContent } from '../src/clipboard.js'
 import { createRange } from '../src/util/dom.js'
 import Cursor from '../src/cursor.js'
-import Keyboard from '../src/keyboard.js'
 import { Editable } from '../src/core.js'
 import { cloneDeep } from '../src/util/clone-deep.js'
 import config from '../src/config.js'
-
-const { key } = Keyboard
 
 describe('Iframe and cross-realm editing', function () {
   function createEditorDom(url: string) {

@@ -381,6 +381,34 @@ export class Editable {
   }
 }
 
+/** Typed `editable.eventName(handler)` convenience subscriptions. */
+export interface EditableEventConvenienceMethods {
+  focus(handler: EditableEventHandler<'focus'>): Editable
+  blur(handler: EditableEventHandler<'blur'>): Editable
+  flow(handler: EditableEventHandler<'flow'>): Editable
+  selection(handler: EditableEventHandler<'selection'>): Editable
+  cursor(handler: EditableEventHandler<'cursor'>): Editable
+  newline(handler: EditableEventHandler<'newline'>): Editable
+  insert(handler: EditableEventHandler<'insert'>): Editable
+  split(handler: EditableEventHandler<'split'>): Editable
+  merge(handler: EditableEventHandler<'merge'>): Editable
+  empty(handler: EditableEventHandler<'empty'>): Editable
+  change(handler: EditableEventHandler<'change'>): Editable
+  beforeCommand(handler: EditableEventHandler<'beforeCommand'>): Editable
+  command(handler: EditableEventHandler<'command'>): Editable
+  switch(handler: EditableEventHandler<'switch'>): Editable
+  move(handler: EditableEventHandler<'move'>): Editable
+  clipboard(handler: EditableEventHandler<'clipboard'>): Editable
+  paste(handler: EditableEventHandler<'paste'>): Editable
+  toggleBold(handler: EditableEventHandler<'toggleBold'>): Editable
+  toggleEmphasis(handler: EditableEventHandler<'toggleEmphasis'>): Editable
+  spellcheckUpdated(handler: EditableEventHandler<'spellcheckUpdated'>): Editable
+  selectToBoundary(handler: EditableEventHandler<'selectToBoundary'>): Editable
+  init(handler: EditableEventHandler<'init'>): Editable
+}
+
+export interface Editable extends EditableEventConvenienceMethods {}
+
 // Expose modules and editable
 Editable.parser = parser
 Editable.content = content
@@ -407,7 +435,8 @@ const eventNames: EditableEvent[] = [
   'toggleBold',
   'toggleEmphasis',
   'spellcheckUpdated',
-  'selectToBoundary'
+  'selectToBoundary',
+  'init'
 ]
 
 eventNames.forEach((name) => {

@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file. See [commit
 ### Features
 
 - **Typed Command API:** Browser input is normalized into discriminated `EditableCommand` objects (`insertBlock`, `splitBlock`, `mergeBlock`, `insertLineBreak`, `paste`, `format`, `input`). New `beforeCommand` and `command` events; `change` accepts an optional `ChangeDetails` second argument. Legacy `insert`/`split`/`merge`/`paste`/`newline`/`toggleBold`/`toggleEmphasis` events remain and are emitted from the same pipeline. Cursor/selection offsets use UTF-16 code units. All public command types are exported from the core entry.
+- **Package and TypeScript quality:** Split `tsconfig` for build/tests/consumer checks; `npm run typecheck`; consumer `.test-d.ts` files against published exports; `validate:package` (publint + `@arethetypeswrong/cli`); typed `editable.change()` convenience methods via interface merging; `sideEffects` marks `./lib/features.js` for prototype augmentation.
+- **Tooling:** `typecheck` / `typecheck:src` / `typecheck:tests` / `typecheck:consumer`; `validate:core-bundle`; `pack:check`; CI runs typecheck and package validation; `.attw.json` (ESM-only profile).
 
 ### Security
 

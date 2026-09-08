@@ -4,6 +4,7 @@
     "src/core.ts",
     "src/features.ts",
     "spec/**/*.spec.ts",
+    "spec/types/**/*.test-d.ts",
     "e2e/**/*.ts",
     "examples/index.js",
     "examples/e2e-editor-flows.js",
@@ -24,6 +25,7 @@
     "vite/**/*.{js,mjs}",
     "*.config.{js,ts}"
   ],
+  "ignore": ["spec/test-globals.d.ts"],
   "ignoreDependencies": [
     "@vitest/coverage-v8",
     "@vitest/ui",
@@ -31,6 +33,7 @@
     "normalize.css",
     "oxfmt",
     "oxlint",
+    "preact",
     "rimraf",
     "size-limit",
     "terser",

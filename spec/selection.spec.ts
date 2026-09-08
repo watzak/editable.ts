@@ -169,6 +169,7 @@ describe('Selection', function () {
         oldBoldMarkup = config.boldMarkup
         config.boldMarkup = {
           type: 'tag',
+          trim: false,
           name: 'strong',
           attribs: {
             class: 'foo'
@@ -202,6 +203,7 @@ describe('Selection', function () {
         oldItalicMarkup = config.italicMarkup
         config.italicMarkup = {
           type: 'tag',
+          trim: false,
           name: 'em',
           attribs: {
             class: 'bar'
@@ -235,6 +237,7 @@ describe('Selection', function () {
         oldUnderlineMarkup = config.underlineMarkup
         config.underlineMarkup = {
           type: 'tag',
+          trim: false,
           name: 'u',
           attribs: {
             class: 'bar'
@@ -268,6 +271,7 @@ describe('Selection', function () {
         oldLinkMarkup = config.italicMarkup
         config.linkMarkup = {
           type: 'tag',
+          trim: false,
           name: 'a',
           attribs: {
             class: 'foo bar'
@@ -328,6 +332,7 @@ describe('Selection', function () {
           oldBoldMarkup = config.boldMarkup
           config.boldMarkup = {
             type: 'tag',
+            trim: false,
             name: 'strong',
             attribs: {
               class: 'foo'

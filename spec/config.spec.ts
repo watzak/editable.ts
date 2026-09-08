@@ -19,7 +19,8 @@ describe('Editable configuration', function () {
 
     it('does not include the global configuration', function () {
       editable = new Editable()
-      expect(editable.config.editableClass).toBe(undefined)
+      expect(editable.globalSettings.editableClass).toBe('js-editable')
+      expect('editableClass' in editable.config).toBe(false)
     })
 
     it('overrides the default values', function () {
@@ -60,7 +61,7 @@ describe('Editable configuration', function () {
             span: { class: true }
           }
         }
-      })
+      } as unknown as Partial<import('../src/config.js').Config>)
 
       expect(Editable.getGlobalConfig().pastedHtmlRules.allowedElements.a).toEqual({
         href: true,

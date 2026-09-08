@@ -7,34 +7,32 @@ if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'scrollTo', {
     configurable: true,
     writable: true,
-    value: vi.fn()
+    value: vi.fn<() => void>()
   })
 }
 
 // Polyfill DataTransfer and ClipboardEvent for JSDOM (not available by default)
 if (typeof globalThis.DataTransfer === 'undefined') {
   class DataTransferMock {
-    constructor() {
-      this.items = []
-      this.effectAllowed = 'all'
-      this.dropEffect = 'none'
-      this.files = []
-      this.types = []
-      this._data = {}
-    }
+    items: unknown[] = []
+    effectAllowed = 'all'
+    dropEffect = 'none'
+    files: unknown[] = []
+    types: string[] = []
+    _data: Record<string, string> = {}
 
-    getData(format) {
+    getData(format: string) {
       return this._data[format] || ''
     }
 
-    setData(format, data) {
+    setData(format: string, data: string) {
       this._data[format] = data
       if (!this.types.includes(format)) {
         this.types.push(format)
       }
     }
 
-    clearData(format) {
+    clearData(format?: string) {
       if (format) {
         delete this._data[format]
         const index = this.types.indexOf(format)
@@ -48,10 +46,10 @@ if (typeof globalThis.DataTransfer === 'undefined') {
     }
   }
 
-  globalThis.DataTransfer = DataTransferMock
-  // Also set on window for browser compatibility
+  globalThis.DataTransfer = DataTransferMock as unknown as typeof DataTransfer
   if (typeof window !== 'undefined') {
-    ;(window as any).DataTransfer = DataTransferMock
+    ;(window as Window & { DataTransfer: typeof DataTransfer }).DataTransfer =
+      DataTransferMock as unknown as typeof DataTransfer
   }
 }
 
@@ -65,8 +63,9 @@ if (typeof globalThis.ClipboardEvent === 'undefined') {
     }
   }
 
-  globalThis.ClipboardEvent = ClipboardEventMock as any
+  globalThis.ClipboardEvent = ClipboardEventMock as unknown as typeof ClipboardEvent
   if (typeof window !== 'undefined') {
-    ;(window as any).ClipboardEvent = ClipboardEventMock
+    ;(window as Window & { ClipboardEvent: typeof ClipboardEvent }).ClipboardEvent =
+      ClipboardEventMock as unknown as typeof ClipboardEvent
   }
 }

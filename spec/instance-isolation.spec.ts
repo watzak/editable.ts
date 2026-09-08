@@ -3,10 +3,7 @@ import { createRange } from '../src/util/dom.js'
 import config from '../src/config.js'
 import { parseContent, updateConfig } from '../src/clipboard.js'
 import Cursor from '../src/cursor.js'
-import Keyboard from '../src/keyboard.js'
 import { Editable } from '../src/core.js'
-
-const { key } = Keyboard
 
 describe('Instance isolation', function () {
   function createCursor(element: HTMLElement, offset: number) {
@@ -226,7 +223,7 @@ describe('Instance isolation', function () {
         pastedHtmlRules: {
           allowedElements: { u: {} }
         }
-      })
+      } as unknown as Partial<import('../src/config.js').Config>)
 
       expect(editable.pasteRules.allowedElements.u).toBe(undefined)
       expect(editable.globalSettings.pastedHtmlRules.allowedElements.u).toBe(undefined)

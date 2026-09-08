@@ -7,7 +7,7 @@ describe('string util', function () {
     })
 
     it('escapes <, >, &, " and \' for attributes', function () {
-      expect(escapeHtml('<>&\'"', 'attribute')).toBe('&lt;&gt;&amp;&#39;&quot;')
+      expect(escapeHtml('<>&\'"', true)).toBe('&lt;&gt;&amp;&#39;&quot;')
     })
   })
 })

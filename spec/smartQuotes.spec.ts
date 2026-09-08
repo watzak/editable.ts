@@ -19,7 +19,7 @@ describe('Smart Quotes Helper Functions:', () => {
     it('Should return false for non double quote values', () => {
       ;[...charValues, ...separatorValues, ...nonStringValues, ...allSingleQuotes].forEach(
         (value) => {
-          expect(isDoubleQuote(value)).toBe(false, `Failed for value: ${value}`)
+          expect(isDoubleQuote(String(value))).toBe(false)
         }
       )
     })
@@ -31,7 +31,7 @@ describe('Smart Quotes Helper Functions:', () => {
             `Failed at index ${index}: value="${value}", charCode=${value.charCodeAt(0)}, length=${value.length}, type=${typeof value}`
           )
         }
-        expect(isDoubleQuote(value)).toBe(true, `Failed for value: ${value} at index ${index}`)
+        expect(isDoubleQuote(value)).toBe(true)
       })
     })
   })
@@ -40,7 +40,7 @@ describe('Smart Quotes Helper Functions:', () => {
     it('Should return false for non single quote values', () => {
       ;[...charValues, ...separatorValues, ...nonStringValues, ...allDoubleQuotes].forEach(
         (value) => {
-          expect(isSingleQuote(value)).toBe(false, `Failed for value: ${value}`)
+          expect(isSingleQuote(String(value))).toBe(false)
         }
       )
     })
@@ -52,7 +52,7 @@ describe('Smart Quotes Helper Functions:', () => {
             `Failed at index ${index}: value="${value}", charCode=${value.charCodeAt(0)}, length=${value.length}, type=${typeof value}`
           )
         }
-        expect(isSingleQuote(value)).toBe(true, `Failed for value: ${value} at index ${index}`)
+        expect(isSingleQuote(value)).toBe(true)
       })
     })
   })
@@ -60,13 +60,13 @@ describe('Smart Quotes Helper Functions:', () => {
   describe('isWhiteSpace', () => {
     it('should return false for non whitespace characters', () => {
       ;[...charValues, ...nonStringValues].forEach((value) => {
-        expect(isWhitespace(value)).toBe(false, `Failed for: ${value}`)
+        expect(isWhitespace(String(value))).toBe(false)
       })
     })
 
     it('should return true for  whitespace characters', () => {
       ;[...whitespaceChars].forEach((value) => {
-        expect(isWhitespace(value)).toBe(true, `Failed for: ${value}`)
+        expect(isWhitespace(value)).toBe(true)
       })
     })
   })
@@ -74,13 +74,13 @@ describe('Smart Quotes Helper Functions:', () => {
   describe('isSeparatorOrWhitespace', () => {
     it('should return false for non whitespace/ separator characters', () => {
       ;[...charValues, ...nonStringValues].forEach((value) => {
-        expect(isSeparatorOrWhitespace(value)).toBe(false, `Failed for: ${value}`)
+        expect(isSeparatorOrWhitespace(String(value))).toBe(false)
       })
     })
 
     it('should return true for  whitespace/ separator characters', () => {
       ;[...whitespaceChars, ...separatorValues].forEach((value) => {
-        expect(isSeparatorOrWhitespace(value)).toBe(true, `Failed for: ${value}`)
+        expect(isSeparatorOrWhitespace(value)).toBe(true)
       })
     })
   })
@@ -102,7 +102,7 @@ describe('Smart Quotes Helper Functions:', () => {
         '‹',
         `‘`
       ].forEach((value) => {
-        expect(isApostrophe(value)).toBe(false, `Failed for: ${value}`)
+        expect(isApostrophe(String(value))).toBe(false)
       })
     })
 
@@ -113,7 +113,7 @@ describe('Smart Quotes Helper Functions:', () => {
             `Failed at index ${index}: value="${value}", charCode=${value.charCodeAt(0)}, length=${value.length}, type=${typeof value}`
           )
         }
-        expect(isApostrophe(value)).toBe(true, `Failed for: ${value} at index ${index}`)
+        expect(isApostrophe(value)).toBe(true)
       })
     })
   })

@@ -324,7 +324,7 @@ describe('Parser', function () {
 
     it('fails when attributes are different', function () {
       const source = link.firstChild
-      const target = link.firstChild.cloneNode(true)
+      const target = link.firstChild!.cloneNode(true) as Element
       target.setAttribute('key', 'value')
       expect(parser.isSameNode(target, source)).toBe(false)
     })

@@ -115,11 +115,11 @@ describe('highlightText', function () {
       highlight(elem, ['b'])
       const portions = wrapMatch.mock.calls[0][0]
 
-      expect(portions.length).toBe(1, 'portions.length')
+      expect(portions.length).toBe(1)
       expect(portions[0].text).toBe('b')
-      expect(portions[0].offset).toBe(2, 'offset')
-      expect(portions[0].length).toBe(1, 'length')
-      expect(portions[0].isLastPortion).toBe(true, 'isLastPortion')
+      expect(portions[0].offset).toBe(2)
+      expect(portions[0].length).toBe(1)
+      expect(portions[0].isLastPortion).toBe(true)
     })
 
     it('finds a word that is in a text node with a character before', function () {
@@ -127,11 +127,11 @@ describe('highlightText', function () {
       highlight(elem, ['b'])
       const portions = wrapMatch.mock.calls[0][0]
 
-      expect(portions.length).toBe(1, 'portions.length')
+      expect(portions.length).toBe(1)
       expect(portions[0].text).toBe('b')
-      expect(portions[0].offset).toBe(2, 'offset')
-      expect(portions[0].length).toBe(1, 'length')
-      expect(portions[0].isLastPortion).toBe(true, 'isLastPortion')
+      expect(portions[0].offset).toBe(2)
+      expect(portions[0].length).toBe(1)
+      expect(portions[0].isLastPortion).toBe(true)
     })
 
     it('finds a word that is in a text node with a charcter after', function () {
@@ -139,11 +139,11 @@ describe('highlightText', function () {
       highlight(elem, ['b'])
       const portions = wrapMatch.mock.calls[0][0]
 
-      expect(portions.length).toBe(1, 'portions.length')
+      expect(portions.length).toBe(1)
       expect(portions[0].text).toBe('b')
-      expect(portions[0].offset).toBe(2, 'offset')
-      expect(portions[0].length).toBe(1, 'length')
-      expect(portions[0].isLastPortion).toBe(true, 'isLastPortion')
+      expect(portions[0].offset).toBe(2)
+      expect(portions[0].length).toBe(1)
+      expect(portions[0].isLastPortion).toBe(true)
     })
 
     it('finds a word that span over two text nodes', function () {
@@ -151,9 +151,9 @@ describe('highlightText', function () {
       highlight(elem, ['bc'])
       const portions = wrapMatch.mock.calls[0][0]
 
-      expect(portions.length).toBe(1, portions.length)
+      expect(portions.length).toBe(1)
       expect(portions[0].text).toBe('bc')
-      expect(portions[0].isLastPortion).toBe(true, 'isLastPortion')
+      expect(portions[0].isLastPortion).toBe(true)
     })
 
     it('finds a word that spans over three text nodes', function () {
@@ -161,7 +161,7 @@ describe('highlightText', function () {
       highlight(elem, ['abc'])
       const portions = wrapMatch.mock.calls[0][0]
 
-      expect(portions.length).toBe(1, 'portions.length')
+      expect(portions.length).toBe(1)
       expect(portions[0].text).toBe('abc')
     })
 
@@ -170,10 +170,10 @@ describe('highlightText', function () {
       highlight(elem, ['xxxx'])
       const portions = wrapMatch.mock.calls[0][0]
 
-      expect(portions.length).toBe(1, 'portions.length')
+      expect(portions.length).toBe(1)
       expect(portions[0].text).toBe('xxxx')
-      expect(portions[0].offset).toBe(2, 'offset')
-      expect(portions[0].length).toBe(4, 'length')
+      expect(portions[0].offset).toBe(2)
+      expect(portions[0].length).toBe(4)
       expect(portions[0].isLastPortion).toBe(true)
     })
   })

@@ -100,22 +100,27 @@ describe('Clipboard', function () {
     }
 
     it('replaces a single &nbsp; character', function () {
+      expect.assertions(1)
       checkWhitespace('a&nbsp;b', 'a b')
     })
 
     it('replaces a series of &nbsp; with alternating whitespace and &nbsp;', function () {
+      expect.assertions(1)
       checkWhitespace('a&nbsp;&nbsp;&nbsp;&nbsp;b', 'a \u00A0 \u00A0b')
     })
 
     it('replaces a single &nbsp; character before a <span>', function () {
+      expect.assertions(1)
       checkWhitespace('a&nbsp;<span>b</span>', 'a b')
     })
 
     it('collapses multiple whitespaces', function () {
+      expect.assertions(1)
       checkWhitespace('A  B   C    D', 'A B C D')
     })
 
     it('removes newlines', function () {
+      expect.assertions(1)
       checkWhitespace('A\nB \n C', 'A B C')
     })
 

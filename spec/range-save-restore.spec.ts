@@ -45,7 +45,7 @@ describe('RangeSaveRestore', function () {
 
     rangeSaveRestore.restore(host, savedRange)
 
-    expect(host.innerHTML).toBe('<em>a</em><em>b</em>', 'after restore')
+    expect(host.innerHTML).toBe('<em>a</em><em>b</em>')
   })
 
   it('handles a range in text nodes of two adjacent elements', function () {
@@ -67,7 +67,7 @@ describe('RangeSaveRestore', function () {
 
     rangeSaveRestore.restore(host, savedRange)
 
-    expect(host.innerHTML).toBe('<em>a</em><em>b</em>', 'after restore')
+    expect(host.innerHTML).toBe('<em>a</em><em>b</em>')
   })
 
   it('handles a range around two adjacent elements', function () {
@@ -83,6 +83,6 @@ describe('RangeSaveRestore', function () {
 
     rangeSaveRestore.restore(host, savedRange)
 
-    expect(host.innerHTML).toBe('<em>a</em><em>b</em>', 'after restore')
+    expect(host.innerHTML).toBe('<em>a</em><em>b</em>')
   })
 })

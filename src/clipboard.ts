@@ -13,7 +13,9 @@ const blockPlaceholder = '<!-- BLOCK -->'
 const URL_ATTRIBUTES = new Set(['href'])
 const ALLOWED_URL_PROTOCOLS = new Set(['http', 'https', 'mailto', 'tel'])
 const BLOCKED_URL_PROTOCOLS = new Set(['javascript', 'data', 'vbscript', 'file'])
+// oxlint-disable-next-line eslint/no-control-regex -- strip control chars from pasted URLs
 const LEADING_URL_WHITESPACE = /^[\s\u0000-\u001f\u007f]+/
+// oxlint-disable-next-line eslint/no-control-regex -- strip control chars from pasted URLs
 const URL_CONTROL_CHARS = /[\u0000-\u001f\u007f]/g
 const URL_PROTOCOL_PATTERN = /^([a-zA-Z][a-zA-Z0-9+.-]*):/
 

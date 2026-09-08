@@ -28,7 +28,13 @@ import {
 import { dispatchEditableCommand } from './command-pipeline.js'
 import type { Editable } from './core.js'
 import type { QuotePair } from './smartQuotes.js'
-import type { DispatcherEventMap, EventNotify, EventOff, EventOn } from './event-types.js'
+import type {
+  DispatcherEventMap,
+  EventHandler,
+  EventNotify,
+  EventOff,
+  EventOn
+} from './event-types.js'
 import type Cursor from './cursor.js'
 import type Selection from './selection.js'
 
@@ -531,37 +537,76 @@ export default class Dispatcher {
     )
   }
 
-  setupKeyboardEvents() {
-    const self = this
+  private keyboardHandler(
+    fn: (block: HTMLElement, event: KeyboardEvent) => void
+  ): EventHandler<HTMLElement, [KeyboardEvent]> {
+    return function (this: HTMLElement, event: KeyboardEvent) {
+      fn(this, event)
+    }
+  }
 
+  private keyboardBlockHandler(fn: (block: HTMLElement) => void): EventHandler<HTMLElement, []> {
+    return function (this: HTMLElement) {
+      fn(this)
+    }
+  }
+
+  setupKeyboardEvents() {
     this.keyboard
-      .on('up', function (this: HTMLElement, event: KeyboardEvent) {
-        self.dispatchSwitchEvent(event, this, 'up')
-      })
-      .on('down', function (this: HTMLElement, event: KeyboardEvent) {
-        self.dispatchSwitchEvent(event, this, 'down')
-      })
-      .on('backspace', function (this: HTMLElement, event: KeyboardEvent) {
-        self.handleBackspace(this as HTMLElement, event, 'keyboard')
-      })
-      .on('delete', function (this: HTMLElement, event: KeyboardEvent) {
-        self.handleDelete(this as HTMLElement, event, 'keyboard')
-      })
-      .on('enter', function (this: HTMLElement, event: KeyboardEvent) {
-        self.handleEnter(this as HTMLElement, event, 'keyboard')
-      })
-      .on('shiftEnter', function (this: HTMLElement, event: KeyboardEvent) {
-        self.handleShiftEnter(this as HTMLElement, event, 'keyboard')
-      })
-      .on('bold', function (this: HTMLElement, event: KeyboardEvent) {
-        self.handleBold(this as HTMLElement, event, 'keyboard')
-      })
-      .on('italic', function (this: HTMLElement, event: KeyboardEvent) {
-        self.handleItalic(this as HTMLElement, event, 'keyboard')
-      })
-      .on('character', function (this: HTMLElement) {
-        self.notify('change', this as HTMLElement, { source: 'keyboard' })
-      })
+      .on(
+        'up',
+        this.keyboardHandler((block, event) => {
+          this.dispatchSwitchEvent(event, block, 'up')
+        })
+      )
+      .on(
+        'down',
+        this.keyboardHandler((block, event) => {
+          this.dispatchSwitchEvent(event, block, 'down')
+        })
+      )
+      .on(
+        'backspace',
+        this.keyboardHandler((block, event) => {
+          this.handleBackspace(block, event, 'keyboard')
+        })
+      )
+      .on(
+        'delete',
+        this.keyboardHandler((block, event) => {
+          this.handleDelete(block, event, 'keyboard')
+        })
+      )
+      .on(
+        'enter',
+        this.keyboardHandler((block, event) => {
+          this.handleEnter(block, event, 'keyboard')
+        })
+      )
+      .on(
+        'shiftEnter',
+        this.keyboardHandler((block, event) => {
+          this.handleShiftEnter(block, event, 'keyboard')
+        })
+      )
+      .on(
+        'bold',
+        this.keyboardHandler((block, event) => {
+          this.handleBold(block, event, 'keyboard')
+        })
+      )
+      .on(
+        'italic',
+        this.keyboardHandler((block, event) => {
+          this.handleItalic(block, event, 'keyboard')
+        })
+      )
+      .on(
+        'character',
+        this.keyboardBlockHandler((block) => {
+          this.notify('change', block, { source: 'keyboard' })
+        })
+      )
   }
 
   notifySelectionBoundary(cursor: Cursor | Selection | undefined, evt: Event): void {

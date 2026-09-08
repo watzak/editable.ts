@@ -1,4 +1,4 @@
-import { computeDiff, type DiffOperation } from '../../src/plugins/text-diff/diff-algorithm.js'
+import { computeDiff } from '../../src/plugins/text-diff/diff-algorithm.js'
 
 describe('diff-algorithm:', function () {
   describe('computeDiff:', function () {

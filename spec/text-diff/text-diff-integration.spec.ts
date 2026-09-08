@@ -1,7 +1,6 @@
 import { vi } from 'vitest'
 import { Editable } from '../../src/features.js'
 import { createElement } from '../../src/util/dom.js'
-import highlightText from '../../src/highlight-text.js'
 
 function setupIntegrationEnv() {
   const context: any = {}

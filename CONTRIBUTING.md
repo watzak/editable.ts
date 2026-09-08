@@ -17,12 +17,15 @@ Requirements: Node.js >= 22, npm >= 11 (see `.nvmrc`).
 ```bash
 npm run dev          # Demo app (Vite dev server)
 npm test             # Vitest + lint + format check
+npm run typecheck    # tsc for src/ and spec/ (no emit)
 npm run test:watch   # Vitest in watch mode
 npm run test:coverage
 npm run test:e2e     # Playwright browser tests (examples/e2e-editor-flows.html)
 npm run lint         # oxlint
-npm run fmt          # oxfmt (auto-format)
+npm run format       # oxfmt (auto-format)
 npm run build        # TypeScript → lib/, bundle → dist/, demo → examples/dist/
+npm run validate:package  # build + consumer type tests + publint + @arethetypeswrong/cli
+npm run pack:check   # npm pack --dry-run (publish file list)
 npm run capture:readme  # Regenerate README demo GIF (needs: npx playwright install chromium)
 ```
 
@@ -30,7 +33,7 @@ npm run capture:readme  # Regenerate README demo GIF (needs: npx playwright inst
 
 1. **Focus** — One logical change per PR (feature, fix, or docs).
 2. **Tests** — Add or update Vitest specs in `spec/` for behavior changes.
-3. **Lint/format** — `npm test` runs lint and format checks automatically.
+3. **Lint/format/typecheck** — `npm test` runs lint and format checks; run `npm run typecheck` before pushing.
 4. **Docs** — Update README or `docs/` when changing public API or exports.
 5. **No drive-by refactors** — Keep diffs minimal and scoped.
 

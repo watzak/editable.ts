@@ -19,14 +19,16 @@ describe('MatchCollection', function () {
       collection.addMatches([
         {
           startIndex: 0,
-          endIndex: 1
+          endIndex: 1,
+          match: 'x'
         }
       ])
 
       expect(collection.matches).toEqual([
         {
           startIndex: 0,
-          endIndex: 1
+          endIndex: 1,
+          match: 'x'
         }
       ])
     })
@@ -35,25 +37,29 @@ describe('MatchCollection', function () {
       collection.addMatches([
         {
           startIndex: 0,
-          endIndex: 1
+          endIndex: 1,
+          match: 'x'
         }
       ])
 
       collection.addMatches([
         {
           startIndex: 1,
-          endIndex: 2
+          endIndex: 2,
+          match: 'y'
         }
       ])
 
       expect(collection.matches).toEqual([
         {
           startIndex: 0,
-          endIndex: 1
+          endIndex: 1,
+          match: 'x'
         },
         {
           startIndex: 1,
-          endIndex: 2
+          endIndex: 2,
+          match: 'y'
         }
       ])
     })
@@ -62,21 +68,24 @@ describe('MatchCollection', function () {
       collection.addMatches([
         {
           startIndex: 0,
-          endIndex: 2
+          endIndex: 2,
+          match: 'ab'
         }
       ])
 
       collection.addMatches([
         {
           startIndex: 1,
-          endIndex: 2
+          endIndex: 2,
+          match: 'b'
         }
       ])
 
       expect(collection.matches).toEqual([
         {
           startIndex: 0,
-          endIndex: 2
+          endIndex: 2,
+          match: 'ab'
         }
       ])
     })

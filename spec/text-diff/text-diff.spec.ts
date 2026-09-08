@@ -92,38 +92,43 @@ describe('TextDiff:', function () {
     it('sets up init listener when checkOnInit is true', function () {
       const editable = new Editable()
       const onSpy = vi.spyOn(editable, 'on')
-      const textDiff = new TextDiff(editable, { checkOnInit: true })
+      const _textDiff = new TextDiff(editable, { checkOnInit: true })
       expect(onSpy).toHaveBeenCalledWith('init', expect.any(Function))
+      void _textDiff
     })
 
     it('does not set up init listener when checkOnInit is false', function () {
       const editable = new Editable()
       const onSpy = vi.spyOn(editable, 'on')
-      const textDiff = new TextDiff(editable, { checkOnInit: false })
+      const _textDiff = new TextDiff(editable, { checkOnInit: false })
       const initCalls = onSpy.mock.calls.filter((call) => call[0] === 'init')
       expect(initCalls.length).toBe(0)
+      void _textDiff
     })
 
     it('sets up focus listener when checkOnFocus is true', function () {
       const editable = new Editable()
       const onSpy = vi.spyOn(editable, 'on')
-      const textDiff = new TextDiff(editable, { checkOnFocus: true })
+      const _textDiff = new TextDiff(editable, { checkOnFocus: true })
       expect(onSpy).toHaveBeenCalledWith('focus', expect.any(Function))
+      void _textDiff
     })
 
     it('sets up change listener when enabled is true', function () {
       const editable = new Editable()
       const onSpy = vi.spyOn(editable, 'on')
-      const textDiff = new TextDiff(editable, { enabled: true })
+      const _textDiff = new TextDiff(editable, { enabled: true })
       expect(onSpy).toHaveBeenCalledWith('change', expect.any(Function))
+      void _textDiff
     })
 
     it('does not set up change listener when enabled is false', function () {
       const editable = new Editable()
       const onSpy = vi.spyOn(editable, 'on')
-      const textDiff = new TextDiff(editable, { enabled: false })
+      const _textDiff = new TextDiff(editable, { enabled: false })
       const changeCalls = onSpy.mock.calls.filter((call) => call[0] === 'change')
       expect(changeCalls.length).toBe(0)
+      void _textDiff
     })
   })
 

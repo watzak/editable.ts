@@ -2,226 +2,19 @@ import { createRange, containsRange } from './util/dom.js'
 import { getWindowFeatures } from './feature-detection.js'
 import * as nodeType from './node-type.js'
 import eventable from './eventable.js'
+import {
+  isImeFallbackKey,
+  resolveCharacterAction,
+  resolveEditingAction,
+  resolveNavigationAction,
+  type KeyAction
+} from './input-normalizer.js'
+import type { TrackedInputCommand } from './input-command-tracker.js'
 import type SelectionWatcher from './selection-watcher.js'
 import type { EventNotify, EventOff, EventOn, KeyboardEventMap } from './event-types.js'
 
-interface KeyCodes {
-  left: number
-  up: number
-  right: number
-  down: number
-  tab: number
-  esc: number
-  backspace: number
-  delete: number
-  enter: number
-  shift: number
-  ctrl: number
-  alt: number
-  b: number
-  i: number
-}
-
-interface KeyboardConstructor {
-  key: KeyCodes
-}
-
-/**
- * The Keyboard module defines an event API for key events.
- */
-
-export default class Keyboard {
-  public key: KeyCodes
-  public notify!: EventNotify<KeyboardEventMap, HTMLElement>
-  public on!: EventOn<KeyboardEventMap, HTMLElement, this>
-  public off!: EventOff<KeyboardEventMap, HTMLElement>
-  public selectionWatcher: SelectionWatcher
-
-  constructor(selectionWatcher: SelectionWatcher) {
-    eventable<Keyboard, HTMLElement, KeyboardEventMap>(this)
-    this.selectionWatcher = selectionWatcher
-    this.key = (Keyboard as unknown as KeyboardConstructor).key
-  }
-
-  dispatchKeyEvent(
-    event: KeyboardEvent,
-    target: HTMLElement,
-    notifyCharacterEvent?: boolean
-  ): void {
-    switch (event.keyCode) {
-      case this.key.left:
-        return this.notify(target, 'left', event)
-
-      case this.key.right:
-        return this.notify(target, 'right', event)
-
-      case this.key.up:
-        return this.notify(target, 'up', event)
-
-      case this.key.down:
-        return this.notify(target, 'down', event)
-
-      case this.key.tab:
-        if (event.shiftKey) return this.notify(target, 'shiftTab', event)
-        return this.notify(target, 'tab', event)
-
-      case this.key.esc:
-        return this.notify(target, 'esc', event)
-
-      case this.key.backspace:
-        this.preventContenteditableBug(target, event)
-        return this.notify(target, 'backspace', event)
-
-      case this.key.delete:
-        this.preventContenteditableBug(target, event)
-        return this.notify(target, 'delete', event)
-
-      case this.key.enter:
-        if (event.shiftKey) return this.notify(target, 'shiftEnter', event)
-        return this.notify(target, 'enter', event)
-
-      case this.key.ctrl:
-      case this.key.shift:
-      case this.key.alt:
-        return
-
-      // Metakey
-      case 224: // Firefox: 224
-      case 17: // Opera: 17
-      case 91: // Chrome/Safari: 91 (Left)
-      case 93: // Chrome/Safari: 93 (Right)
-        return
-
-      default:
-        // Added here to avoid using fall-through in the switch
-        // when b or i are pressed without ctrlKey or metaKey
-        if (event.keyCode === this.key.b && (event.ctrlKey || event.metaKey)) {
-          return this.notify(target, 'bold', event)
-        }
-        if (event.keyCode === this.key.i && (event.ctrlKey || event.metaKey)) {
-          return this.notify(target, 'italic', event)
-        }
-
-        this.preventContenteditableBug(target, event)
-        if (!notifyCharacterEvent) return
-        // Don't notify character events as long as either the ctrl or
-        // meta key are pressed.
-        // see: https://github.com/livingdocsIO/editable.js/pull/125
-        if (!event.ctrlKey && !event.metaKey) return this.notify(target, 'character', event)
-    }
-  }
-
-  preventContenteditableBug(target: HTMLElement, event: KeyboardEvent): void {
-    const win = this.selectionWatcher.win ?? target.ownerDocument?.defaultView
-    if (!win) return
-    if (!getWindowFeatures(win).contenteditableSpanBug) return
-    if (event.ctrlKey || event.metaKey) return
-
-    // This fixes a strange webkit bug that can be reproduced as follows:
-    //
-    // 1. A node used within a contenteditable has some style, e.g through the
-    //    following CSS:
-    //
-    //      strong {
-    //        color: red
-    //      }
-    //
-    // 2. A selection starts with the first character of a styled node and ends
-    //    outside of that node, e.g: "big beautiful" is selected in the following
-    //    html:
-    //
-    //      <p contenteditable="true">
-    //        Hello <strong>big</strong> beautiful world
-    //      </p>
-    //
-    // 3. The user types a letter character to replace "big beautiful", e.g. "x"
-    //
-    // Result: Webkits adds <font> and <b> tags:
-    //
-    //    <p contenteditable="true">
-    //      Hello
-    //      <font color="#ff0000">
-    //        <b>f</b>
-    //      </font>
-    //      world
-    //    </p>
-    //
-    // This bug ONLY happens, if the first character of the node is selected and
-    // the selection goes further than the node.
-    //
-    // Solution:
-    //
-    // Manually remove the element that would be removed anyway before inserting
-    // the new letter.
-    const rangeContainer = this.selectionWatcher.getFreshRange()
-    if (!rangeContainer.isSelection || !rangeContainer.range) return
-
-    const nodeToRemove = Keyboard.getNodeToRemove(rangeContainer.range, target)
-    if (nodeToRemove) nodeToRemove.remove()
-  }
-
-  static getNodeToRemove(selectionRange: Range, target: HTMLElement): Element | undefined {
-    // This function is only used by preventContenteditableBug. It is exposed on
-    // the Keyboard constructor for testing purpose only.
-
-    // Let's make sure we are in the edge-case, in which the bug happens.
-    // The selection does not start at the beginning of a node. We have
-    // nothing to do.
-    if (selectionRange.startOffset !== 0) return undefined
-
-    let startNodeElement: Element = selectionRange.startContainer as Element
-
-    // If the node is a textNode, we select its parent.
-    if (startNodeElement.nodeType === nodeType.textNode) {
-      const parent = startNodeElement.parentNode
-      if (!parent || parent.nodeType !== nodeType.elementNode) return undefined
-      startNodeElement = parent as Element
-    }
-
-    // The target is the contenteditable element, which we do not want to replace
-    if (startNodeElement === target) return undefined
-
-    // We get a range that contains everything within the sartNodeElement to test
-    // if the selectionRange is within the startNode, we have nothing to do.
-    const firstChild = startNodeElement.firstChild
-    const lastChild = startNodeElement.lastChild
-    if (!firstChild || !lastChild) return undefined
-
-    const startNodeRange = createRange()
-    startNodeRange.setStartBefore(firstChild)
-    startNodeRange.setEndAfter(lastChild)
-    if (containsRange(startNodeRange, selectionRange)) return undefined
-
-    // If the selectionRange.startContainer was a textNode, we have to make sure
-    // that its parent's content starts with this node. Content is either a
-    // text node or an element. This is done to avoid false positives like the
-    // following one:
-    // <strong>foo<em>bar</em>|baz</strong>quux|
-    if (selectionRange.startContainer.nodeType === nodeType.textNode) {
-      const contentNodeTypes = [nodeType.textNode, nodeType.elementNode]
-      let firstContentNode: Node | null = startNodeElement.firstChild
-
-      do {
-        if (firstContentNode && contentNodeTypes.indexOf(firstContentNode.nodeType) !== -1) break
-        firstContentNode = firstContentNode ? firstContentNode.nextSibling : null
-      } while (firstContentNode)
-
-      if (firstContentNode !== selectionRange.startContainer) return undefined
-    }
-
-    // Now we know, that we have to return at least the startNodeElement for
-    // removal. But it could be, that we also need to remove its parent, e.g.
-    // we need to remove <strong> in the following example:
-    // <strong><em>|foo</em>bar</strong>baz|
-    const rangeStartingBeforeCurrentElement = selectionRange.cloneRange()
-    rangeStartingBeforeCurrentElement.setStartBefore(startNodeElement)
-
-    const parentResult = Keyboard.getNodeToRemove(rangeStartingBeforeCurrentElement, target)
-    return parentResult || startNodeElement
-  }
-}
-
-const keyCodes: KeyCodes = {
+// Legacy test access for key codes used in older specs.
+export const keyboardLegacyKeyCodes = {
   left: 37,
   up: 38,
   right: 39,
@@ -236,7 +29,114 @@ const keyCodes: KeyCodes = {
   alt: 18,
   b: 66,
   i: 73
+} as const
+
+export interface DispatchKeyEventOptions {
+  skipEditing?: boolean
+  shouldSuppressKeydown?: (command: TrackedInputCommand) => boolean
 }
 
-Keyboard.prototype.key = keyCodes
-;(Keyboard as unknown as KeyboardConstructor).key = keyCodes
+/**
+ * The Keyboard module defines an event API for key events.
+ */
+export default class Keyboard {
+  public notify!: EventNotify<KeyboardEventMap, HTMLElement>
+  public on!: EventOn<KeyboardEventMap, HTMLElement, this>
+  public off!: EventOff<KeyboardEventMap, HTMLElement>
+  public selectionWatcher: SelectionWatcher
+  static key = keyboardLegacyKeyCodes
+
+  constructor(selectionWatcher: SelectionWatcher) {
+    eventable<Keyboard, HTMLElement, KeyboardEventMap>(this)
+    this.selectionWatcher = selectionWatcher
+  }
+
+  dispatchKeyEvent(
+    event: KeyboardEvent,
+    target: HTMLElement,
+    notifyCharacterEvent: boolean = false,
+    options: DispatchKeyEventOptions = {}
+  ): void {
+    const navigationAction = resolveNavigationAction(event)
+    if (navigationAction) {
+      return this.notify(target, navigationAction, event)
+    }
+
+    const editingAction = resolveEditingAction(event)
+    if (editingAction) {
+      if (options.skipEditing || event.isComposing || isImeFallbackKey(event)) return
+      if (options.shouldSuppressKeydown?.(editingAction)) return
+
+      this.preventContenteditableBug(target, event, editingAction)
+      return this.notify(target, editingAction, event)
+    }
+
+    if (notifyCharacterEvent) {
+      const characterAction = resolveCharacterAction(event)
+      if (characterAction) {
+        this.preventContenteditableBug(target, event)
+        return this.notify(target, characterAction, event)
+      }
+    }
+  }
+
+  preventContenteditableBug(
+    target: HTMLElement,
+    event: KeyboardEvent,
+    editingAction?: TrackedInputCommand | KeyAction
+  ): void {
+    if (editingAction === 'bold' || editingAction === 'italic') return
+
+    const win = this.selectionWatcher.win ?? target.ownerDocument?.defaultView
+    if (!win) return
+    if (!getWindowFeatures(win).contenteditableSpanBug) return
+    if (event.ctrlKey || event.metaKey) return
+
+    const rangeContainer = this.selectionWatcher.getFreshRange()
+    if (!rangeContainer.isSelection || !rangeContainer.range) return
+
+    const nodeToRemove = Keyboard.getNodeToRemove(rangeContainer.range, target)
+    if (nodeToRemove) nodeToRemove.remove()
+  }
+
+  static getNodeToRemove(selectionRange: Range, target: HTMLElement): Element | undefined {
+    if (selectionRange.startOffset !== 0) return undefined
+
+    let startNodeElement: Element = selectionRange.startContainer as Element
+
+    if (startNodeElement.nodeType === nodeType.textNode) {
+      const parent = startNodeElement.parentNode
+      if (!parent || parent.nodeType !== nodeType.elementNode) return undefined
+      startNodeElement = parent as Element
+    }
+
+    if (startNodeElement === target) return undefined
+
+    const firstChild = startNodeElement.firstChild
+    const lastChild = startNodeElement.lastChild
+    if (!firstChild || !lastChild) return undefined
+
+    const startNodeRange = createRange()
+    startNodeRange.setStartBefore(firstChild)
+    startNodeRange.setEndAfter(lastChild)
+    if (containsRange(startNodeRange, selectionRange)) return undefined
+
+    if (selectionRange.startContainer.nodeType === nodeType.textNode) {
+      const contentNodeTypes = [nodeType.textNode, nodeType.elementNode]
+      let firstContentNode: Node | null = startNodeElement.firstChild
+
+      do {
+        if (firstContentNode && contentNodeTypes.indexOf(firstContentNode.nodeType) !== -1) break
+        firstContentNode = firstContentNode ? firstContentNode.nextSibling : null
+      } while (firstContentNode)
+
+      if (firstContentNode !== selectionRange.startContainer) return undefined
+    }
+
+    const rangeStartingBeforeCurrentElement = selectionRange.cloneRange()
+    rangeStartingBeforeCurrentElement.setStartBefore(startNodeElement)
+
+    const parentResult = Keyboard.getNodeToRemove(rangeStartingBeforeCurrentElement, target)
+    return parentResult || startNodeElement
+  }
+}

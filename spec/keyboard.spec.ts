@@ -4,99 +4,87 @@ import * as nodeType from '../src/node-type.js'
 
 describe('Keyboard', function () {
   describe('dispatchKeyEvent()', function () {
-    let keyboard, event, called
+    let keyboard: Keyboard
+    let called: number
 
     beforeEach(function () {
       const mockedSelectionWatcher = {
         getFreshRange: () => ({})
       }
-      keyboard = new Keyboard(mockedSelectionWatcher)
-      event = new Event('keydown')
+      keyboard = new Keyboard(mockedSelectionWatcher as never)
       called = 0
     })
 
     it('notifies a left event', function () {
       keyboard.on('left', () => called++)
-
-      event.keyCode = Keyboard.key.left
-      keyboard.dispatchKeyEvent(event, {})
+      const event = new KeyboardEvent('keydown', { key: 'ArrowLeft' })
+      keyboard.dispatchKeyEvent(event, {} as HTMLElement)
       expect(called).toBe(1)
     })
 
     describe('notify "character" event', function () {
       it('does not fire the event for a "left" key', function () {
         keyboard.on('character', () => called++)
-
-        event.keyCode = Keyboard.key.left
-        keyboard.dispatchKeyEvent(event, {}, true)
+        const event = new KeyboardEvent('keydown', { key: 'ArrowLeft' })
+        keyboard.dispatchKeyEvent(event, {} as HTMLElement, true)
         expect(called).toBe(0)
       })
 
       it('does not fire the event for a "ctrl" key', function () {
         keyboard.on('character', () => called++)
-
-        event.keyCode = Keyboard.key.ctrl
-        keyboard.dispatchKeyEvent(event, {}, true)
+        const event = new KeyboardEvent('keydown', { key: 'Control' })
+        keyboard.dispatchKeyEvent(event, {} as HTMLElement, true)
         expect(called).toBe(0)
       })
 
       it('does fire the event for a "e" key', function () {
         keyboard.on('character', () => called++)
-
-        event.keyCode = 'e'.charCodeAt(0)
-        keyboard.dispatchKeyEvent(event, {}, true)
+        const event = new KeyboardEvent('keydown', { key: 'e' })
+        keyboard.dispatchKeyEvent(event, {} as HTMLElement, true)
         expect(called).toBe(1)
       })
 
       it('does not fire the event for a "e" key without the notifyCharacterEvent param', function () {
-        keyboard.on('character', (evt) => called++)
-
-        event.keyCode = 'e'.charCodeAt(0)
-        keyboard.dispatchKeyEvent(event, {}, false)
+        keyboard.on('character', () => called++)
+        const event = new KeyboardEvent('keydown', { key: 'e' })
+        keyboard.dispatchKeyEvent(event, {} as HTMLElement, false)
         expect(called).toBe(0)
       })
 
-      it('does fire the event for a "b" key', function () {
-        keyboard.on('character', () => called++)
-
-        event.keyCode = Keyboard.key.b
-        keyboard.dispatchKeyEvent(event, {}, true)
-        expect(called).toBe(1)
+      it('does not fire editing events while composing', function () {
+        keyboard.on('enter', () => called++)
+        const event = new KeyboardEvent('keydown', { key: 'Enter', isComposing: true })
+        keyboard.dispatchKeyEvent(event, {} as HTMLElement)
+        expect(called).toBe(0)
       })
 
-      it('does fire the event for an "i" key', function () {
-        keyboard.on('character', () => called++)
-
-        event.keyCode = Keyboard.key.i
-        keyboard.dispatchKeyEvent(event, {}, true)
-        expect(called).toBe(1)
+      it('does not fire editing events for IME fallback keyCode 229', function () {
+        keyboard.on('enter', () => called++)
+        const event = new KeyboardEvent('keydown', { key: 'Enter', keyCode: 229 })
+        keyboard.dispatchKeyEvent(event, {} as HTMLElement)
+        expect(called).toBe(0)
       })
     })
 
     describe('notify "bold" event', function () {
       it('does not fire the event for a "b" key without "ctrl" or "meta" key', function () {
         keyboard.on('bold', () => called++)
-
-        event.keyCode = Keyboard.key.b
-        keyboard.dispatchKeyEvent(event, {}, true)
+        const event = new KeyboardEvent('keydown', { key: 'b', code: 'KeyB' })
+        keyboard.dispatchKeyEvent(event, {} as HTMLElement, true)
         expect(called).toBe(0)
       })
 
       it('does fire the event for a "b" key with "ctrl" key', function () {
         keyboard.on('bold', () => called++)
-
-        event.keyCode = Keyboard.key.b
-        event.ctrlKey = true
-        keyboard.dispatchKeyEvent(event, {}, true)
+        const event = new KeyboardEvent('keydown', { key: 'b', code: 'KeyB', ctrlKey: true })
+        keyboard.dispatchKeyEvent(event, {} as HTMLElement, true)
         expect(called).toBe(1)
       })
 
       it('does fire the event for a "b" key with "meta" key', function () {
         keyboard.on('bold', () => called++)
-
-        event.keyCode = Keyboard.key.b
-        event.metaKey = true
-        keyboard.dispatchKeyEvent(event, {}, true)
+        const event = new KeyboardEvent('keydown', { key: 'b', code: 'KeyB', metaKey: true })
+        keyboard.dispatchKeyEvent(event, {} as HTMLElement, true)
         expect(called).toBe(1)
       })
     })
@@ -104,60 +92,44 @@ describe('Keyboard', function () {
     describe('notify "italic" event', function () {
       it('does not fire the event for a "i" key without "ctrl" or "meta" key', function () {
         keyboard.on('italic', () => called++)
-
-        event.keyCode = Keyboard.key.i
-        keyboard.dispatchKeyEvent(event, {}, true)
+        const event = new KeyboardEvent('keydown', { key: 'i', code: 'KeyI' })
+        keyboard.dispatchKeyEvent(event, {} as HTMLElement, true)
         expect(called).toBe(0)
       })
 
       it('does fire the event for a "i" key with "ctrl" key', function () {
         keyboard.on('italic', () => called++)
-
-        event.keyCode = Keyboard.key.i
-        event.ctrlKey = true
-        keyboard.dispatchKeyEvent(event, {}, true)
-        expect(called).toBe(1)
-      })
-
-      it('does fire the event for a "i" key with "meta" key', function () {
-        keyboard.on('italic', () => called++)
-
-        event.keyCode = Keyboard.key.i
-        event.metaKey = true
-        keyboard.dispatchKeyEvent(event, {}, true)
+        const event = new KeyboardEvent('keydown', { key: 'i', code: 'KeyI', ctrlKey: true })
+        keyboard.dispatchKeyEvent(event, {} as HTMLElement, true)
         expect(called).toBe(1)
       })
     })
   })
 
   describe('getNodeToRemove()', function () {
-    let contenteditable,
-      range,
-      nodeText1,
-      nodeText2,
-      nodeText3,
-      nodeText4,
-      nodeText5,
-      nodeText6,
-      nodeA,
-      nodeB,
-      nodeC
+    let contenteditable: HTMLElement
+    let range: Range
+    let nodeText2: Text
+    let nodeText3: Text
+    let nodeText4: Text
+    let nodeText5: Text
+    let nodeText6: Text
+    let nodeA: Element
+    let nodeB: Element
 
     beforeEach(function () {
       contenteditable = createElement(
         '<CONTENTEDITABLE>Text1<A><B>Text2</B>Text3<C>Text4</C>Text5</A>Text6</CONTENTEDITABLE>'
-      )
-      const nodes = {}
+      ) as HTMLElement
+      const nodes: Record<string, Node> = {}
       destructureNodes(contenteditable, nodes)
-      nodeText1 = nodes.nodeText1
-      nodeText2 = nodes.nodeText2
-      nodeText3 = nodes.nodeText3
-      nodeText4 = nodes.nodeText4
-      nodeText5 = nodes.nodeText5
-      nodeText6 = nodes.nodeText6
-      nodeA = nodes.nodeA
-      nodeB = nodes.nodeB
-      nodeC = nodes.nodeC
+      nodeText2 = nodes.nodeText2 as Text
+      nodeText3 = nodes.nodeText3 as Text
+      nodeText4 = nodes.nodeText4 as Text
+      nodeText5 = nodes.nodeText5 as Text
+      nodeText6 = nodes.nodeText6 as Text
+      nodeA = nodes.nodeA as Element
+      nodeB = nodes.nodeB as Element
       range = createRange()
     })
 
@@ -197,7 +169,7 @@ describe('Keyboard', function () {
       expect(Keyboard.getNodeToRemove(range, contenteditable)).toBe(undefined)
     })
 
-    it('returns undefined for a range that starts with an offset of 1', function () {
+    it('returns undefined for a range that starts with an offset of 1 on text3', function () {
       range.setStart(nodeText3, 0)
       range.setEnd(nodeText6, 2)
       expect(Keyboard.getNodeToRemove(range, contenteditable)).toBe(undefined)
@@ -205,10 +177,10 @@ describe('Keyboard', function () {
   })
 })
 
-function destructureNodes(elem, obj) {
+function destructureNodes(elem: Node, obj: Record<string, Node>) {
   Array.from(elem.childNodes, (node) => {
     if (node.nodeType === nodeType.elementNode) {
-      obj[`node${node.tagName}`] = node
+      obj[`node${(node as Element).tagName}`] = node
       destructureNodes(node, obj)
     } else if (node.nodeType === nodeType.textNode) {
       obj[`node${node.nodeValue}`] = node

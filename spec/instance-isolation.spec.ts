@@ -65,7 +65,7 @@ describe('Instance isolation', function () {
       const firstSplit = countEvents(first, 'split')
       const secondSplit = countEvents(second, 'split')
 
-      blockA.dispatchEvent(new KeyboardEvent('keydown', { keyCode: key.enter, bubbles: true }))
+      blockA.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
 
       expect(firstSplit.calls).toBe(1)
       expect(secondSplit.calls).toBe(0)
@@ -98,9 +98,7 @@ describe('Instance isolation', function () {
           resolve()
         })
 
-        blockA.dispatchEvent(
-          new KeyboardEvent('keydown', { keyCode: key.backspace, bubbles: true })
-        )
+        blockA.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }))
       })
     })
 
@@ -157,7 +155,7 @@ describe('Instance isolation', function () {
       createCursor(blockB, 2)
 
       const secondSplit = countEvents(second, 'split')
-      blockB.dispatchEvent(new KeyboardEvent('keydown', { keyCode: key.enter, bubbles: true }))
+      blockB.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
 
       expect(secondSplit.calls).toBe(1)
     })

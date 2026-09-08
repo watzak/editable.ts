@@ -11,6 +11,11 @@ import {
 import { closest } from './util/dom.js'
 import { replaceLast, endsWithSingleSpace } from './util/string.js'
 import { applySmartQuotes, shouldApplySmartQuotes } from './smartQuotes.js'
+import { isBlockComposing, isEditingSuppressed, setBlockComposing } from './composition-state.js'
+import { getInputCapabilities, isBeforeInputPreferred } from './input-capabilities.js'
+import { InputCommandTracker } from './input-command-tracker.js'
+import { mapCommandToInputType, mapInputTypeToCommand } from './input-normalizer.js'
+import type { TrackedInputCommand } from './input-command-tracker.js'
 import type { Editable } from './core.js'
 import type { QuotePair } from './smartQuotes.js'
 import type { DispatcherEventMap, EventNotify, EventOff, EventOn } from './event-types.js'
@@ -28,6 +33,7 @@ export default class Dispatcher {
   public editableSelector: string
   public selectionWatcher: SelectionWatcher
   public keyboard: Keyboard
+  public inputCommandTracker: InputCommandTracker
   public activeListeners: SharedDocumentListener[]
   public suspended?: boolean
   public switchContext?: {
@@ -48,6 +54,7 @@ export default class Dispatcher {
     this.editableSelector = editable.editableSelector
     this.selectionWatcher = new SelectionWatcher(this, win)
     this.keyboard = new Keyboard(this.selectionWatcher)
+    this.inputCommandTracker = new InputCommandTracker()
     this.activeListeners = []
     this.setup()
     this.getEditableBlockByEvent = (evt: Event) => {
@@ -70,13 +77,7 @@ export default class Dispatcher {
     return this
   }
 
-  /**
-   * Sets up all DOM and keyboard listeners used by the dispatcher.
-   *
-   * @method setup
-   */
   setup() {
-    // setup all events listeners and keyboard handlers
     this.setupKeyboardEvents()
     this.setupEventListeners()
   }
@@ -106,6 +107,8 @@ export default class Dispatcher {
 
   setupEventListeners() {
     this.setupElementListeners()
+    this.setupCompositionListeners()
+    this.setupBeforeInputListener()
     this.setupKeydownListener()
 
     if (getWindowFeatures(this.editable.win).selectionchange) {
@@ -115,11 +118,159 @@ export default class Dispatcher {
     }
   }
 
-  /**
-   * Sets up events that are triggered on modifying an element.
-   *
-   * @method setupElementListeners
-   */
+  setupCompositionListeners() {
+    this.setupDocumentListener(
+      'compositionstart',
+      function compositionStartListener(this: Dispatcher, evt: Event) {
+        const block = this.getEditableBlockByEvent(evt)
+        if (!block) return
+        setBlockComposing(block, true)
+      },
+      true
+    ).setupDocumentListener(
+      'compositionend',
+      function compositionEndListener(this: Dispatcher, evt: Event) {
+        const block = this.getEditableBlockByEvent(evt)
+        if (!block) return
+        setBlockComposing(block, false)
+        this.notify('change', block)
+      },
+      true
+    )
+  }
+
+  setupBeforeInputListener() {
+    const capabilities = getInputCapabilities(this.editable.win)
+    if (!capabilities.beforeInput) return
+
+    this.setupDocumentListener(
+      'beforeinput',
+      function beforeInputListener(this: Dispatcher, evt: Event) {
+        const block = this.getEditableBlockByEvent(evt)
+        if (!block) return
+
+        const inputEvent = evt as InputEvent
+        if (isEditingSuppressed(block, inputEvent)) return
+
+        const command = mapInputTypeToCommand(inputEvent.inputType)
+        if (!command) return
+
+        if (command === 'paste') {
+          this.inputCommandTracker.markPastePending(block)
+          return
+        }
+
+        if (!isBeforeInputPreferred(capabilities, mapCommandToInputType(command))) return
+
+        if (this.executeEditingCommand(block, command, inputEvent)) {
+          inputEvent.preventDefault()
+          inputEvent.stopPropagation()
+          this.inputCommandTracker.markBeforeInputHandled(block, command)
+          this.inputCommandTracker.markStructuralChange(block)
+          this.notify('change', block)
+        }
+      },
+      true
+    )
+  }
+
+  executeEditingCommand(block: HTMLElement, command: TrackedInputCommand, event: Event): boolean {
+    switch (command) {
+      case 'enter':
+        return this.handleEnter(block, event)
+      case 'shiftEnter':
+        return this.handleShiftEnter(block, event)
+      case 'backspace':
+        return this.handleBackspace(block, event)
+      case 'delete':
+        return this.handleDelete(block, event)
+      case 'bold':
+        return this.handleBold(block, event)
+      case 'italic':
+        return this.handleItalic(block, event)
+      default:
+        return false
+    }
+  }
+
+  handleBackspace(block: HTMLElement, event: Event): boolean {
+    const rangeContainer = this.selectionWatcher.getFreshRange()
+    if (!rangeContainer.isCursor) return false
+
+    const cursor = rangeContainer.getCursor()
+    if (!cursor || !cursor.isAtBeginning()) return false
+
+    event.preventDefault()
+    event.stopPropagation()
+    this.notify('merge', block, 'before', cursor)
+    return true
+  }
+
+  handleDelete(block: HTMLElement, event: Event): boolean {
+    const rangeContainer = this.selectionWatcher.getFreshRange()
+    if (!rangeContainer.isCursor) return false
+
+    const cursor = rangeContainer.getCursor()
+    if (!cursor || !cursor.isAtTextEnd()) return false
+
+    event.preventDefault()
+    event.stopPropagation()
+    this.notify('merge', block, 'after', cursor)
+    return true
+  }
+
+  handleEnter(block: HTMLElement, event: Event): boolean {
+    event.preventDefault()
+    event.stopPropagation()
+    const rangeContainer = this.selectionWatcher.getFreshRange()
+    const cursor = rangeContainer.forceCursor()
+    if (!cursor) return false
+
+    if (cursor.isAtTextEnd()) {
+      this.notify('insert', block, 'after', cursor)
+    } else if (cursor.isAtBeginning()) {
+      this.notify('insert', block, 'before', cursor)
+    } else {
+      const beforeFragment = cursor.before()
+      const afterFragment = cursor.after()
+      this.notify(
+        'split',
+        block,
+        content.getInnerHtmlOfFragment(beforeFragment),
+        content.getInnerHtmlOfFragment(afterFragment),
+        cursor
+      )
+    }
+    return true
+  }
+
+  handleShiftEnter(block: HTMLElement, event: Event): boolean {
+    event.preventDefault()
+    event.stopPropagation()
+    const cursor = this.selectionWatcher.forceCursor()
+    if (!cursor) return false
+    this.notify('newline', block, cursor)
+    return true
+  }
+
+  handleBold(block: HTMLElement, event: Event): boolean {
+    const selection = this.selectionWatcher.getFreshSelection()
+    if (!selection || !selection.isSelection) return false
+    event.preventDefault()
+    event.stopPropagation()
+    this.notify('toggleBold', selection as Selection)
+    return true
+  }
+
+  handleItalic(block: HTMLElement, event: Event): boolean {
+    const selection = this.selectionWatcher.getFreshSelection()
+    if (!selection || !selection.isSelection) return false
+    event.preventDefault()
+    event.stopPropagation()
+    this.notify('toggleEmphasis', selection as Selection)
+    return true
+  }
+
   setupElementListeners() {
     const currentInput: { offset?: number } = { offset: undefined }
     this.setupDocumentListener(
@@ -166,6 +317,7 @@ export default class Dispatcher {
 
         const clipEvent = evt as ClipboardEvent
         clipEvent.preventDefault()
+        this.inputCommandTracker.clearPastePending(block)
         const selection = this.selectionWatcher.getFreshSelection()
         if (!selection || !clipEvent.clipboardData) return
         const clipboardContent =
@@ -186,9 +338,8 @@ export default class Dispatcher {
             })
           }
           this.notify('paste', block, blocks, cursor)
-          // The input event does not fire when we process the content manually
-          // and insert it via script
           this.notify('change', block)
+          this.inputCommandTracker.markStructuralChange(block)
         } else {
           cursor.setVisibleSelection()
         }
@@ -196,12 +347,13 @@ export default class Dispatcher {
       .setupDocumentListener('input', function inputListener(this: Dispatcher, evt: Event) {
         const block = this.getEditableBlockByEvent(evt)
         if (!block) return
+        if (isBlockComposing(block, evt as InputEvent)) return
+        if (this.inputCommandTracker.shouldSuppressChange(block)) return
 
         const target = evt.target as HTMLElement
         if (target && shouldApplySmartQuotes(this.config, target)) {
           const selection = this.selectionWatcher.getFreshSelection()
           if (!selection || !selection.range) return
-          // Save offset of new input, to reset cursor correctly after timeout delay
           currentInput.offset = selection.range.startOffset
           const inputEvent = evt as InputEvent
           const quotesConfig = {
@@ -223,7 +375,6 @@ export default class Dispatcher {
 
         this.notify('change', block)
       })
-
       .setupDocumentListener(
         'formatEditable',
         function formatEditableListener(this: Dispatcher, evt: Event) {
@@ -239,7 +390,6 @@ export default class Dispatcher {
     const cursor = this.selectionWatcher.getFreshSelection()
     if (!cursor || cursor.isSelection) return
 
-    // store position
     if (!this.switchContext) {
       this.switchContext = {
         positionX: cursor.getBoundingClientRect().left,
@@ -264,12 +414,6 @@ export default class Dispatcher {
     }
   }
 
-  /**
-   * Sets up listener for keydown event which forwards events to
-   * the Keyboard instance.
-   *
-   * @method setupKeydownListener
-   */
   setupKeydownListener() {
     this.setupDocumentListener(
       'keydown',
@@ -277,18 +421,17 @@ export default class Dispatcher {
         const block = this.getEditableBlockByEvent(evt)
         if (!block) return
         const keyEvent = evt as KeyboardEvent
-        this.keyboard.dispatchKeyEvent(keyEvent, block, false)
+
+        this.keyboard.dispatchKeyEvent(keyEvent, block, false, {
+          skipEditing: isEditingSuppressed(block, keyEvent),
+          shouldSuppressKeydown: (command) =>
+            this.inputCommandTracker.shouldSuppressKeydown(block, command)
+        })
       },
       true
     )
   }
 
-  /**
-   * Registers keyboard handlers that translate low-level key presses into
-   * semantic editor events.
-   *
-   * @method setupKeyboardEvents
-   */
   setupKeyboardEvents() {
     const self = this
 
@@ -296,94 +439,41 @@ export default class Dispatcher {
       .on('up', function (this: HTMLElement, event: KeyboardEvent) {
         self.dispatchSwitchEvent(event, this, 'up')
       })
-
       .on('down', function (this: HTMLElement, event: KeyboardEvent) {
         self.dispatchSwitchEvent(event, this, 'down')
       })
-
       .on('backspace', function (this: HTMLElement, event: KeyboardEvent) {
-        const editableBlock = this as HTMLElement
-        const rangeContainer = self.selectionWatcher.getFreshRange()
-        if (!rangeContainer.isCursor) return
-
-        const cursor = rangeContainer.getCursor()
-        if (!cursor || !cursor.isAtBeginning()) return
-
-        event.preventDefault()
-        event.stopPropagation()
-        self.notify('merge', editableBlock, 'before', cursor)
+        if (self.handleBackspace(this as HTMLElement, event)) {
+          self.notify('change', this as HTMLElement)
+        }
       })
-
       .on('delete', function (this: HTMLElement, event: KeyboardEvent) {
-        const editableBlock = this as HTMLElement
-        const rangeContainer = self.selectionWatcher.getFreshRange()
-        if (!rangeContainer.isCursor) return
-
-        const cursor = rangeContainer.getCursor()
-        if (!cursor || !cursor.isAtTextEnd()) return
-
-        event.preventDefault()
-        event.stopPropagation()
-        self.notify('merge', editableBlock, 'after', cursor)
+        if (self.handleDelete(this as HTMLElement, event)) {
+          self.notify('change', this as HTMLElement)
+        }
       })
-
       .on('enter', function (this: HTMLElement, event: KeyboardEvent) {
-        const editableBlock = this as HTMLElement
-        event.preventDefault()
-        event.stopPropagation()
-        const rangeContainer = self.selectionWatcher.getFreshRange()
-        const cursor = rangeContainer.forceCursor()
-
-        if (!cursor) return
-
-        if (cursor.isAtTextEnd()) {
-          self.notify('insert', editableBlock, 'after', cursor)
-        } else if (cursor.isAtBeginning()) {
-          self.notify('insert', editableBlock, 'before', cursor)
-        } else {
-          const beforeFragment = cursor.before()
-          const afterFragment = cursor.after()
-          self.notify(
-            'split',
-            editableBlock,
-            content.getInnerHtmlOfFragment(beforeFragment),
-            content.getInnerHtmlOfFragment(afterFragment),
-            cursor
-          )
+        if (self.handleEnter(this as HTMLElement, event)) {
+          self.notify('change', this as HTMLElement)
         }
       })
-
       .on('shiftEnter', function (this: HTMLElement, event: KeyboardEvent) {
-        const editableBlock = this as HTMLElement
-        event.preventDefault()
-        event.stopPropagation()
-        const cursor = self.selectionWatcher.forceCursor()
-        if (cursor) {
-          self.notify('newline', editableBlock, cursor)
+        if (self.handleShiftEnter(this as HTMLElement, event)) {
+          self.notify('change', this as HTMLElement)
         }
       })
-
       .on('bold', function (this: HTMLElement, event: KeyboardEvent) {
-        event.preventDefault()
-        event.stopPropagation()
-        const selection = self.selectionWatcher.getFreshSelection()
-        if (selection && selection.isSelection) {
-          self.notify('toggleBold', selection as Selection)
+        if (self.handleBold(this as HTMLElement, event)) {
+          self.notify('change', this as HTMLElement)
         }
       })
-
       .on('italic', function (this: HTMLElement, event: KeyboardEvent) {
-        event.preventDefault()
-        event.stopPropagation()
-        const selection = self.selectionWatcher.getFreshSelection()
-        if (selection && selection.isSelection) {
-          self.notify('toggleEmphasis', selection as Selection)
+        if (self.handleItalic(this as HTMLElement, event)) {
+          self.notify('change', this as HTMLElement)
         }
       })
-
-      .on('character', function (this: HTMLElement, event: KeyboardEvent) {
-        const editableBlock = this as HTMLElement
-        self.notify('change', editableBlock)
+      .on('character', function (this: HTMLElement) {
+        self.notify('change', this as HTMLElement)
       })
   }
 
@@ -399,11 +489,6 @@ export default class Dispatcher {
     }
   }
 
-  /**
-   * Sets up events that are triggered on a selection change.
-   *
-   * @method setupSelectionChangeListeners
-   */
   setupSelectionChangeListeners() {
     let selectionDirty = false
     let suppressSelectionChanges = false
@@ -451,20 +536,12 @@ export default class Dispatcher {
       selectionWatcher.selectionChanged(rangeContainer)
     }
 
-    // fires on mousemove (thats probably a bit too much)
-    // catches changes like 'select all' from context menu
     this.setupDocumentListener('selectionchange', queueSelectionChange)
 
-    // listen for selection changes by mouse so we can
-    // suppress the selectionchange event and only fire the
-    // change event on mouseup
     this.setupDocumentListener('mousedown', function (this: Dispatcher, evt: Event) {
       if (!this.getEditableBlockByEvent(evt)) return
       if (this.config.mouseMoveSelectionChanges === false) {
         suppressSelectionChanges = true
-
-        // Without this timeout the previous selection is active
-        // until the mouseup event (no. not good).
         setTimeout(updateSelectionAfterMouseDown, 0)
       }
 
@@ -486,30 +563,16 @@ export default class Dispatcher {
     })
   }
 
-  /**
-   * Fallback solution to support selection change events on browsers that don't
-   * support selectionChange.
-   *
-   * @method setupSelectionChangeFallbackListeners
-   */
   setupSelectionChangeFallbackListeners() {
-    // listen for selection changes by mouse
     this.setupDocumentListener('mouseup', (evt: Event) => {
-      // In Opera when clicking outside of a block
-      // it does not update the selection as it should
-      // without the timeout
       setTimeout(() => {
         const cursor = this.selectionWatcher.selectionChanged()
         this.notifySelectionBoundary(cursor, evt)
       }, 0)
     })
 
-    // listen for selection changes by keys
     this.setupDocumentListener('keyup', (evt: Event) => {
       if (!this.getEditableBlockByEvent(evt)) return
-      // when pressing Command + Shift + Left for example the keyup is only triggered
-      // after at least two keys are released. Strange. The culprit seems to be the
-      // Command key. Do we need a workaround?
       const cursor = this.selectionWatcher.selectionChanged()
       this.notifySelectionBoundary(cursor, evt)
     })

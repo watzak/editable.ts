@@ -114,7 +114,7 @@ describe('Dispatcher:', function () {
           expect(cursor.isCursor).toBe(true)
         })
 
-        const evt = new KeyboardEvent('keydown', { keyCode: key.enter })
+        const evt = new KeyboardEvent('keydown', { key: 'Enter' })
         elem.dispatchEvent(evt)
         expect(insert.calls).toBe(1)
       })
@@ -133,7 +133,7 @@ describe('Dispatcher:', function () {
           expect(cursor.isCursor).toBe(true)
         })
 
-        const evt = new KeyboardEvent('keydown', { keyCode: key.enter })
+        const evt = new KeyboardEvent('keydown', { key: 'Enter' })
         elem.dispatchEvent(evt)
         expect(insert.calls).toBe(1)
       })
@@ -154,7 +154,7 @@ describe('Dispatcher:', function () {
           expect(cursor.isCursor).toBe(true)
         })
 
-        const evt = new KeyboardEvent('keydown', { keyCode: key.enter })
+        const evt = new KeyboardEvent('keydown', { key: 'Enter' })
         elem.dispatchEvent(evt)
         expect(insert.calls).toBe(1)
       })
@@ -171,7 +171,7 @@ describe('Dispatcher:', function () {
             resolve()
           })
 
-          elem.dispatchEvent(new KeyboardEvent('keydown', { keyCode: key.backspace }))
+          elem.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace' }))
         })
       })
     })
@@ -187,7 +187,7 @@ describe('Dispatcher:', function () {
             resolve()
           })
 
-          elem.dispatchEvent(new KeyboardEvent('keydown', { keyCode: key.delete }))
+          elem.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete' }))
         })
       })
     })
@@ -207,7 +207,7 @@ describe('Dispatcher:', function () {
         element.dispatchEvent(
           new KeyboardEvent('keydown', {
             shiftKey: true,
-            keyCode: 13
+            key: 'Enter'
           })
         )
       }
@@ -255,7 +255,7 @@ describe('Dispatcher:', function () {
             resolve()
           })
 
-          const evt = new KeyboardEvent('keydown', { ctrlKey: true, keyCode: key.b })
+          const evt = new KeyboardEvent('keydown', { ctrlKey: true, key: 'b', code: 'KeyB' })
           elem.dispatchEvent(evt)
         })
       })
@@ -273,7 +273,7 @@ describe('Dispatcher:', function () {
             resolve()
           })
 
-          const evt = new KeyboardEvent('keydown', { ctrlKey: true, keyCode: key.i })
+          const evt = new KeyboardEvent('keydown', { ctrlKey: true, key: 'i', code: 'KeyI' })
           elem.dispatchEvent(evt)
         })
       })

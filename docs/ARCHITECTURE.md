@@ -105,6 +105,20 @@ Each `Editable` instance maintains a registry of its editable blocks (`WeakMap` 
 - Ranges, fragments, and text nodes are created from the relevant `ownerDocument` / configured `Window`.
 - `add()` / `enable()` can adopt cross-realm elements via `document.adoptNode()`.
 
+**Input pipeline:**
+
+```
+native event (beforeinput preferred, keydown fallback)
+  -> input normalization (inputType / key+code, composition guard)
+  -> semantic command (enter, split, merge, newline, bold, italic)
+  -> default/custom behavior handlers
+  -> change (once per actual edit; suppressed during composition/intermediate states)
+```
+
+- `beforeinput` handles editing `inputType`s when supported (`insertParagraph`, `insertLineBreak`, `deleteContentBackward`, `deleteContentForward`, `formatBold`, `formatItalic`). `insertFromPaste` is delegated to the existing secure `paste` listener.
+- `keydown` remains for arrow navigation, Tab/Esc, and as fallback when `beforeinput` is unavailable or did not run.
+- Composition state (`compositionstart`/`compositionend`, `isComposing`, keyCode `229`) blocks structural commands until composition completes.
+
 **Key Methods (core entry):**
 
 - `add()` / `remove()` — Enable/disable editable functionality

@@ -88,9 +88,7 @@ describe('Iframe and cross-realm editing', function () {
     range.collapse(true)
     new Cursor(block, range).setVisibleSelection()
 
-    block.dispatchEvent(
-      new iframeWin.KeyboardEvent('keydown', { keyCode: key.enter, bubbles: true })
-    )
+    block.dispatchEvent(new iframeWin.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
 
     expect(splitCount).toBe(1)
 

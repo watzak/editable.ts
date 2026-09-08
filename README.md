@@ -75,6 +75,17 @@ editable.add(blockElement)
 
 For embedded editors, pass the iframe's `contentWindow` via `{ window }`. DOM nodes, `NodeList`s, and selector strings from that document are supported; cross-realm elements are adopted into the configured document on `add()`/`enable()`. Feature detection (for example `selectionchange` support) is evaluated per window and cached internally.
 
+### Input pipeline (IME, mobile, beforeinput)
+
+Editing commands are normalized from native events per window:
+
+1. **`beforeinput`** (preferred when supported) — maps `inputType` to semantic commands (`insertParagraph`, `insertLineBreak`, `deleteContentBackward`, `deleteContentForward`, `formatBold`, `formatItalic`). Paste (`insertFromPaste`) is delegated to the existing secure `paste` listener.
+2. **`keydown`** (fallback) — handles the same editing commands when `beforeinput` is unavailable or did not run; always handles arrow navigation, Tab, and Esc.
+3. **Composition** — `compositionstart`/`compositionend` track per-block IME state; structural commands are suppressed while composing (`isComposing`, keyCode `229`).
+4. **Dedup** — a handled `beforeinput` suppresses only the paired `keydown` for that gesture; repeated key presses are not blocked.
+
+Capability detection probes `onbeforeinput` and `InputEvent.prototype.inputType` (no user-agent sniffing). See `docs/ARCHITECTURE.md` for the full event flow.
+
 ### Package exports: core vs. features
 
 | Import                 | Purpose                                                                                   |

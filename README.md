@@ -60,6 +60,21 @@ import { Editable } from 'editable.ts'
 
 Or use the prebuilt UMD bundle: `dist/editable.umd.cjs`.
 
+### SSR and iframe integration
+
+`editable.ts` can be imported in Node/SSR environments without a browser `window` or `document`. Module initialization no longer touches global browser APIs; constructing `new Editable()` requires a real `Window` (typically after client mount/hydration).
+
+```typescript
+// Server bundle — import is safe
+import { Editable } from 'editable.ts'
+
+// Client-only — after mount
+const editable = new Editable({ window: iframeRef.current?.contentWindow ?? window })
+editable.add(blockElement)
+```
+
+For embedded editors, pass the iframe's `contentWindow` via `{ window }`. DOM nodes, `NodeList`s, and selector strings from that document are supported; cross-realm elements are adopted into the configured document on `add()`/`enable()`. Feature detection (for example `selectionchange` support) is evaluated per window and cached internally.
+
 ### Package exports: core vs. features
 
 | Import                 | Purpose                                                                                   |

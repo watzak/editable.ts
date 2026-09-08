@@ -1,4 +1,4 @@
-import { selectionchange } from './feature-detection.js'
+import { getWindowFeatures } from './feature-detection.js'
 import * as clipboard from './clipboard.js'
 import * as content from './content.js'
 import eventable from './eventable.js'
@@ -108,7 +108,7 @@ export default class Dispatcher {
     this.setupElementListeners()
     this.setupKeydownListener()
 
-    if (selectionchange) {
+    if (getWindowFeatures(this.editable.win).selectionchange) {
       this.setupSelectionChangeListeners()
     } else {
       this.setupSelectionChangeFallbackListeners()

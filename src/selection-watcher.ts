@@ -15,9 +15,9 @@ export default class SelectionWatcher {
   public currentSelection: Cursor | Selection | undefined
   public currentRange: RangeContainer | undefined
 
-  constructor(dispatcher: Dispatcher, win?: Window) {
+  constructor(dispatcher: Dispatcher, win: Window) {
     this.dispatcher = dispatcher
-    this.win = win || window
+    this.win = win
     this.selection = undefined
     this.currentSelection = undefined
     this.currentRange = undefined

@@ -84,7 +84,7 @@ export default function createDefaultBehavior(editable: Editable) {
     },
 
     split(element: HTMLElement, before: string, after: string, cursor: Cursor): void {
-      const fragment = content.createFragmentFromString(before)
+      const fragment = content.createFragmentFromString(before, document)
       const newNode = element.cloneNode(false) as HTMLElement
       newNode.appendChild(fragment)
 
@@ -112,9 +112,9 @@ export default function createDefaultBehavior(editable: Editable) {
       // Calculate text lengths before merging to position cursor correctly.
       // Reuse one parse operation per content string.
       const targetTextLength =
-        content.createFragmentFromString(targetContent).textContent?.length || 0
+        content.createFragmentFromString(targetContent, document).textContent?.length || 0
       const elementTextLength =
-        content.createFragmentFromString(elementContent).textContent?.length || 0
+        content.createFragmentFromString(elementContent, document).textContent?.length || 0
 
       const mergedContent =
         direction === 'before' ? targetContent + elementContent : elementContent + targetContent
@@ -170,7 +170,7 @@ export default function createDefaultBehavior(editable: Editable) {
       blocks.slice(1).forEach((str: string) => {
         const newElement = element.cloneNode(false) as HTMLElement
         if (newElement.id) newElement.removeAttribute('id')
-        const fragment = content.createFragmentFromString(str)
+        const fragment = content.createFragmentFromString(str, document)
         newElement.appendChild(fragment)
         parent.insertBefore(newElement, currentElement.nextSibling)
         currentElement = newElement

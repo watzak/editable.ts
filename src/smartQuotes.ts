@@ -50,7 +50,9 @@ export const replaceQuote = (range: Range, index: number, quoteType: string): Te
     return null
   }
   const newText = `${nodeValue.substring(0, index)}${quoteType}${nodeValue.substring(index + 1)}`
-  const newTextNode = document.createTextNode(newText)
+  const doc = textNode.ownerDocument
+  if (!doc) return null
+  const newTextNode = doc.createTextNode(newText)
   textNode.replaceWith(newTextNode)
   return newTextNode
 }

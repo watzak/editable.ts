@@ -1,36 +1,21 @@
 import type { SelectionChangeDocument } from './dom-compat.js'
 
-/**
- * Check for contenteditable support
- *
- * (from Modernizr)
- * this is known to false positive in some mobile browsers
- * here is a whitelist of verified working browsers:
- * https://github.com/NielsLeenheer/html5test/blob/549f6eac866aa861d9649a0707ff2c0157895706/scripts/engine.js#L2083
- */
-export const contenteditable = typeof document.documentElement.contentEditable !== 'undefined'
+export interface WindowFeatures {
+  contenteditable: boolean
+  selectionchange: boolean
+  contenteditableSpanBug: boolean
+}
 
-// Detect webkit browser engine
-// That way we can detect the contenteditable span bug on safari, but exclude chrome
-// Regex taken from: https://github.com/lancedikson/bowser/blob/f09411489ced05811c91cc6670a8e4ca9cbe39a7/src/parser-engines.js#L93-L106
-// Attention, this might be error prone because engine version changes can break this.
-const isBlink = /(apple)?webkit\/537\.36/i.test(window.navigator.userAgent)
-const isWebkit = /(apple)?webkit/i.test(window.navigator.userAgent)
-const webKit = !isBlink && isWebkit
+const featuresByWindow = new WeakMap<Window, WindowFeatures>()
 
-/**
- * Check selectionchange event (supported in IE, Chrome, Firefox and Safari)
- * Firefox supports it since version 52 (2017).
- * Opera has no support as of 2021.
- */
-const hasNativeSelectionchangeSupport = (document: Document): boolean => {
+function hasNativeSelectionchangeSupport(document: Document): boolean {
   const doc = document as SelectionChangeDocument
   const osc = doc.onselectionchange
   if (osc !== undefined) {
     try {
       doc.onselectionchange = null
       return doc.onselectionchange === null
-    } catch (e) {
+    } catch {
       // ignore
     } finally {
       doc.onselectionchange = osc
@@ -39,7 +24,29 @@ const hasNativeSelectionchangeSupport = (document: Document): boolean => {
   return false
 }
 
-export const selectionchange = hasNativeSelectionchangeSupport(document)
+function detectWindowFeatures(win: Window): WindowFeatures {
+  const doc = win.document
+  const contenteditable =
+    typeof doc.documentElement !== 'undefined' &&
+    typeof doc.documentElement.contentEditable !== 'undefined'
 
-// See Keyboard.prototype.preventContenteditableBug for more information.
-export const contenteditableSpanBug = !!webKit
+  const userAgent = win.navigator?.userAgent ?? ''
+  const isBlink = /(apple)?webkit\/537\.36/i.test(userAgent)
+  const isWebkit = /(apple)?webkit/i.test(userAgent)
+  const webKit = !isBlink && isWebkit
+
+  return {
+    contenteditable,
+    selectionchange: hasNativeSelectionchangeSupport(doc),
+    contenteditableSpanBug: !!webKit
+  }
+}
+
+export function getWindowFeatures(win: Window): WindowFeatures {
+  let features = featuresByWindow.get(win)
+  if (!features) {
+    features = detectWindowFeatures(win)
+    featuresByWindow.set(win, features)
+  }
+  return features
+}

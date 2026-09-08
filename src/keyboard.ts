@@ -1,5 +1,5 @@
 import { createRange, containsRange } from './util/dom.js'
-import { contenteditableSpanBug } from './feature-detection.js'
+import { getWindowFeatures } from './feature-detection.js'
 import * as nodeType from './node-type.js'
 import eventable from './eventable.js'
 import type SelectionWatcher from './selection-watcher.js'
@@ -112,7 +112,9 @@ export default class Keyboard {
   }
 
   preventContenteditableBug(target: HTMLElement, event: KeyboardEvent): void {
-    if (!contenteditableSpanBug) return
+    const win = this.selectionWatcher.win ?? target.ownerDocument?.defaultView
+    if (!win) return
+    if (!getWindowFeatures(win).contenteditableSpanBug) return
     if (event.ctrlKey || event.metaKey) return
 
     // This fixes a strange webkit bug that can be reproduced as follows:

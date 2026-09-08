@@ -11,7 +11,13 @@ import {
   containsNodeText
 } from './util/dom.js'
 import config from './config.js'
-import { unwrapElement, type MaybeWrapped } from './dom-compat.js'
+import { unwrapElement, type MaybeWrapped, getRangeConstants } from './dom-compat.js'
+
+function getDocumentFromNode(node: Node): Document {
+  const doc = node.ownerDocument
+  if (!doc) throw new Error('Node requires ownerDocument')
+  return doc
+}
 
 function restoreRange(host: HTMLElement, range: Range, func: () => void): Range | undefined {
   const savedRange = rangeSaveRestore.save(range)
@@ -113,7 +119,7 @@ export function extractContent(
     .replace(zeroWidthNonBreakingSpace, '') // Used for forcing inline elements to have a height
     .replace(zeroWidthSpace, '<br>') // Used for cross-browser newlines
 
-  const clone = document.createElement('div')
+  const clone = getDocumentFromNode(element as HTMLElement | DocumentFragment).createElement('div')
   clone.innerHTML = innerHtml
   unwrapInternalNodes(clone, keepUiElements)
 
@@ -132,7 +138,7 @@ export function getInnerHtmlOfFragment(
   if (!documentFragment || !documentFragment.childNodes) {
     return ''
   }
-  const div = document.createElement('div')
+  const div = getDocumentFromNode(documentFragment).createElement('div')
   // JSDOM doesn't support appendChild with DocumentFragment directly
   // Clone and append each child instead
   const children = Array.from(documentFragment.childNodes)
@@ -144,11 +150,11 @@ export function getInnerHtmlOfFragment(
 
 // Create a document fragment from an html string
 // @param {String} e.g. 'some html <span>text</span>.'
-export function createFragmentFromString(htmlString: string): DocumentFragment {
-  const wrapper = document.createElement('div')
+export function createFragmentFromString(htmlString: string, doc: Document): DocumentFragment {
+  const wrapper = doc.createElement('div')
   wrapper.innerHTML = htmlString
 
-  const fragment = document.createDocumentFragment()
+  const fragment = doc.createDocumentFragment()
   while (wrapper.firstChild) fragment.appendChild(wrapper.firstChild)
   return fragment
 }
@@ -174,7 +180,8 @@ export function adoptElement(node: Node | string, doc: Document): HTMLElement {
 export function cloneRangeContents(range: Range): DocumentFragment {
   const rangeFragment = range.cloneContents()
   const parent = rangeFragment.childNodes[0]
-  const fragment = document.createDocumentFragment()
+  const doc = getDocumentFromNode(range.commonAncestorContainer)
+  const fragment = doc.createDocumentFragment()
   while (parent.childNodes.length) fragment.appendChild(parent.childNodes[0])
   return fragment
 }
@@ -497,7 +504,8 @@ export function nukeElem(host: HTMLElement, range: Range, node: HTMLElement | nu
 // Insert a single character (or string) before or after
 // the range.
 export function insertCharacter(range: Range, character: string, atStart: boolean): void {
-  const insertEl = document.createTextNode(character)
+  const doc = getDocumentFromNode(range.commonAncestorContainer)
+  const insertEl = doc.createTextNode(character)
   const boundaryRange = range.cloneRange()
   boundaryRange.collapse(atStart)
   boundaryRange.insertNode(insertEl)
@@ -526,7 +534,8 @@ export function deleteCharacter(host: HTMLElement, range: Range, character: stri
   if (!containsString(range, character)) return range
 
   // check for selection.rangeCount > 0 ?
-  const selection = window.getSelection()
+  const doc = getDocumentFromNode(range.commonAncestorContainer)
+  const selection = doc.defaultView?.getSelection() ?? null
   if (selection && selection.rangeCount > 0) splitBoundaries(range)
   const restoredRange = restoreRange(host, range, () => {
     getNodes(range, [nodeType.textNode], (node: Node) => {
@@ -603,11 +612,13 @@ function createNodeIterator(
 }
 
 function isNodeFullyContained(node: Node, range: Range): boolean {
-  const nodeRange = document.createRange()
+  const doc = getDocumentFromNode(node)
+  const nodeRange = doc.createRange()
   nodeRange.selectNodeContents(node)
+  const { START_TO_START, END_TO_END } = getRangeConstants(doc)
   return (
-    range.compareBoundaryPoints(Range.START_TO_START, nodeRange) <= 0 &&
-    range.compareBoundaryPoints(Range.END_TO_END, nodeRange) >= 0
+    range.compareBoundaryPoints(START_TO_START, nodeRange) <= 0 &&
+    range.compareBoundaryPoints(END_TO_END, nodeRange) >= 0
   )
 }
 

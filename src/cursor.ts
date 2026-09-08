@@ -113,7 +113,9 @@ export default class Cursor {
   //
   // @param {String, DOM node or document fragment}
   insertBefore(element: Node | string): void {
-    if (string.isString(element)) element = content.createFragmentFromString(element)
+    if (string.isString(element)) {
+      element = content.createFragmentFromString(element, this.win.document)
+    }
     if (parser.isDocumentFragmentWithoutChildren(element)) return
 
     element = this.adoptElement(element)
@@ -134,7 +136,9 @@ export default class Cursor {
   //
   // @param {String, DOM node or document fragment}
   insertAfter(element: Node): void {
-    if (string.isString(element)) element = content.createFragmentFromString(element)
+    if (string.isString(element)) {
+      element = content.createFragmentFromString(element, this.win.document)
+    }
     if (parser.isDocumentFragmentWithoutChildren(element)) return
 
     element = this.adoptElement(element)
@@ -280,7 +284,11 @@ export default class Cursor {
     const unwrappedElement = unwrapElement(element)
     this.host = unwrappedElement
     const doc = unwrappedElement.ownerDocument
-    this.win = !doc ? window : doc.defaultView || window
+    const win = doc?.defaultView
+    if (!win) {
+      throw new Error('Cursor host requires ownerDocument.defaultView')
+    }
+    this.win = win
   }
 
   updateHost(element: Node): void {

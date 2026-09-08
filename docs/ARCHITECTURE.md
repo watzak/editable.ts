@@ -97,6 +97,14 @@ Each `Editable` instance maintains a registry of its editable blocks (`WeakMap` 
 - Each instance stores an immutable snapshot in `globalSettings` at construction time; optional constructor `pastedHtmlRules` are deep-merged into that snapshot.
 - Paste sanitization uses the instance snapshot (`pasteRules`), not the live global singleton.
 
+**SSR and iframe safety:**
+
+- Module import does not require browser globals; `new Editable()` resolves `{ window }` or the current browser window and throws a clear error otherwise.
+- Feature detection (`getWindowFeatures(win)`) is cached per `Window` in a `WeakMap`.
+- DOM helpers avoid cross-realm `instanceof` checks; nodes are validated via `nodeType` and `ownerDocument`.
+- Ranges, fragments, and text nodes are created from the relevant `ownerDocument` / configured `Window`.
+- `add()` / `enable()` can adopt cross-realm elements via `document.adoptNode()`.
+
 **Key Methods (core entry):**
 
 - `add()` / `remove()` — Enable/disable editable functionality

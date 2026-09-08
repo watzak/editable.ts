@@ -7,6 +7,7 @@
     "e2e/**/*.ts",
     "examples/index.js",
     "examples/e2e-editor-flows.js",
+    "examples/e2e-iframe-editor.js",
     "examples/events.jsx",
     "examples/styles-entry.js",
     "scripts/**/*.mjs",

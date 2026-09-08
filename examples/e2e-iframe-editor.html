@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>editable.ts — iframe e2e</title>
+    <script type="module" src="/examples/styles-entry.js"></script>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 720px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+
+      iframe {
+        width: 100%;
+        min-height: 220px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+      }
+
+      [data-testid='iframe-event-log'] {
+        font-family: ui-monospace, monospace;
+        font-size: 0.85rem;
+        margin-top: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>editable.ts — iframe editor</h1>
+    <iframe
+      id="editor-frame"
+      data-testid="editor-frame"
+      src="/examples/e2e-iframe-editor-frame.html"
+    ></iframe>
+    <div data-testid="iframe-event-log" data-events=""></div>
+    <script type="module" src="/examples/e2e-iframe-editor.js"></script>
+  </body>
+</html>

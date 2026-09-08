@@ -13,6 +13,7 @@ import { binaryCursorSearch, BinaryCursorSearchResult } from './util/binary_sear
 import { domArray, createRange, nodeContainsRange } from './util/dom.js'
 import { cloneDeep } from './util/clone-deep.js'
 import { deepMerge } from './util/merge.js'
+import { requireBrowserWindow } from './util/browser-globals.js'
 import { claimBlock, releaseBlock, isBlockOwnedBy } from './instance-registry.js'
 import { compilePasteRules, type PasteRules } from './paste-rules.js'
 import type { SmartQuotesConfig } from './smartQuotes.js'
@@ -48,6 +49,11 @@ export interface EnableOptions {
 
 export type CursorPosition = 'beginning' | 'end' | 'before' | 'after'
 
+function adoptBlockElement(element: HTMLElement, doc: Document): HTMLElement {
+  if (element.ownerDocument === doc) return element
+  return doc.adoptNode(element) as HTMLElement
+}
+
 export class Editable {
   public config: Required<Omit<EditableConfig, 'pastedHtmlRules'>>
   public globalSettings: Config
@@ -60,8 +66,10 @@ export class Editable {
   static content: typeof content
 
   constructor(instanceConfig?: EditableConfig) {
-    const defaultInstanceConfig: Required<Omit<EditableConfig, 'pastedHtmlRules'>> = {
-      window: window,
+    const defaultInstanceConfig: Omit<
+      Required<Omit<EditableConfig, 'pastedHtmlRules'>>,
+      'window'
+    > = {
       defaultBehavior: true,
       mouseMoveSelectionChanges: false,
       browserSpellcheck: true,
@@ -70,8 +78,11 @@ export class Editable {
       singleQuotes: []
     }
 
-    this.config = Object.assign(defaultInstanceConfig, instanceConfig)
-    this.win = this.config.window
+    this.config = Object.assign(defaultInstanceConfig, instanceConfig) as Required<
+      Omit<EditableConfig, 'pastedHtmlRules'>
+    >
+    this.win = instanceConfig?.window ?? requireBrowserWindow()
+    this.config.window = this.win
     this.globalSettings = cloneDeep(config)
     if (instanceConfig?.pastedHtmlRules) {
       this.globalSettings.pastedHtmlRules = deepMerge(
@@ -165,9 +176,10 @@ export class Editable {
         )
 
     for (const element of targets) {
-      this.claimBlock(element)
-      block.init(element, { normalize, plainText, shouldSpellcheck })
-      this.dispatcher.notify('init', element)
+      const blockElement = adoptBlockElement(element, this.win.document)
+      this.claimBlock(blockElement)
+      block.init(blockElement, { normalize, plainText, shouldSpellcheck })
+      this.dispatcher.notify('init', blockElement)
     }
 
     return this
@@ -268,7 +280,7 @@ export class Editable {
     if (!cursor) throw new Error('Could not create cursor')
     cursor.insertAfter(
       typeof contentToAppend === 'string'
-        ? content.createFragmentFromString(contentToAppend)
+        ? content.createFragmentFromString(contentToAppend, this.win.document)
         : contentToAppend
     )
     return cursor
@@ -284,7 +296,7 @@ export class Editable {
     if (!cursor) throw new Error('Could not create cursor')
     cursor.insertBefore(
       typeof contentToPrepend === 'string'
-        ? content.createFragmentFromString(contentToPrepend)
+        ? content.createFragmentFromString(contentToPrepend, this.win.document)
         : contentToPrepend
     )
     return cursor

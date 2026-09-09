@@ -159,6 +159,10 @@
     {
       "path": "lib/yjs/editable-yjs-presence.js",
       "limit": "3 KB"
+    },
+    {
+      "path": "lib/yjs/editable-yjs-annotations.js",
+      "limit": "4 KB"
     }
   ],
   "engines": {

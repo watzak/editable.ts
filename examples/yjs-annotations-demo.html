@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>editable.ts — Yjs annotations demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="dist/styles.js"></script>
+    <style>
+      .demo {
+        max-width: 1100px;
+        margin: 1.5rem auto;
+        font-family: system-ui, sans-serif;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 1rem 0;
+      }
+      .toolbar button {
+        padding: 0.35rem 0.65rem;
+        border: 1px solid #bbb;
+        border-radius: 4px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+      .clients {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .client {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 0.75rem;
+        background: #fafafa;
+      }
+      .client h2 {
+        margin: 0 0 0.5rem;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        color: #666;
+      }
+      [contenteditable] {
+        min-height: 6rem;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #fff;
+      }
+      .status {
+        margin-top: 1rem;
+        font-family: ui-monospace, monospace;
+        font-size: 0.8rem;
+        white-space: pre-wrap;
+      }
+      .banner {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="demo" data-testid="yjs-annotations-demo">
+      <h1>Yjs annotations — two-client demo</h1>
+      <p class="banner">
+        Persistent comments/issues in a separate Y.Map — not Y.Text attributes. Transport via
+        <code>Y.applyUpdate</code>. Renderer uses text nodes and DOM APIs only.
+      </p>
+      <div class="toolbar">
+        <button type="button" data-action="comment-a">A: comment on selection</button>
+        <button type="button" data-action="issue-b">B: issue on selection</button>
+        <button type="button" data-action="resolve-a">A: resolve first</button>
+        <button type="button" data-action="sync">Sync now</button>
+      </div>
+      <div class="clients">
+        <div class="client">
+          <h2>Client A</h2>
+          <div id="editor-a" contenteditable="true" data-plaintext="true"></div>
+        </div>
+        <div class="client">
+          <h2>Client B</h2>
+          <div id="editor-b" contenteditable="true" data-plaintext="true"></div>
+        </div>
+      </div>
+      <pre class="status" data-testid="annotations-status">booting…</pre>
+    </section>
+    <script type="module" src="yjs-annotations-demo.js"></script>
+  </body>
+</html>

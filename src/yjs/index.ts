@@ -151,3 +151,42 @@ export type {
   PresenceRendererContext,
   RemotePresenceView
 } from './presence-renderer.js'
+export {
+  ANNOTATIONS_ROOT_KEY,
+  ANNOTATION_PAYLOAD_VERSION,
+  type AnnotationLifecycleStatus,
+  type AnnotationReply,
+  type AnnotationType,
+  type CollaborativeAnnotationRecord,
+  type ComponentDeleteAnnotationPolicy,
+  type ResolvedAnnotationRange,
+  type SanitizedAnnotationData
+} from './annotation-types.js'
+export {
+  buildAnnotationRecord,
+  parseAnnotationRecord,
+  sanitizeAnnotationAuthorId,
+  sanitizeAnnotationBody,
+  sanitizeAnnotationData,
+  sanitizeAnnotationId,
+  sanitizeIsoTimestamp
+} from './annotation-payload.js'
+export { AnnotationStore, getOrCreateAnnotationsMap } from './annotation-store.js'
+export {
+  migrateAnnotationsOnMerge,
+  migrateAnnotationsOnSplit,
+  reencodeAnnotationPositions
+} from './annotation-migration.js'
+export { resolveAnnotationRange, resolveAnnotationsForHost } from './annotation-resolver.js'
+export {
+  defaultAnnotationRenderer,
+  ensureAnnotationStyles,
+  getOrCreateAnnotationLayer,
+  removeAnnotationLayer
+} from './annotation-renderer.js'
+export type { AnnotationRenderer, AnnotationRendererContext } from './annotation-renderer.js'
+export { EditableYjsAnnotations } from './editable-yjs-annotations.js'
+export type { EditableYjsAnnotationsOptions } from './editable-yjs-annotations.js'
+export { EditableYjsDocumentAnnotations } from './editable-yjs-document-annotations.js'
+export type { EditableYjsDocumentAnnotationsOptions } from './editable-yjs-document-annotations.js'
+export { isRelativePositionJson } from './relative-position.js'

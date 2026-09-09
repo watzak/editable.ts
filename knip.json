@@ -18,6 +18,7 @@
     "examples/yjs-cms-document-adapter.ts",
     "examples/yjs-collab-demo.js",
     "examples/yjs-document-collab-demo.js",
+    "examples/yjs-annotations-demo.js",
     "scripts/**/*.mjs",
     "vite/**/*.{js,mjs}",
     "vitest.config.js",

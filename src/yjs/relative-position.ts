@@ -52,6 +52,17 @@ export function resolvePresenceSelection(
   return { anchor, head }
 }
 
+/** Validates JSON emitted by {@link Y.relativePositionToJSON}. */
+export function isRelativePositionJson(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const obj = value as Record<string, unknown>
+  if (obj.type != null && typeof obj.type !== 'object') return false
+  if (obj.tname != null && typeof obj.tname !== 'string') return false
+  if (obj.item != null && typeof obj.item !== 'object') return false
+  if (obj.assoc != null && typeof obj.assoc !== 'number') return false
+  return obj.type != null || obj.tname != null || obj.item != null
+}
+
 function resolveRelativeIndex(
   doc: Y.Doc,
   expectedText: Y.Text,

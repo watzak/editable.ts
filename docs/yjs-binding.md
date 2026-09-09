@@ -43,6 +43,7 @@ import { EditableYjsBinding } from 'editable.ts/yjs'
 - **Plain-text hosts** (`data-plaintext="true"`): character data only; attributed operations are rejected
 - **Not included:** providers (you wire WebSocket/WebRTC yourself)
 - **Optional:** `EditableYjsPresence` for remote cursors via user-supplied `Awareness` (`y-protocols`)
+- **Optional:** `EditableYjsAnnotations` for persistent comments/issues/suggestions in a separate `Y.Map` (never Y.Text attributes)
 
 ## Inline format codec
 
@@ -445,14 +446,80 @@ Undo scope uses explicit `trackedOrigins` (document + per-binding origins only).
 
 The binding never requires a global block model — only the optional adapter interprets structure.
 
+## Collaborative annotations (`@experimental`)
+
+Persistent comments, issues, and (future) suggestions live in a **separate CRDT map** — never as `Y.Text` delta attributes — so editorial metadata stays independent from inline formatting.
+
+```typescript
+import { AnnotationStore, EditableYjsAnnotations, getOrCreateAnnotationsMap } from 'editable.ts/yjs'
+
+const store = new AnnotationStore(getOrCreateAnnotationsMap(doc))
+const annotations = new EditableYjsAnnotations({
+  editable,
+  host,
+  yText,
+  store,
+  authorId: currentUserId,
+  componentId: 'optional-cms-id',
+  directiveId: 'body'
+})
+
+const id = annotations.createAtCursor('comment', { body: 'Review this sentence' })
+annotations.addReply(id!, 'Follow-up note')
+annotations.resolve(id!)
+```
+
+### Presence vs annotations
+
+| Concern     | Presence (`EditableYjsPresence`)        | Annotations (`EditableYjsAnnotations`)                |
+| ----------- | --------------------------------------- | ----------------------------------------------------- |
+| Transport   | `y-protocols` **Awareness** (ephemeral) | **Y.Doc** map (`editable.ts:annotations:v1`)          |
+| Persistence | None — live cursors only                | Survives reconnect when provider syncs the doc        |
+| Scope       | Per-client selection snapshot           | Authored ranges with metadata + thread                |
+| DOM impact  | Fixed-position overlays only            | Adapter/renderer overlays only                        |
+| Undo        | Not applicable                          | Separate transaction origin (excluded from text undo) |
+
+Presence and annotations are **independent**: you can run either, both, or neither on the same host.
+
+### Anchor model
+
+- Ranges use JSON-serialized `Y.RelativePosition` pairs (`anchor`, `head`) — collapsed when equal
+- Relative positions survive inserts/deletes within the same `Y.Text`
+- **Split policy:** annotations whose anchor lies at/after the split offset migrate to the new directive's `Y.Text` via `migrateAnnotationsOnSplit`
+- **Merge policy:** annotations on the merged-away block move onto the surviving `Y.Text` via `migrateAnnotationsOnMerge`
+- **Full text deletion:** unresolved ranges transition to `status: 'orphaned'` (renderer shows an accessible orphaned state)
+- **Component delete (document binding):** `EditableYjsDocumentAnnotations` marks annotations orphaned or removes them (`componentDeletePolicy`)
+
+### Validation & rendering
+
+- All CRDT payloads pass through `parseAnnotationRecord` — unknown types, invalid relative JSON, and control characters are rejected
+- User-visible strings (`body`, `authorId`, replies) are sanitized; no HTML is accepted from remote peers
+- Default renderer draws fixed-position highlights + a keyboard-focusable sidebar list (`role="list"`, `role="mark"`, `aria-label`) using **text nodes only** — never `innerHTML`
+- Custom UI: implement `AnnotationRenderer` (same pattern as `PresenceRenderer`)
+
+### Responsibility boundaries
+
+| Layer                    | Owns                                                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| **Annotation module**    | CRDT map schema, validation, relative-position resolve/migrate helpers                                          |
+| **Binding / adapter**    | Which `Y.Text` + hosts annotations attach to; split/merge migration calls                                       |
+| **Transport provider**   | Syncing the annotations map as part of `Y.Doc` updates                                                          |
+| **Persistence**          | Storing/restoring encoded doc state (includes annotations if present)                                           |
+| **Privacy / compliance** | User IDs, comment bodies, retention — **application responsibility**; this module does not anonymize or encrypt |
+
+Demo: `examples/yjs-annotations-demo.html` (two clients via `Y.applyUpdate`).
+
+Document-wide wiring: `EditableYjsDocumentAnnotations` — call `sync()` after `EditableYjsDocumentBinding.reconcile()`.
+
 ## Bundle size
 
-| Artifact                           | Raw    | Brotli (approx.) |
-| ---------------------------------- | ------ | ---------------- |
-| `lib/yjs/editable-yjs-binding.js`  | ~14 kB | ~3.5 kB          |
-| `lib/yjs/binding-undo.js`          | ~4 kB  | ~1.5 kB          |
-| `lib/yjs/editable-yjs-presence.js` | ~8 kB  | ~3 kB            |
-| `lib/yjs/` total                   | ~55 kB | —                |
+| Artifact                              | Raw    | Brotli (approx.) |
+| ------------------------------------- | ------ | ---------------- |
+| `lib/yjs/editable-yjs-binding.js`     | ~14 kB | ~3.5 kB          |
+| `lib/yjs/binding-undo.js`             | ~4 kB  | ~1.5 kB          |
+| `lib/yjs/editable-yjs-presence.js`    | ~8 kB  | ~3 kB            |
+| `lib/yjs/editable-yjs-annotations.js` | ~12 kB | ~4 kB            |
+| `lib/yjs/` total                      | ~65 kB | —                |
 
 Core and UMD builds must not reference Yjs — enforced by `validate:core-bundle`.
 
@@ -486,3 +553,4 @@ Core and UMD builds must not reference Yjs — enforced by `validate:core-bundle
 - Presence demo: `examples/yjs-presence-editor.html`
 - Full RC demo: `examples/yjs-collab-demo.html`
 - Document binding demo: `examples/yjs-document-collab-demo.html`
+- Annotations demo: `examples/yjs-annotations-demo.html`

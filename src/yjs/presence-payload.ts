@@ -1,4 +1,5 @@
 import type { JsonValue } from '../operation-types.js'
+import { isRelativePositionJson } from './relative-position.js'
 
 /** Awareness state field for editable.ts presence payloads. */
 export const PRESENCE_STATE_KEY = 'editable.ts:presence:v1'
@@ -77,16 +78,6 @@ export function parsePresencePayload(raw: unknown): PresencePayloadV1 | null {
     color: sanitizePresenceColor(candidate.color),
     focused: candidate.focused === true
   }
-}
-
-function isRelativePositionJson(value: unknown): boolean {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
-  const obj = value as Record<string, unknown>
-  if (obj.type != null && typeof obj.type !== 'object') return false
-  if (obj.tname != null && typeof obj.tname !== 'string') return false
-  if (obj.item != null && typeof obj.item !== 'object') return false
-  if (obj.assoc != null && typeof obj.assoc !== 'number') return false
-  return obj.type != null || obj.tname != null || obj.item != null
 }
 
 /** Confirms awareness payload keys are presence-only and not document content. */

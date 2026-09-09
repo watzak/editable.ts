@@ -37,6 +37,17 @@ describe('operation offset utilities', function () {
     host.remove()
   })
 
+  it('resolves offsets immediately after <br>', function () {
+    const host = document.createElement('div')
+    host.innerHTML = 'ce&#x0301;<br>😀'
+    document.body.appendChild(host)
+
+    expect(domPointToOperationOffset(host, host.lastChild as Text, 0)).toBe(4)
+    expect(getOperationTextLength(host)).toBe(6)
+
+    host.remove()
+  })
+
   it('treats <br> as one operation code unit', function () {
     const host = document.createElement('div')
     host.innerHTML = 'line<br>two'

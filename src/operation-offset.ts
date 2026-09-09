@@ -81,7 +81,8 @@ export function resolveOperationBoundary(
     return ensureEditableTextPoint(host, operationOffset)
   }
 
-  for (const segment of segments) {
+  for (let i = 0; i < segments.length; i += 1) {
+    const segment = segments[i]
     if (operationOffset < segment.end) {
       if (segment.kind === 'lineBreak') {
         return { node: segment.node, offset: 0 }
@@ -90,15 +91,33 @@ export function resolveOperationBoundary(
       return { node: segment.node, offset: within }
     }
     if (operationOffset === segment.end && segment.kind === 'lineBreak') {
-      return { node: segment.node, offset: 0 }
+      return boundaryAfterLineBreak(segment, segments, i, host)
     }
   }
 
   const last = segments[segments.length - 1]
+  if (last.kind === 'lineBreak' && operationOffset === last.end) {
+    return boundaryAfterLineBreak(last, segments, segments.length - 1, host)
+  }
   if (last.kind === 'lineBreak') {
     return { node: last.node, offset: 0 }
   }
   return { node: last.node, offset: (last.node as Text).data.length }
+}
+
+function boundaryAfterLineBreak(
+  segment: OperationSegment,
+  segments: OperationSegment[],
+  segmentIndex: number,
+  host: HTMLElement
+): OperationBoundary {
+  const next = segments[segmentIndex + 1]
+  if (next?.kind === 'text') {
+    return { node: next.node, offset: 0 }
+  }
+
+  const childIndex = Array.prototype.indexOf.call(host.childNodes, segment.node)
+  return { node: host, offset: childIndex + 1 }
 }
 
 function ensureEditableTextPoint(host: HTMLElement, operationOffset: number): OperationBoundary {

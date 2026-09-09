@@ -6,6 +6,7 @@ import {
   EditableYjsBinding,
   InitialSyncConflictError
 } from '../src/yjs/index.js'
+import { simulateInsertText } from './helpers/yjs-sync-harness.js'
 
 const defaultPolicy = {
   yEmptyHostFilled: 'copy-host-to-y' as const,
@@ -21,6 +22,7 @@ describe('EditableYjsBinding', function () {
 
   beforeEach(function () {
     elem = document.createElement('div')
+    elem.setAttribute('contenteditable', 'true')
     document.body.appendChild(elem)
     editable = new Editable({ defaultBehavior: false })
     editable.add(elem)
@@ -42,7 +44,7 @@ describe('EditableYjsBinding', function () {
     expect(classifyInitialSync('hello', 'world')).toBe('both-filled-differ')
   })
 
-  it('copies host text to empty Y.Text', function () {
+  it('copies host text to empty Y.Text and keeps canonical Y.Text after local edits', function () {
     elem.textContent = 'local'
     const binding = new EditableYjsBinding({
       editable,
@@ -51,6 +53,10 @@ describe('EditableYjsBinding', function () {
       initialSync: defaultPolicy
     })
     expect(yText.toString()).toBe('local')
+
+    simulateInsertText(elem, editable, '!')
+    expect(yText.toString()).toBe('local!')
+
     binding.destroy()
     expect(binding.isDestroyed).toBe(true)
   })

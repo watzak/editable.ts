@@ -152,7 +152,33 @@ function applySingleOperation(
   }
 
   host.normalize()
-  content.tidyHtml(host)
+}
+
+/**
+ * Applies operations sequentially at face-value indices against the evolving DOM.
+ * Used for Y.Text deltas where each step targets the current document state.
+ */
+export function applyLiveOperationBatchToDom(
+  host: HTMLElement,
+  batch: EditableOperationBatch,
+  options: {
+    preserveSelection?: boolean
+    selectionBefore?: SelectionSnapshot
+  } = {}
+): void {
+  for (const op of batch.operations) {
+    applySingleOperation(host, op, op.index)
+  }
+
+  const targetSelection =
+    batch.selectionAfter ??
+    (options.selectionBefore
+      ? transformSelectionThroughBatch(options.selectionBefore, batch.operations)
+      : undefined)
+
+  if (options.preserveSelection !== false && targetSelection) {
+    setSelectionFromSnapshot(host, targetSelection)
+  }
 }
 
 export function applyOperationBatchToDom(

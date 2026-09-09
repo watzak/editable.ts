@@ -14,11 +14,11 @@ Core-only installs do **not** pull Yjs (`peerDependenciesMeta.optional`). TypeSc
 
 ## Import map
 
-| Entry                  | Purpose                                                |
-| ---------------------- | ------------------------------------------------------ |
-| `editable.ts`          | Core editor — no Yjs                                   |
-| `editable.ts/features` | Optional highlighting / text-diff                      |
-| `editable.ts/yjs`      | `EditableYjsBinding`, presence, undo, structural hooks |
+| Entry                  | Purpose                                                                                             |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| `editable.ts`          | Core editor — no Yjs                                                                                |
+| `editable.ts/features` | Optional highlighting / text-diff                                                                   |
+| `editable.ts/yjs`      | `EditableYjsBinding`, `EditableYjsDocumentBinding` (experimental), presence, undo, structural hooks |
 
 Yjs is **external** — never bundled into core, features, or UMD (`validate:core-bundle`).
 
@@ -373,13 +373,52 @@ Helpers `splitYTextDeltaAt`, `moveYTextTailToTarget`, and `mergeYTextIntoTarget`
 
 **Example only (not a required schema):** `examples/yjs-array-structural-adapter.ts` — `Y.Array<Y.Map>` of `{ id, body: Y.Text }` blocks.
 
+## Document-wide binding (`@experimental`)
+
+For component-based CMS documents (multiple editable fields per component, nested containers), use `EditableYjsDocumentBinding` with a neutral `EditableYjsDocumentAdapter`. The library does **not** ship a CMS schema — the adapter describes your CRDT tree, mounts component views, and supplies structural hooks.
+
+```typescript
+import { EditableYjsDocumentBinding } from 'editable.ts/yjs'
+
+const binding = new EditableYjsDocumentBinding({
+  editable,
+  yDoc: doc,
+  root, // opaque root from adapter.getRoot(doc)
+  adapter: myDocumentAdapter,
+  mountContainer,
+  undo: true // shared Y.UndoManager across text + structure
+})
+
+binding.reconcile() // sync CRDT → DOM + per-directive EditableYjsBinding instances
+binding.destroy()
+```
+
+### Adapter contract (lifecycle model)
+
+| Concept                            | Adapter expresses                               |
+| ---------------------------------- | ----------------------------------------------- |
+| Component ID / type                | Stable keys in your CRDT                        |
+| Directive ID / field name          | Maps to one `Y.Text` + one DOM host             |
+| Container ID                       | Nested `Y.Array` / `Y.Map` of child components  |
+| Parent + sibling index             | Mount order inside containers                   |
+| `listDirectives(root)`             | Flat list requiring text bindings               |
+| `listComponents?(root)`            | Includes container-only nodes (e.g. two-column) |
+| `renderComponent(…)`               | Creates DOM; returns `directiveHosts` map       |
+| `createStructuralAdapter(runtime)` | Split/merge/insert/paste for **your** schema    |
+| `observeStructure(root, onChange)` | Deep observer → `binding.reconcile()`           |
+
+The document binding controller manages mount/unmount, per-directive `EditableYjsBinding` lifecycle, block ownership, shared undo scope, and wires one structural adapter into all text bindings. Structural CRDT mutations should use `runtime.transactionOrigin` (document scope), not individual binding origins.
+
+**Example schema (illustrative only):** `examples/yjs-cms-document-adapter.ts` — `root: Y.Array<Component>` with `content: Y.Map<string, Y.Text>`, `containers`, split/merge/paste/move/delete helpers. Demo: `examples/yjs-document-collab-demo.html`.
+
 ### Binding vs host document model
 
-| Layer                   | Responsibility                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------- |
-| `EditableYjsBinding`    | One block host ↔ one `Y.Text`; text operations; optional undo + structure hooks |
-| Host / `Editable`       | DOM blocks, commands (`splitBlock`, …), default behavior                        |
-| Your structural adapter | Maps commands to **your** CRDT block tree; registers additional bindings        |
+| Layer                            | Responsibility                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------------- |
+| `EditableYjsBinding`             | One block host ↔ one `Y.Text`; text operations; optional undo + structure hooks |
+| `EditableYjsDocumentBinding`     | Many directives; mount lifecycle; shared undo; one structural adapter           |
+| Host / `Editable`                | DOM blocks, commands (`splitBlock`, …), default behavior                        |
+| Your document/structural adapter | CRDT schema, component rendering, structure commands                            |
 
 The binding never requires a global block model — only the optional adapter interprets structure.
 
@@ -401,7 +440,8 @@ Core and UMD builds must not reference Yjs — enforced by `validate:core-bundle
 - Multi-block DOM projection across peers requires your adapter + block registry (see example)
 - Real OS IME must be tested manually; Playwright uses simulated `composition*` events
 - `reconcile()` is a diagnostic full-resync — not the hot path
-- Undo is per-binding origin; shared `UndoManager` across blocks is app-defined
+- Undo is per-binding origin by default; `EditableYjsDocumentBinding` provides shared doc-scoped undo
+- Document binding + multi-directive remount is `@experimental`
 
 ## Browser testing notes
 
@@ -422,3 +462,4 @@ Core and UMD builds must not reference Yjs — enforced by `validate:core-bundle
 - Live demo: `examples/yjs-rich-editor.html`
 - Presence demo: `examples/yjs-presence-editor.html`
 - Full RC demo: `examples/yjs-collab-demo.html`
+- Document binding demo: `examples/yjs-document-collab-demo.html`

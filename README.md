@@ -442,7 +442,7 @@ Optional modules on the same subpath:
 - **`YjsBindingUndoController`** — per-binding undo/redo scoped to local edits
 - **Structural adapter hooks** — map split/merge/paste to your own `Y.Array` / block tree
 
-Live demos: [rich-text sync](examples/yjs-rich-editor.html) · [presence](examples/yjs-presence-editor.html) · [full collab RC](examples/yjs-collab-demo.html)
+Live demos: [rich-text sync](examples/yjs-rich-editor.html) · [presence](examples/yjs-presence-editor.html) · [full collab RC](examples/yjs-collab-demo.html) · [document binding (experimental)](examples/yjs-document-collab-demo.html)
 
 Full API, security notes, and lifecycle: [docs/yjs-binding.md](docs/yjs-binding.md) · provider sketch: [docs/yjs-provider-example.md](docs/yjs-provider-example.md)
 

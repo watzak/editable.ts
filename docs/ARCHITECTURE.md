@@ -103,6 +103,13 @@ Each `Editable` instance maintains a registry of its editable blocks (`WeakMap` 
 - `EditableHostPolicy` (`host-policy.ts`) is installed per block via `editable.add(host, options)`. Policy controls allowed formats, line breaks, length validation, placeholder UI, and optional custom registries.
 - The same registry instance flows through operation capture → `operation-apply` → optional Yjs delta conversion / reconcile. Core does **not** import the `yjs` npm package; `validate:core-bundle` walks the full `lib/core.js` dependency graph and rejects any `lib/yjs/` import.
 
+**Yjs document binding (`@experimental`, `./yjs` only):**
+
+- `EditableYjsDocumentBinding` coordinates many `EditableYjsBinding` instances (one per editable directive) for component/CMS documents.
+- A neutral `EditableYjsDocumentAdapter` describes the CRDT schema, mounts component DOM, observes structure, and returns a shared `EditableYjsStructuralAdapter`.
+- Lifecycle: `reconcile()` diff-mounts components/directives; `destroy()` tears down bindings, views, observers, and shared undo.
+- Structural CRDT writes use the document transaction origin so a shared `Y.UndoManager` can group text and structure. Rendering stays in the adapter — the library never ships CMS templates.
+
 **SSR and iframe safety:**
 
 - Module import does not require browser globals; `new Editable()` resolves `{ window }` or the current browser window and throws a clear error otherwise.

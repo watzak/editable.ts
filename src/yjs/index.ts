@@ -1,5 +1,15 @@
 export { EditableYjsBinding } from './editable-yjs-binding.js'
 export type { EditableYjsBindingOptions } from './editable-yjs-binding.js'
+export { EditableYjsDocumentBinding } from './editable-yjs-document-binding.js'
+export type { EditableYjsDocumentBindingOptions } from './editable-yjs-document-binding.js'
+export {
+  directiveBindingKey,
+  type DocumentBindingRuntime,
+  type DocumentComponentNode,
+  type DocumentComponentView,
+  type DocumentDirectiveRef,
+  type EditableYjsDocumentAdapter
+} from './document-adapter.js'
 export { applyEditableOperationsToYText } from './apply-operations-to-ytext.js'
 export {
   createBindingTransactionOrigin,

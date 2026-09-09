@@ -4,18 +4,16 @@ All notable changes to this project will be documented in this file. See [commit
 
 ## [1.2.0](https://github.com/watzak/editable.ts/compare/v1.1.2...v1.2.0) (2026-09-09)
 
-
 ### Features
 
-* **events:** add typed semantic command pipeline ([777f2fa](https://github.com/watzak/editable.ts/commit/777f2fafaed05dee94b9caba5ae07c630e9b8443))
-* **input:** add beforeinput and composition-aware editing ([770c8e6](https://github.com/watzak/editable.ts/commit/770c8e6bd7ccac95db37080f2fab2acb2276c8f9))
-
+- **events:** add typed semantic command pipeline ([777f2fa](https://github.com/watzak/editable.ts/commit/777f2fafaed05dee94b9caba5ae07c630e9b8443))
+- **input:** add beforeinput and composition-aware editing ([770c8e6](https://github.com/watzak/editable.ts/commit/770c8e6bd7ccac95db37080f2fab2acb2276c8f9))
 
 ### Bug Fixes
 
-* **core:** isolate editable instances and configuration ([17cb0cc](https://github.com/watzak/editable.ts/commit/17cb0cc897820118c7e75c6ae81872d8b7915063))
-* **core:** make iframe handling and imports realm-safe ([3bcc08f](https://github.com/watzak/editable.ts/commit/3bcc08f5d457e9d215df2605a183ae98261a0805))
-* **security:** harden pasted HTML and URL sanitization ([254614d](https://github.com/watzak/editable.ts/commit/254614d0a8a345fc332a9c483b1faf0747fa5a55))
+- **core:** isolate editable instances and configuration ([17cb0cc](https://github.com/watzak/editable.ts/commit/17cb0cc897820118c7e75c6ae81872d8b7915063))
+- **core:** make iframe handling and imports realm-safe ([3bcc08f](https://github.com/watzak/editable.ts/commit/3bcc08f5d457e9d215df2605a183ae98261a0805))
+- **security:** harden pasted HTML and URL sanitization ([254614d](https://github.com/watzak/editable.ts/commit/254614d0a8a345fc332a9c483b1faf0747fa5a55))
 
 ## [1.1.2](https://github.com/watzak/editable.ts/compare/v1.1.1...v1.1.2) (2026-06-02)
 

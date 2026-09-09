@@ -1,5 +1,6 @@
 import * as Y from 'yjs'
 import type { Editable } from '../core.js'
+import { isPlainTextBlock } from '../block.js'
 import { diffToOperations } from '../operation-diff.js'
 import { applyLiveOperationBatchToDom } from '../operation-apply.js'
 import { getBlockOperationText } from '../operation-text-model.js'
@@ -15,11 +16,13 @@ import {
   InitialSyncConflictError,
   type InitialSyncPolicy
 } from './initial-sync.js'
+import { insertHostRunsIntoYText } from './dom-to-ytext.js'
+import { defaultInlineFormatRegistry } from './inline-format-codec.js'
 import { PlainTextYjsError } from './plain-text-yjs-error.js'
 import { reconcileHostToCanonicalYText, type ReconcileDiagnostics } from './reconcile.js'
 import { yTextDeltaToOperations } from './ytext-delta-to-operations.js'
 import { captureSelectionSnapshot } from '../operation-selection.js'
-import type { EditableOperationBatch } from '../operation-types.js'
+import type { EditableOperation, EditableOperationBatch } from '../operation-types.js'
 
 export interface EditableYjsBindingOptions {
   editable: Editable
@@ -32,17 +35,21 @@ type OperationHandler = (host: HTMLElement, batch: EditableOperationBatch) => vo
 type YTextObserver = (event: Y.YTextEvent, transaction: Y.Transaction) => void
 
 /**
- * Plain-text Yjs adapter for a single block host and {@link Y.Text}.
+ * Yjs adapter for a single block host and {@link Y.Text}.
+ *
+ * Plain-text hosts (`data-plaintext="true"`) sync character data only.
+ * Rich-text hosts additionally sync inline formats via Y.Text delta attributes
+ * through the {@link InlineFormatRegistry} default codecs.
  *
  * After initialization {@link Y.Text} is canonical. Local {@link EditableOperationBatch}
- * objects are applied in one {@link Y.Doc} transaction; foreign {@link Y.Text} deltas
- * are translated into {@link applyOperations} calls on the host.
+ * objects are applied in one {@link Y.Doc} transaction; foreign deltas patch the host.
  */
 export class EditableYjsBinding {
   readonly editable: Editable
   readonly host: HTMLElement
   readonly yText: Y.Text
   readonly transactionOrigin: BindingTransactionOrigin
+  readonly richText: boolean
 
   private destroyed = false
   private canonicalYText = ''
@@ -56,6 +63,7 @@ export class EditableYjsBinding {
     this.host = options.host
     this.yText = options.yText
     this.transactionOrigin = createBindingTransactionOrigin()
+    this.richText = !isPlainTextBlock(options.host)
 
     this.operationHandler = (host, batch) => {
       this.handleLocalOperationBatch(host, batch)
@@ -110,11 +118,20 @@ export class EditableYjsBinding {
     capture.syncConfirmedState(this.host, selectionWatcher)
   }
 
+  private yjsApplyOptions() {
+    return {
+      richText: this.richText,
+      doc: this.host.ownerDocument ?? undefined
+    }
+  }
+
   private handleLocalOperationBatch(host: HTMLElement, batch: EditableOperationBatch): void {
     if (this.destroyed || host !== this.host) return
     if (batch.operations.length === 0) return
 
-    assertPlainTextBatch(batch)
+    if (!this.richText) {
+      assertPlainTextBatch(batch)
+    }
 
     const doc = this.yText.doc
     if (!doc) {
@@ -122,7 +139,7 @@ export class EditableYjsBinding {
     }
 
     doc.transact(() => {
-      applyEditableOperationsToYText(this.yText, batch.operations)
+      applyEditableOperationsToYText(this.yText, batch.operations, this.yjsApplyOptions())
     }, this.transactionOrigin)
     this.canonicalYText = this.yText.toString()
   }
@@ -138,7 +155,7 @@ export class EditableYjsBinding {
       )
     }
 
-    const operations = yTextDeltaToOperations(event.delta)
+    const operations = yTextDeltaToOperations(event.delta, this.yjsApplyOptions())
     if (operations.length === 0) return
 
     const capture = this.editable.dispatcher.operationCapture
@@ -225,6 +242,15 @@ function assertPlainTextBatch(batch: EditableOperationBatch): void {
         'Plain-text Yjs binding cannot sync setTextAttributes operations to Y.Text'
       )
     }
+    if (
+      (op.type === 'insertText' || op.type === 'replaceText') &&
+      op.attributes &&
+      Object.keys(op.attributes).length > 0
+    ) {
+      throw new PlainTextYjsError(
+        'Plain-text Yjs binding cannot sync attributed insert/replace operations to Y.Text'
+      )
+    }
   }
 }
 
@@ -280,13 +306,31 @@ function copyHostToY(binding: EditableYjsBinding, hostText: string): void {
       binding.yText.delete(0, binding.yText.length)
     }
     if (hostText.length > 0) {
-      binding.yText.insert(0, hostText)
+      if (binding.richText) {
+        insertHostRunsIntoYText(binding.yText, binding.host, binding.host.ownerDocument!)
+      } else {
+        binding.yText.insert(0, hostText)
+      }
     }
   }, binding.transactionOrigin)
 }
 
 function copyYToHost(binding: EditableYjsBinding, text: string): void {
   const hostLength = getOperationTextLength(binding.host)
+  const doc = binding.host.ownerDocument!
+
+  if (binding.richText) {
+    applyLiveOperationBatchToDom(
+      binding.host,
+      {
+        source: 'remote',
+        operations: buildLiveCopyYToHostOperations(binding.yText, hostLength, doc)
+      },
+      { preserveSelection: false }
+    )
+    return
+  }
+
   const operations =
     hostLength === 0
       ? [{ type: 'insertText' as const, index: 0, text }]
@@ -297,4 +341,31 @@ function copyYToHost(binding: EditableYjsBinding, text: string): void {
     { source: 'remote', operations },
     { preserveSelection: false, emitChange: false }
   )
+}
+
+function buildLiveCopyYToHostOperations(yText: Y.Text, hostLength: number, doc: Document) {
+  const operations: EditableOperation[] = []
+  if (hostLength > 0) {
+    operations.push({ type: 'deleteText', index: 0, length: hostLength })
+  }
+
+  let index = 0
+  const delta = yText.toDelta() as Array<{
+    insert?: string | unknown
+    attributes?: Record<string, unknown>
+  }>
+
+  for (const op of delta) {
+    if (typeof op.insert !== 'string' || op.insert.length === 0) continue
+    const attributes = defaultInlineFormatRegistry.sanitizeDeltaAttributes(op.attributes, doc)
+    operations.push({
+      type: 'insertText',
+      index,
+      text: op.insert,
+      ...(attributes ? { attributes } : {})
+    })
+    index += op.insert.length
+  }
+
+  return operations
 }

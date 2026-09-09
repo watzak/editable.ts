@@ -1,8 +1,8 @@
 import * as Y from 'yjs'
 import { createRange } from '../../src/util/dom.js'
 import Cursor from '../../src/cursor.js'
-import Selection from '../../src/selection.js'
 import { getBlockOperationText } from '../../src/operation-text-model.js'
+import { setSelectionFromSnapshot } from '../../src/operation-selection.js'
 import type { Editable } from '../../src/core.js'
 import type { InitialSyncPolicy } from '../../src/yjs/index.js'
 
@@ -22,12 +22,11 @@ export function createCursorAtEnd(node: HTMLElement): Cursor {
 }
 
 export function createSelection(node: HTMLElement, start: number, end: number): void {
-  const textNode = node.firstChild
-  if (!textNode) return
-  const range = createRange()
-  range.setStart(textNode, start)
-  range.setEnd(textNode, end)
-  new Selection(node, range).setVisibleSelection()
+  setSelectionFromSnapshot(node, {
+    anchor: start,
+    head: end,
+    direction: start === end ? 'none' : 'forward'
+  })
 }
 
 export function simulateInsertText(host: HTMLElement, editable: Editable, text: string): void {

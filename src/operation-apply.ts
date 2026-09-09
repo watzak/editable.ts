@@ -1,12 +1,14 @@
-import * as content from './content.js'
 import { createOperationRange } from './operation-offset.js'
 import { transformSelectionThroughBatch } from './operation-selection-transform.js'
 import { validateOperationBatch, OperationValidationError } from './operation-validate.js'
 import { setSelectionFromSnapshot } from './operation-selection.js'
 import { OPERATION_LINE_BREAK } from './operation-types.js'
+import { defaultInlineFormatRegistry } from './yjs/inline-format-codec.js'
+import { normalizeRelForBlankTarget, sanitizeUrlAttribute } from './url-security.js'
 import type {
   EditableOperation,
   EditableOperationBatch,
+  JsonValue,
   TextAttributes
 } from './operation-types.js'
 import type { SelectionSnapshot } from './operation-types.js'
@@ -48,23 +50,83 @@ function appendStyledText(
   text: string,
   attributes?: TextAttributes
 ): void {
-  if (!attributes || Object.keys(attributes).length === 0) {
-    parent.appendChild(doc.createTextNode(text))
+  parent.appendChild(defaultInlineFormatRegistry.wrapStyledText(doc, text, attributes))
+}
+
+function applyBooleanFormat(
+  host: HTMLElement,
+  index: number,
+  length: number,
+  tagNames: string[],
+  value: JsonValue | null | undefined
+): void {
+  if (value === undefined) return
+  const range = createOperationRange(host, index, index + length)
+  const doc = host.ownerDocument!
+
+  if (value === null) {
+    for (const tag of tagNames) unwrapTagInRange(range, tag.toUpperCase())
+    return
+  }
+  if (value !== true) return
+
+  const wrapper = doc.createElement(tagNames[0])
+  try {
+    range.surroundContents(wrapper)
+  } catch {
+    const extracted = range.extractContents()
+    wrapper.appendChild(extracted)
+    range.insertNode(wrapper)
+  }
+}
+
+function applyLinkFormat(
+  host: HTMLElement,
+  index: number,
+  length: number,
+  value: JsonValue | null | undefined
+): void {
+  if (value === undefined) return
+  const range = createOperationRange(host, index, index + length)
+  const doc = host.ownerDocument!
+
+  if (value === null) {
+    unwrapTagInRange(range, 'A')
+    unwrapAncestorTagInRange(range, 'A')
     return
   }
 
-  let node: Node = doc.createTextNode(text)
-  if (attributes.bold === true) {
-    const strong = doc.createElement('strong')
-    strong.appendChild(node)
-    node = strong
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return
+  const hrefValue = value.href
+  if (typeof hrefValue !== 'string') return
+
+  const href = sanitizeUrlAttribute(hrefValue, doc)
+  if (!href) return
+
+  unwrapTagInRange(range, 'A')
+  const updatedRange = createOperationRange(host, index, index + length)
+
+  const anchor = doc.createElement('a')
+  anchor.setAttribute('href', href)
+  if (value.target === '_blank') {
+    anchor.setAttribute('target', '_blank')
+    anchor.setAttribute(
+      'rel',
+      typeof value.rel === 'string'
+        ? normalizeRelForBlankTarget(value.rel)
+        : normalizeRelForBlankTarget(undefined)
+    )
+  } else if (typeof value.rel === 'string' && value.rel) {
+    anchor.setAttribute('rel', value.rel)
   }
-  if (attributes.italic === true) {
-    const em = doc.createElement('em')
-    em.appendChild(node)
-    node = em
+
+  try {
+    updatedRange.surroundContents(anchor)
+  } catch {
+    const extracted = updatedRange.extractContents()
+    anchor.appendChild(extracted)
+    updatedRange.insertNode(anchor)
   }
-  parent.appendChild(node)
 }
 
 function applySetTextAttributes(
@@ -74,36 +136,11 @@ function applySetTextAttributes(
   attributes: TextAttributes
 ): void {
   if (length === 0) return
-  const range = createOperationRange(host, index, index + length)
-  const doc = host.ownerDocument!
 
-  if (attributes.bold === true) {
-    const strong = doc.createElement('strong')
-    try {
-      range.surroundContents(strong)
-    } catch {
-      const extracted = range.extractContents()
-      strong.appendChild(extracted)
-      range.insertNode(strong)
-    }
-  }
-
-  if (attributes.bold === null) {
-    unwrapTagInRange(range, 'STRONG')
-  }
-  if (attributes.italic === true) {
-    const em = doc.createElement('em')
-    try {
-      range.surroundContents(em)
-    } catch {
-      const extracted = range.extractContents()
-      em.appendChild(extracted)
-      range.insertNode(em)
-    }
-  }
-  if (attributes.italic === null) {
-    unwrapTagInRange(range, 'EM')
-  }
+  applyBooleanFormat(host, index, length, ['strong', 'b'], attributes.bold)
+  applyBooleanFormat(host, index, length, ['em', 'i'], attributes.italic)
+  applyBooleanFormat(host, index, length, ['u'], attributes.underline)
+  applyLinkFormat(host, index, length, attributes.link)
 }
 
 function unwrapTagInRange(range: Range, tagName: string): void {
@@ -118,6 +155,27 @@ function unwrapTagInRange(range: Range, tagName: string): void {
   })
   range.deleteContents()
   while (wrapper.firstChild) range.insertNode(wrapper.firstChild)
+}
+
+function unwrapAncestorTagInRange(range: Range, tagName: string): void {
+  const host = range.commonAncestorContainer
+  const root = host.nodeType === Node.ELEMENT_NODE ? (host as Element) : host.parentElement
+  if (!root) return
+
+  const upperTag = tagName.toUpperCase()
+  let node: Node | null = range.startContainer
+  if (node.nodeType === Node.TEXT_NODE) node = node.parentNode
+
+  const anchors: Element[] = []
+  while (node && node !== root.parentNode) {
+    if (node.nodeName === upperTag) anchors.push(node as Element)
+    node = node.parentNode
+  }
+
+  for (const anchor of anchors) {
+    while (anchor.firstChild) anchor.parentNode?.insertBefore(anchor.firstChild, anchor)
+    anchor.remove()
+  }
 }
 
 function applySingleOperation(

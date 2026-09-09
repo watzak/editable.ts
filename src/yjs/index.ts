@@ -16,4 +16,24 @@ export { PlainTextYjsError } from './plain-text-yjs-error.js'
 export { reconcileHostToCanonicalYText } from './reconcile.js'
 export type { ReconcileDiagnostics } from './reconcile.js'
 export { yTextDeltaToOperations } from './ytext-delta-to-operations.js'
-export type { YTextDeltaOp } from './ytext-delta-to-operations.js'
+export type { YTextDeltaOp, YTextDeltaToOperationsOptions } from './ytext-delta-to-operations.js'
+export {
+  InlineFormatRegistry,
+  defaultInlineFormatRegistry,
+  sanitizeUrlAttribute,
+  isAllowedUrl
+} from './inline-format-codec.js'
+export type { InlineFormatCodec, FormatYjsKey, LinkAttributeValue } from './inline-format-codec.js'
+export { getBlockTextRuns, textRunsToPlainText } from './dom-text-runs.js'
+export type { TextRun } from './dom-text-runs.js'
+export {
+  insertHostRunsIntoYText,
+  yTextSnapshotToOperations,
+  hostTextMatchesYText
+} from './dom-to-ytext.js'
+export {
+  buildToggleFormatOperation,
+  buildLinkOperation,
+  buildUnlinkOperation
+} from '../format-operations.js'
+export type { ToggleFormatKey } from '../format-operations.js'

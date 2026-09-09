@@ -200,6 +200,32 @@ export class OperationCapture {
     return emitted
   }
 
+  commitFormatMutation(
+    notify: Notify,
+    block: HTMLElement,
+    selectionWatcher: SelectionWatcher,
+    details: {
+      operations: readonly EditableOperation[]
+      selectionBefore?: SelectionSnapshot
+      nativeEvent?: Event
+      inputType?: string
+    }
+  ): boolean {
+    if (this.isApplyingRemote(block)) return false
+    if (details.operations.length === 0) return false
+
+    const selectionAfter = captureSelectionSnapshot(block, selectionWatcher.getFreshSelection())
+
+    return this.emitConfirmedBatch(notify, block, selectionWatcher, {
+      operations: details.operations,
+      source: 'api',
+      inputType: details.inputType ?? 'formatText',
+      selectionBefore: details.selectionBefore,
+      selectionAfter,
+      nativeEvent: details.nativeEvent
+    })
+  }
+
   buildPasteTextBatch(
     selectionBefore: SelectionSnapshot,
     pastedPlainText: string,

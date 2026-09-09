@@ -12,6 +12,7 @@
     "examples/e2e-iframe-editor.js",
     "examples/events.jsx",
     "examples/styles-entry.js",
+    "examples/yjs-rich-editor.js",
     "scripts/**/*.mjs",
     "vite/**/*.{js,mjs}",
     "vitest.config.js",

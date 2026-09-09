@@ -7,19 +7,13 @@ import { isPlainTextBlock } from './block.js'
 import { createFragmentFromString } from './content.js'
 import { compilePasteRules, type PasteRules } from './paste-rules.js'
 import { toCharacterRange } from './util/dom.js'
+import { normalizeRelForBlankTarget, sanitizeUrlAttribute } from './url-security.js'
 import type Cursor from './cursor.js'
 import type Selection from './selection.js'
 
 const whitespaceOnly = /^\s*$/
 const blockPlaceholder = '<!-- BLOCK -->'
 const URL_ATTRIBUTES = new Set(['href'])
-const ALLOWED_URL_PROTOCOLS = new Set(['http', 'https', 'mailto', 'tel'])
-const BLOCKED_URL_PROTOCOLS = new Set(['javascript', 'data', 'vbscript', 'file'])
-// oxlint-disable-next-line eslint/no-control-regex -- strip control chars from pasted URLs
-const LEADING_URL_WHITESPACE = /^[\s\u0000-\u001f\u007f]+/
-// oxlint-disable-next-line eslint/no-control-regex -- strip control chars from pasted URLs
-const URL_CONTROL_CHARS = /[\u0000-\u001f\u007f]/g
-const URL_PROTOCOL_PATTERN = /^([a-zA-Z][a-zA-Z0-9+.-]*):/
 
 interface FilterOptions {
   allowedElements: Record<string, Record<string, boolean>>
@@ -232,43 +226,6 @@ function conditionalNodeWrap(
   if (pasteRules.blockLevelElements[nodeName]) return `${content} `
 
   return content
-}
-
-function decodeUrlAttributeValue(value: string, doc: Document): string {
-  const textarea = doc.createElement('textarea')
-  textarea.innerHTML = value
-  return textarea.value.replace(URL_CONTROL_CHARS, '').replace(LEADING_URL_WHITESPACE, '')
-}
-
-function extractUrlProtocol(url: string): string | null {
-  const match = url.match(URL_PROTOCOL_PATTERN)
-  return match ? match[1].toLowerCase() : null
-}
-
-function isAllowedUrl(value: string, doc: Document): boolean {
-  const normalized = decodeUrlAttributeValue(value, doc)
-  if (!normalized) return false
-
-  if (normalized.startsWith('#') || normalized.startsWith('?')) return true
-  if (normalized.startsWith('//')) return true
-
-  const protocol = extractUrlProtocol(normalized)
-  if (!protocol) return true
-  if (BLOCKED_URL_PROTOCOLS.has(protocol)) return false
-
-  return ALLOWED_URL_PROTOCOLS.has(protocol)
-}
-
-function sanitizeUrlAttribute(value: string, doc: Document): string | null {
-  if (!isAllowedUrl(value, doc)) return null
-  return decodeUrlAttributeValue(value, doc)
-}
-
-function normalizeRelForBlankTarget(rel: string | undefined): string {
-  const tokens = new Set((rel || '').split(/\s+/).filter(Boolean))
-  tokens.add('noopener')
-  tokens.add('noreferrer')
-  return Array.from(tokens).join(' ')
 }
 
 function applyAllowedAttributes(

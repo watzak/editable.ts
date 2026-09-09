@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>editable.ts — Yjs rich-text demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="dist/styles.js"></script>
+    <style>
+      .yjs-demo {
+        max-width: 960px;
+        margin: 2rem auto;
+        font-family: system-ui, sans-serif;
+      }
+      .yjs-demo h1 {
+        font-size: 1.25rem;
+      }
+      .yjs-demo p {
+        color: #444;
+      }
+      .editors {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .editor-panel {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 0.75rem;
+        background: #fafafa;
+      }
+      .editor-panel h2 {
+        margin: 0 0 0.5rem;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #666;
+      }
+      .rich-host {
+        min-height: 8rem;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #fff;
+      }
+      .toolbar {
+        margin: 0.75rem 0;
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .toolbar button {
+        padding: 0.35rem 0.65rem;
+        border: 1px solid #bbb;
+        border-radius: 4px;
+        background: #fff;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="yjs-demo">
+      <h1>Yjs rich-text sync</h1>
+      <p>
+        Two editors share one <code>Y.Text</code> via manual <code>Y.applyUpdate</code>. Inline
+        formats sync as delta attributes (bold, italic, underline, safe links) — no HTML in the
+        CRDT.
+      </p>
+      <div class="toolbar">
+        <button type="button" data-cmd="bold">Bold</button>
+        <button type="button" data-cmd="italic">Italic</button>
+        <button type="button" data-cmd="underline">Underline</button>
+        <button type="button" data-cmd="link">Link</button>
+      </div>
+      <div class="editors">
+        <div class="editor-panel">
+          <h2>Peer A</h2>
+          <div id="editor-a" class="rich-host" contenteditable="true"></div>
+        </div>
+        <div class="editor-panel">
+          <h2>Peer B</h2>
+          <div id="editor-b" class="rich-host" contenteditable="true"></div>
+        </div>
+      </div>
+    </section>
+    <script type="module" src="yjs-rich-editor.js"></script>
+  </body>
+</html>

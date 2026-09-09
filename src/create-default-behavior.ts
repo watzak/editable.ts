@@ -2,6 +2,7 @@ import * as parser from './parser.js'
 import * as content from './content.js'
 import log from './util/log.js'
 import * as nodeType from './node-type.js'
+import { buildToggleFormatOperation, captureSelectionBeforeFormat } from './format-operations.js'
 import type { Editable } from './core.js'
 import type Cursor from './cursor.js'
 import type Selection from './selection.js'
@@ -185,11 +186,40 @@ export default function createDefaultBehavior(editable: Editable) {
     },
 
     toggleBold(selection: Selection): void {
+      const host = selection.host
+      const selectionBefore = captureSelectionBeforeFormat(selection)
+      const operation = selectionBefore && buildToggleFormatOperation(host, selectionBefore, 'bold')
       selection.toggleBold()
+      if (operation && selectionBefore) {
+        editable.dispatcher.operationCapture.commitFormatMutation(
+          editable.dispatcher.notify,
+          host,
+          editable.dispatcher.selectionWatcher,
+          {
+            operations: [operation],
+            selectionBefore
+          }
+        )
+      }
     },
 
     toggleEmphasis(selection: Selection): void {
+      const host = selection.host
+      const selectionBefore = captureSelectionBeforeFormat(selection)
+      const operation =
+        selectionBefore && buildToggleFormatOperation(host, selectionBefore, 'italic')
       selection.toggleEmphasis()
+      if (operation && selectionBefore) {
+        editable.dispatcher.operationCapture.commitFormatMutation(
+          editable.dispatcher.notify,
+          host,
+          editable.dispatcher.selectionWatcher,
+          {
+            operations: [operation],
+            selectionBefore
+          }
+        )
+      }
     }
   }
 }

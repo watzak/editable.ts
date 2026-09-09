@@ -8,7 +8,10 @@ import * as clipboard from './clipboard.js'
 import Dispatcher from './dispatcher.js'
 import Cursor from './cursor.js'
 import createDefaultEvents from './create-default-events.js'
-import { textNodesUnder, getTextNodeAndRelativeOffset } from './util/element.js'
+import { applyOperationsForEditable, getOperationRemoteQueue } from './apply-operations.js'
+import { createOperationRange } from './operation-offset.js'
+import type { ApplyOperationsOptions } from './operation-apply.js'
+import type { ApplyOperationsResult } from './operation-apply.js'
 import { binaryCursorSearch, BinaryCursorSearchResult } from './util/binary_search.js'
 import { domArray, createRange, nodeContainsRange } from './util/dom.js'
 import { cloneDeep } from './util/clone-deep.js'
@@ -72,6 +75,8 @@ export {
 } from './command-builder.js'
 export { dispatchEditableOperations } from './operation-pipeline.js'
 export type { DispatchOperationOptions } from './operation-pipeline.js'
+export { OperationValidationError } from './apply-operations.js'
+export type { ApplyOperationsOptions, ApplyOperationsResult } from './operation-apply.js'
 
 export interface EditableConfig {
   window?: Window
@@ -280,19 +285,24 @@ export class Editable {
     element: HTMLElement
     offset: number
   }): Cursor {
-    const textNodes = textNodesUnder(element)
-    const { node, relativeOffset } = getTextNodeAndRelativeOffset({ textNodes, absOffset: offset })
-    if (!node) throw new Error('Could not find text node for offset')
-    const newRange = createRange(this.win)
-    newRange.setStart(node, relativeOffset)
-    newRange.collapse(true)
-
     const host = Cursor.findHost(element, this.editableSelector)
     if (!host) throw new Error('No editable host found')
+    const newRange = createOperationRange(host, offset, offset)
     const nextCursor = new Cursor(host, newRange)
-
     nextCursor.setVisibleSelection()
     return nextCursor
+  }
+
+  /**
+   * Applies an external operation batch atomically to a host block.
+   * Foundation for remote/Yjs adapters — not a full collaboration layer.
+   */
+  applyOperations(
+    host: HTMLElement,
+    batch: import('./operation-types.js').EditableOperationBatch,
+    options?: ApplyOperationsOptions
+  ): ApplyOperationsResult {
+    return applyOperationsForEditable(this, host, batch, options)
   }
 
   createCursorAtBeginning(element: HTMLElement): Cursor | undefined {
@@ -373,6 +383,7 @@ export class Editable {
 
   unload(): this {
     for (const element of this.registeredBlocks) {
+      getOperationRemoteQueue().clear(element)
       releaseBlock(element, this)
     }
     this.registeredBlocks.clear()

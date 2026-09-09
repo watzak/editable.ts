@@ -45,6 +45,7 @@ export class OperationCapture {
   private composition = new WeakMap<HTMLElement, CompositionCapture>()
   private confirmed = new WeakMap<HTMLElement, ConfirmedState>()
   private applyingSmartQuote = new WeakSet<HTMLElement>()
+  private applyingRemote = new WeakSet<HTMLElement>()
 
   syncConfirmedState(block: HTMLElement, selectionWatcher: SelectionWatcher): void {
     const cursorOrSelection = selectionWatcher.getFreshSelection()
@@ -109,6 +110,19 @@ export class OperationCapture {
     return this.applyingSmartQuote.has(block)
   }
 
+  beginRemoteApply(block: HTMLElement): void {
+    this.applyingRemote.add(block)
+    this.pending.delete(block)
+  }
+
+  endRemoteApply(block: HTMLElement): void {
+    this.applyingRemote.delete(block)
+  }
+
+  isApplyingRemote(block: HTMLElement): boolean {
+    return this.applyingRemote.has(block)
+  }
+
   commitComposition(
     notify: Notify,
     block: HTMLElement,
@@ -141,7 +155,7 @@ export class OperationCapture {
     inputEvent: InputEvent,
     smartQuotesConfig?: { quotes: QuotePair | string[]; singleQuotes: QuotePair | string[] }
   ): boolean {
-    if (this.isApplyingSmartQuote(block)) return false
+    if (this.isApplyingSmartQuote(block) || this.isApplyingRemote(block)) return false
 
     const pending = this.pending.get(block)
     this.pending.delete(block)

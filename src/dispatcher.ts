@@ -16,6 +16,7 @@ import { getInputCapabilities, isBeforeInputPreferred } from './input-capabiliti
 import { InputCommandTracker } from './input-command-tracker.js'
 import { mapCommandToInputType, mapInputTypeToCommand } from './input-normalizer.js'
 import { isTextInputType } from './operation-input-predict.js'
+import { flushQueuedOperations } from './apply-operations.js'
 import { OperationCapture } from './operation-capture.js'
 import { dispatchEditableOperations } from './operation-pipeline.js'
 import { htmlToOperationText } from './operation-text-model.js'
@@ -169,6 +170,7 @@ export default class Dispatcher {
         ) {
           this.operationCapture.syncConfirmedState(block, this.selectionWatcher)
         }
+        flushQueuedOperations(this.editable, block)
       },
       true
     )

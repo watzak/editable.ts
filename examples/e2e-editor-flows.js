@@ -355,11 +355,29 @@ function simulatePaste(testId, clipboardContent) {
   return true
 }
 
+const logRemoteApply = createScopedLogger('remote-apply-log')
+editable.enable('.e2e-remote-apply p', { normalize: true })
+editable
+  .on('change', (elem) => {
+    if (!elem.closest('.e2e-remote-apply')) return
+    logRemoteApply('change')
+  })
+  .on('operation', () => {
+    logRemoteApply('operation')
+  })
+
+function applyRemoteOperations(testId, batch, options = {}) {
+  const block = document.querySelector(`[data-testid="${testId}"]`)
+  if (!block) return { applied: false }
+  return editable.applyOperations(block, batch, options)
+}
+
 window.__editableE2E = {
   editable,
   editableA,
   editableB,
   logEvent,
   eventNames,
-  simulatePaste
+  simulatePaste,
+  applyRemoteOperations
 }

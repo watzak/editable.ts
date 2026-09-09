@@ -126,7 +126,7 @@
   "size-limit": [
     {
       "path": "dist/editable.umd.cjs",
-      "limit": "21 KB"
+      "limit": "23 KB"
     }
   ],
   "engines": {

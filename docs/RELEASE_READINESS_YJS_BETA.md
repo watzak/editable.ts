@@ -12,27 +12,27 @@ The optional `./yjs` subpath is prepared for an integrator beta. This pass adds 
 
 ## Verification log (2026-09-09 beta prep)
 
-| Command | Result |
-|---------|--------|
-| `npm ci` | Pass |
-| `npm audit --omit=dev` | 0 vulnerabilities |
-| `npm run verify` | Pass — typecheck, 817 unit tests, lint, format, knip, publint, ATTW, packed consumer, beta consumers, size limits |
-| `npm run test:e2e` | **123 passed**, 3 skipped (native undo), 0 failed — Chromium/Firefox/WebKit |
-| `npm pack` | Local tarball generated for consumer installs |
+| Command                | Result                                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `npm ci`               | Pass                                                                                                              |
+| `npm audit --omit=dev` | 0 vulnerabilities                                                                                                 |
+| `npm run verify`       | Pass — typecheck, 817 unit tests, lint, format, knip, publint, ATTW, packed consumer, beta consumers, size limits |
+| `npm run test:e2e`     | **123 passed**, 3 skipped (native undo), 0 failed — Chromium/Firefox/WebKit                                       |
+| `npm pack`             | Local tarball generated for consumer installs                                                                     |
 
 ## New beta-prep deliverables
 
-| Area | Artifact |
-|------|----------|
-| Provider status | `YjsProviderStatus`, `createProviderStatusSource`, `isProviderReadyForInitialSync` |
-| Deferred sync | `deferInitialSync`, `binding.activate()`, `activateBindingsAfterProviderSync` |
-| Diagnostics | `onSyncDiagnostic` / `YjsSyncDiagnostic` |
-| Real transport demo | `examples/yjs-websocket-demo.html` + `scripts/yjs-websocket-server.mjs` |
-| Offline demo | `examples/yjs-offline-demo.html` (`y-indexeddb` + websocket) |
-| Docs | `YJS_PROVIDER_INTEGRATION.md`, `YJS_IME_TEST_PLAN.md`, updated `yjs-provider-example.md` |
-| Release notes draft | `docs/releases/1.3.0-beta.1.md` |
-| E2E | `e2e/yjs-websocket-flows.spec.ts` (two browser contexts, real WS server) |
-| Consumer fixtures | `scripts/validate-beta-consumers.mjs` (core-only, yjs-peer, vite bundle) |
+| Area                | Artifact                                                                                 |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| Provider status     | `YjsProviderStatus`, `createProviderStatusSource`, `isProviderReadyForInitialSync`       |
+| Deferred sync       | `deferInitialSync`, `binding.activate()`, `activateBindingsAfterProviderSync`            |
+| Diagnostics         | `onSyncDiagnostic` / `YjsSyncDiagnostic`                                                 |
+| Real transport demo | `examples/yjs-websocket-demo.html` + `scripts/yjs-websocket-server.mjs`                  |
+| Offline demo        | `examples/yjs-offline-demo.html` (`y-indexeddb` + websocket)                             |
+| Docs                | `YJS_PROVIDER_INTEGRATION.md`, `YJS_IME_TEST_PLAN.md`, updated `yjs-provider-example.md` |
+| Release notes draft | `docs/releases/1.3.0-beta.1.md`                                                          |
+| E2E                 | `e2e/yjs-websocket-flows.spec.ts` (two browser contexts, real WS server)                 |
+| Consumer fixtures   | `scripts/validate-beta-consumers.mjs` (core-only, yjs-peer, vite bundle)                 |
 
 ## Provider ownership (unchanged)
 
@@ -42,25 +42,25 @@ The optional `./yjs` subpath is prepared for an integrator beta. This pass adds 
 
 ## Size limits (brotli, CI)
 
-| Artifact | Limit | Measured |
-|----------|-------|----------|
-| `dist/editable.umd.cjs` | 25 KB | ~24.61 KB |
-| `lib/yjs/editable-yjs-binding.js` | 4.25 KB | ~4.17 KB |
-| `lib/yjs/binding-undo.js` | 2 KB | ~1.4 KB |
-| `lib/yjs/editable-yjs-presence.js` | 3 KB | ~1.83 KB |
-| `lib/yjs/editable-yjs-annotations.js` | 4 KB | ~1.57 KB |
+| Artifact                              | Limit   | Measured  |
+| ------------------------------------- | ------- | --------- |
+| `dist/editable.umd.cjs`               | 25 KB   | ~24.61 KB |
+| `lib/yjs/editable-yjs-binding.js`     | 4.25 KB | ~4.17 KB  |
+| `lib/yjs/binding-undo.js`             | 2 KB    | ~1.4 KB   |
+| `lib/yjs/editable-yjs-presence.js`    | 3 KB    | ~1.83 KB  |
+| `lib/yjs/editable-yjs-annotations.js` | 4 KB    | ~1.57 KB  |
 
 Core UMD/ESM remain Yjs-free (`validate:core-bundle`).
 
 ## E2E matrix
 
-| Suite | Coverage |
-|-------|----------|
-| Manual network collab | Plain/rich, offline, presence, undo, destroy |
-| Document collab | Structure sync, concurrent edits, offline |
-| Annotations | Persistent map, two clients |
-| **y-websocket** | Two contexts, provider `synced`, CRDT round-trip + typing |
-| Presence | Overlay cleanup |
+| Suite                 | Coverage                                                  |
+| --------------------- | --------------------------------------------------------- |
+| Manual network collab | Plain/rich, offline, presence, undo, destroy              |
+| Document collab       | Structure sync, concurrent edits, offline                 |
+| Annotations           | Persistent map, two clients                               |
+| **y-websocket**       | Two contexts, provider `synced`, CRDT round-trip + typing |
+| Presence              | Overlay cleanup                                           |
 
 ## Manual QA still required
 

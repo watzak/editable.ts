@@ -78,10 +78,9 @@ test.describe('Yjs document collab demo', () => {
     await page.locator('#cms-document-b [contenteditable]').first().click()
     await page.keyboard.type(' remote')
 
-    await page.waitForFunction(() => {
-      const api = window.__yjsDocumentCollabE2E!
-      return (document.getElementById('cms-document-b')?.textContent ?? '').includes('remote')
-    })
+    await page.waitForFunction(() =>
+      (document.getElementById('cms-document-b')?.textContent ?? '').includes('remote')
+    )
 
     await page.click('[data-action="move-a"]')
 

@@ -44,7 +44,8 @@ describe('EditableYjsDocumentBinding', function () {
     })
 
     const paragraphId = paragraph.map.get('id') as string
-    const bodyHost = binding.getComponentView(paragraphId)?.directiveHosts.get('body')!
+    const bodyHost = binding.getComponentView(paragraphId)?.directiveHosts.get('body')
+    if (!bodyHost) throw new Error('Expected the paragraph body host to be mounted')
 
     return {
       doc,

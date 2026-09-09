@@ -1,3 +1,5 @@
+import { stripAsciiControlCharacters } from './sanitize.js'
+
 /**
  * Provider-neutral connection status convention.
  *
@@ -62,7 +64,7 @@ export function sanitizeProviderStatus(raw: YjsProviderStatus): YjsProviderStatu
   const status = allowed.includes(raw.status) ? raw.status : 'disconnected'
   const message =
     typeof raw.message === 'string'
-      ? raw.message.replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, 256)
+      ? stripAsciiControlCharacters(raw.message).replace(/[<>]/g, '').slice(0, 256)
       : undefined
   return message ? { status, message } : { status }
 }

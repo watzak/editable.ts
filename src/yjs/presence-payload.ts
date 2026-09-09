@@ -1,5 +1,6 @@
 import type { JsonValue } from '../operation-types.js'
 import { isRelativePositionJson } from './relative-position.js'
+import { stripAsciiControlCharacters } from './sanitize.js'
 
 /** Awareness state field for editable.ts presence payloads. */
 export const PRESENCE_STATE_KEY = 'editable.ts:presence:v1'
@@ -18,7 +19,6 @@ export interface PresencePayloadV1 {
   focused: boolean
 }
 
-const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g
 const MAX_NAME_LENGTH = 64
 const HEX_COLOR = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
 const RGB_COLOR = /^rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*(,\s*[\d.]+\s*)?\)$/
@@ -26,8 +26,7 @@ const HSL_COLOR = /^hsla?\(\s*[\d.]+\s*,\s*[\d.]+%\s*,\s*[\d.]+%\s*(,\s*[\d.]+\s
 
 export function sanitizePresenceName(value: unknown): string {
   if (typeof value !== 'string') return 'Anonymous'
-  const stripped = value
-    .replace(CONTROL_CHARS, '')
+  const stripped = stripAsciiControlCharacters(value)
     .replace(/[<>"'`]/g, '')
     .trim()
   if (!stripped) return 'Anonymous'

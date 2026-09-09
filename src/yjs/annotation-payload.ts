@@ -8,8 +8,7 @@ import {
   type SanitizedAnnotationData
 } from './annotation-types.js'
 import { isRelativePositionJson } from './relative-position.js'
-
-const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g
+import { stripAsciiControlCharacters } from './sanitize.js'
 const MAX_ID_LENGTH = 128
 const MAX_AUTHOR_LENGTH = 128
 const MAX_BODY_LENGTH = 4096
@@ -21,15 +20,14 @@ const ANNOTATION_TYPES = new Set<AnnotationType>(['comment', 'issue', 'suggestio
 
 export function sanitizeAnnotationId(value: unknown): string | null {
   if (typeof value !== 'string') return null
-  const stripped = value.replace(CONTROL_CHARS, '').trim()
+  const stripped = stripAsciiControlCharacters(value).trim()
   if (!stripped || stripped.length > MAX_ID_LENGTH) return null
   return stripped
 }
 
 export function sanitizeAnnotationAuthorId(value: unknown): string {
   if (typeof value !== 'string') return 'unknown'
-  const stripped = value
-    .replace(CONTROL_CHARS, '')
+  const stripped = stripAsciiControlCharacters(value)
     .replace(/[<>"'`]/g, '')
     .trim()
   if (!stripped) return 'unknown'
@@ -38,8 +36,7 @@ export function sanitizeAnnotationAuthorId(value: unknown): string {
 
 export function sanitizeAnnotationBody(value: unknown): string {
   if (typeof value !== 'string') return ''
-  return value
-    .replace(CONTROL_CHARS, '')
+  return stripAsciiControlCharacters(value)
     .replace(/[<>"'`]/g, '')
     .trim()
     .slice(0, MAX_BODY_LENGTH)
@@ -65,7 +62,7 @@ function sanitizeLifecycleStatus(value: unknown): AnnotationLifecycleStatus {
 
 function sanitizeOptionalKey(value: unknown, maxLength: number): string | undefined {
   if (typeof value !== 'string') return undefined
-  const stripped = value.replace(CONTROL_CHARS, '').trim()
+  const stripped = stripAsciiControlCharacters(value).trim()
   if (!stripped) return undefined
   return stripped.slice(0, maxLength)
 }

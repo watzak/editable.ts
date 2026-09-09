@@ -10,11 +10,16 @@ import {
 } from './shared-document-listeners.js'
 import { closest } from './util/dom.js'
 import { replaceLast, endsWithSingleSpace } from './util/string.js'
-import { applySmartQuotes, shouldApplySmartQuotes } from './smartQuotes.js'
+import { shouldApplySmartQuotes } from './smartQuotes.js'
 import { isBlockComposing, isEditingSuppressed, setBlockComposing } from './composition-state.js'
 import { getInputCapabilities, isBeforeInputPreferred } from './input-capabilities.js'
 import { InputCommandTracker } from './input-command-tracker.js'
 import { mapCommandToInputType, mapInputTypeToCommand } from './input-normalizer.js'
+import { isTextInputType } from './operation-input-predict.js'
+import { OperationCapture } from './operation-capture.js'
+import { dispatchEditableOperations } from './operation-pipeline.js'
+import { htmlToOperationText } from './operation-text-model.js'
+import { captureSelectionSnapshot } from './operation-selection.js'
 import type { TrackedInputCommand } from './input-command-tracker.js'
 import type { CommandSource, EditableCommand } from './command-types.js'
 import {
@@ -23,11 +28,13 @@ import {
   buildInsertLineBreakCommand,
   buildMergeBlockCommand,
   buildPasteCommand,
+  buildPasteCommandAtOffset,
   buildSplitBlockCommand
 } from './command-builder.js'
 import { dispatchEditableCommand } from './command-pipeline.js'
 import type { Editable } from './core.js'
 import type { QuotePair } from './smartQuotes.js'
+import type Cursor from './cursor.js'
 import type {
   DispatcherEventMap,
   EventHandler,
@@ -35,7 +42,6 @@ import type {
   EventOff,
   EventOn
 } from './event-types.js'
-import type Cursor from './cursor.js'
 import type Selection from './selection.js'
 
 /**
@@ -50,6 +56,7 @@ export default class Dispatcher {
   public selectionWatcher: SelectionWatcher
   public keyboard: Keyboard
   public inputCommandTracker: InputCommandTracker
+  public operationCapture: OperationCapture
   public activeListeners: SharedDocumentListener[]
   public suspended?: boolean
   public switchContext?: {
@@ -71,6 +78,7 @@ export default class Dispatcher {
     this.selectionWatcher = new SelectionWatcher(this, win)
     this.keyboard = new Keyboard(this.selectionWatcher)
     this.inputCommandTracker = new InputCommandTracker()
+    this.operationCapture = new OperationCapture()
     this.activeListeners = []
     this.setup()
     this.getEditableBlockByEvent = (evt: Event) => {
@@ -141,6 +149,7 @@ export default class Dispatcher {
         const block = this.getEditableBlockByEvent(evt)
         if (!block) return
         setBlockComposing(block, true)
+        this.operationCapture.beginComposition(block, this.selectionWatcher)
       },
       true
     ).setupDocumentListener(
@@ -149,7 +158,17 @@ export default class Dispatcher {
         const block = this.getEditableBlockByEvent(evt)
         if (!block) return
         setBlockComposing(block, false)
-        this.notify('change', block, { source: 'keyboard' })
+        const compositionEvent = evt as CompositionEvent
+        if (
+          !this.operationCapture.commitComposition(
+            this.notify,
+            block,
+            this.selectionWatcher,
+            compositionEvent
+          )
+        ) {
+          this.operationCapture.syncConfirmedState(block, this.selectionWatcher)
+        }
       },
       true
     )
@@ -167,6 +186,16 @@ export default class Dispatcher {
 
         const inputEvent = evt as InputEvent
         if (isEditingSuppressed(block, inputEvent)) return
+
+        if (isTextInputType(inputEvent.inputType)) {
+          this.operationCapture.beginTextMutation(
+            block,
+            this.selectionWatcher,
+            inputEvent,
+            'beforeinput'
+          )
+          return
+        }
 
         const command = mapInputTypeToCommand(inputEvent.inputType)
         if (!command) return
@@ -372,7 +401,6 @@ export default class Dispatcher {
   }
 
   setupElementListeners() {
-    const currentInput: { offset?: number } = { offset: undefined }
     this.setupDocumentListener(
       'focus',
       function focusListener(this: Dispatcher, evt: Event) {
@@ -381,6 +409,7 @@ export default class Dispatcher {
         const target = evt.target as HTMLElement
         if (target && target.getAttribute(this.editable.globalSettings.pastingAttribute)) return
         this.selectionWatcher.syncSelection()
+        this.operationCapture.syncConfirmedState(block, this.selectionWatcher)
         this.notify('focus', block)
       },
       true
@@ -424,24 +453,61 @@ export default class Dispatcher {
           clipEvent.clipboardData.getData('text/html') ||
           clipEvent.clipboardData.getData('text/plain')
 
-        const { blocks, cursor } = clipboard.paste(
+        const prepared = clipboard.preparePaste(
           block,
           selection,
           clipboardContent,
           this.editable.pasteRules
         )
-        if (blocks.length) {
+
+        const selectionBefore = captureSelectionSnapshot(block, selection)
+        const pastedPlainText = prepared.blocks[0]
+          ? htmlToOperationText(prepared.blocks[0], block.ownerDocument!)
+          : ''
+
+        if (selectionBefore && prepared.blocks.length > 0) {
+          const pasteBatch = this.operationCapture.buildPasteTextBatch(
+            selectionBefore,
+            pastedPlainText,
+            clipEvent
+          )
+          dispatchEditableOperations(this.notify, block, pasteBatch)
+        }
+
+        let cursor: Cursor | Selection = selection
+        let pasteCommand = buildPasteCommandAtOffset(
+          block,
+          prepared.blocks,
+          prepared.cursorOffset,
+          'paste',
+          clipEvent,
+          'insertFromPaste'
+        )
+
+        if (this.editable.config.defaultBehavior && prepared.blocks.length > 0) {
+          const applied = clipboard.applyPaste(block, selection, prepared, this.editable.pasteRules)
+          cursor = applied.cursor
+
           const target = clipEvent.target as HTMLElement
           if (target && endsWithSingleSpace(target.innerText)) {
             cursor.retainVisibleSelection(() => {
               block.innerHTML = replaceLast(block.innerHTML, '&nbsp;', ' ')
             })
           }
-          this.dispatchCommand(
-            buildPasteCommand(block, blocks, cursor, 'paste', clipEvent, 'insertFromPaste'),
-            { cursor }
+          pasteCommand = buildPasteCommand(
+            block,
+            prepared.blocks,
+            cursor as Cursor,
+            'paste',
+            clipEvent,
+            'insertFromPaste'
           )
+        }
+
+        if (prepared.blocks.length) {
+          this.dispatchCommand(pasteCommand, { cursor: cursor as Cursor })
           this.inputCommandTracker.markStructuralChange(block)
+          this.operationCapture.syncConfirmedState(block, this.selectionWatcher)
         } else {
           cursor.setVisibleSelection()
         }
@@ -449,35 +515,33 @@ export default class Dispatcher {
       .setupDocumentListener('input', function inputListener(this: Dispatcher, evt: Event) {
         const block = this.getEditableBlockByEvent(evt)
         if (!block) return
-        if (isBlockComposing(block, evt as InputEvent)) return
+        const inputEvent = evt as InputEvent
+        if (isBlockComposing(block, inputEvent)) return
         if (this.inputCommandTracker.shouldSuppressChange(block)) return
 
         const target = evt.target as HTMLElement
-        if (target && shouldApplySmartQuotes(this.config, target)) {
-          const selection = this.selectionWatcher.getFreshSelection()
-          if (!selection || !selection.range) return
-          currentInput.offset = selection.range.startOffset
-          const inputEvent = evt as InputEvent
-          const quotesConfig = {
-            quotes: this.config.quotes as QuotePair | string[],
-            singleQuotes: this.config.singleQuotes as QuotePair | string[]
-          }
-          setTimeout(() => {
-            if (inputEvent.data) {
-              applySmartQuotes(
-                selection.range!,
-                quotesConfig,
-                inputEvent.data,
-                target,
-                currentInput.offset
-              )
+        const quotesConfig = shouldApplySmartQuotes(this.config, target)
+          ? {
+              quotes: this.config.quotes as QuotePair | string[],
+              singleQuotes: this.config.singleQuotes as QuotePair | string[]
             }
-          }, 300)
+          : undefined
+
+        if (
+          this.operationCapture.commitTextInput(
+            this.notify,
+            block,
+            this.selectionWatcher,
+            inputEvent,
+            quotesConfig
+          )
+        ) {
+          return
         }
 
         this.notify('change', block, {
           source: 'keyboard',
-          inputType: (evt as InputEvent).inputType
+          inputType: inputEvent.inputType
         })
       })
       .setupDocumentListener(
@@ -603,9 +667,7 @@ export default class Dispatcher {
       )
       .on(
         'character',
-        this.keyboardBlockHandler((block) => {
-          this.notify('change', block, { source: 'keyboard' })
-        })
+        this.keyboardBlockHandler(() => {})
       )
   }
 

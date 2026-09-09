@@ -76,4 +76,4 @@ DOM `<br>` elements are represented as `\n` (`OPERATION_LINE_BREAK`) in operatio
 
 - Unit tests for `dispatchEditableOperations` and type contracts (`spec/operation-api.spec.ts`).
 - Consumer type tests confirm additive API (`beforeOperation`, `operation`) without breaking 1.2.x handlers.
-- No Yjs dependency; no browser capture wiring in this step.
+- No Yjs dependency; browser capture wiring added in Prompt 2 (see `docs/browser-operation-fallbacks.md`).

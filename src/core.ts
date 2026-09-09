@@ -64,7 +64,12 @@ export type {
 export { OPERATION_LINE_BREAK } from './operation-types.js'
 export { CommandContext } from './command-context.js'
 export { OperationContext } from './operation-context.js'
-export { getHostTextOffset, buildCommandCursor, buildCommandSelection } from './command-builder.js'
+export {
+  getHostTextOffset,
+  buildCommandCursor,
+  buildCommandSelection,
+  buildInputChangeCommand
+} from './command-builder.js'
 export { dispatchEditableOperations } from './operation-pipeline.js'
 export type { DispatchOperationOptions } from './operation-pipeline.js'
 

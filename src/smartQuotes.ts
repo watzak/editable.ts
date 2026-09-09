@@ -13,11 +13,16 @@ const isValidQuotePairConfig = (quotePair: unknown): quotePair is QuotePair =>
 
 export const shouldApplySmartQuotes = (config: SmartQuotesConfig, target: HTMLElement): boolean => {
   const { smartQuotes, quotes, singleQuotes } = config
+  const isEditableTarget =
+    !!target.isContentEditable ||
+    target.getAttribute('contenteditable') === 'true' ||
+    target.getAttribute('contenteditable') === ''
+
   return (
     !!smartQuotes &&
     isValidQuotePairConfig(quotes) &&
     isValidQuotePairConfig(singleQuotes) &&
-    target.isContentEditable
+    isEditableTarget
   )
 }
 
@@ -75,6 +80,99 @@ const hasSingleOpeningQuote = (
     }
   }
   return false
+}
+
+export interface SmartQuoteReplacement {
+  index: number
+  replacement: string
+  applyDom: (host: HTMLElement) => void
+}
+
+/** Resolves a smart-quote replacement from operation plain text (no delayed DOM write). */
+export function resolveSmartQuoteOperation(
+  _textBefore: string,
+  textAfter: string,
+  char: string,
+  config: { quotes: QuotePair | string[]; singleQuotes: QuotePair | string[] }
+): SmartQuoteReplacement | undefined {
+  const resolution = resolveSmartQuoteIndex(textAfter, char, config)
+  if (!resolution) return undefined
+
+  const { index, replacement } = resolution
+  return {
+    index,
+    replacement,
+    applyDom(host: HTMLElement) {
+      const textNode = findTextNodeAtOffset(host, index)
+      if (!textNode) return
+      const doc = host.ownerDocument
+      if (!doc) return
+      const range = doc.createRange()
+      range.setStart(textNode.node, textNode.offset)
+      range.collapse(true)
+      replaceQuote(range, textNode.offset, replacement)
+    }
+  }
+}
+
+function findTextNodeAtOffset(
+  host: HTMLElement,
+  targetOffset: number
+): { node: Text; offset: number } | undefined {
+  const walker = host.ownerDocument?.createTreeWalker(host, NodeFilter.SHOW_TEXT)
+  if (!walker) return undefined
+
+  let remaining = targetOffset
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text
+    const length = node.data.length
+    if (remaining < length) {
+      return { node, offset: remaining }
+    }
+    remaining -= length
+  }
+  return undefined
+}
+
+function resolveSmartQuoteIndex(
+  textAfter: string,
+  char: string,
+  config: { quotes: QuotePair | string[]; singleQuotes: QuotePair | string[] }
+): { index: number; replacement: string } | undefined {
+  const isCharSingleQuote = isSingleQuote(char)
+  const isCharDoubleQuote = isDoubleQuote(char)
+  if (!isCharDoubleQuote && !isCharSingleQuote) return undefined
+
+  const { quotes, singleQuotes } = config
+  if (
+    char === quotes[0] ||
+    char === quotes[1] ||
+    char === singleQuotes[0] ||
+    char === singleQuotes[1]
+  ) {
+    return undefined
+  }
+
+  const offset = textAfter.lastIndexOf(char)
+  if (offset < 0) return undefined
+
+  const textArr = [...textAfter]
+  let replacement: string | undefined
+
+  if (isCharSingleQuote && shouldBeSingleOpeningQuote(textArr, offset - 1)) {
+    replacement = singleQuotes[0]
+  } else if (shouldBeClosingQuote(textArr, offset - 1)) {
+    if (isCharSingleQuote) {
+      if (hasCharAfter(textArr, offset + 1)) return undefined
+      if (!hasSingleOpeningQuote(textArr, offset + 1, singleQuotes[0])) return undefined
+    }
+    replacement = isCharSingleQuote ? singleQuotes[1] : quotes[1]
+  } else if (shouldBeOpeningQuote(textArr, offset - 1)) {
+    replacement = isCharSingleQuote ? singleQuotes[0] : quotes[0]
+  }
+
+  if (!replacement) return undefined
+  return { index: offset, replacement }
 }
 
 export const applySmartQuotes = (

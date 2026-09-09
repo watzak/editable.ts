@@ -4,7 +4,9 @@ import * as string from './util/string.js'
 import * as nodeType from './node-type.js'
 import * as quotes from './quotes.js'
 import { isPlainTextBlock } from './block.js'
+import { createFragmentFromString } from './content.js'
 import { compilePasteRules, type PasteRules } from './paste-rules.js'
+import { toCharacterRange } from './util/dom.js'
 import type Cursor from './cursor.js'
 import type Selection from './selection.js'
 
@@ -36,13 +38,56 @@ export function updateConfig(conf: Config): void {
   defaultPasteRules = compilePasteRules(conf)
 }
 
-export function paste(
+export interface PreparedPaste {
+  blocks: string[]
+  /** Cursor offset after paste (UTF-16), relative to block operation text before DOM mutation. */
+  cursorOffset: number
+  /** Selection span replaced by the first pasted block (UTF-16). */
+  replacedStart: number
+  replacedLength: number
+}
+
+/**
+ * Parses and sanitizes clipboard content without mutating the host block.
+ * Use before {@link applyPaste} so `beforeOperation` / `beforeCommand` can cancel.
+ */
+export function preparePaste(
   block: HTMLElement,
   cursor: Cursor | Selection,
   clipboardContent: string,
   pasteRules: PasteRules = defaultPasteRules
-): { blocks: string[]; cursor: Cursor | Selection } {
+): PreparedPaste {
   const document = block.ownerDocument
+  const pasteHolder = document.createElement('div')
+  pasteHolder.innerHTML = clipboardContent
+
+  const isPlainText = isPlainTextBlock(block)
+  const blocks = parseContent(pasteHolder, { plainText: isPlainText, pasteRules })
+
+  const textRange = cursor.isSelection
+    ? (cursor as Selection).getTextRange()
+    : toCharacterRange(cursor.range, block)
+
+  const replacedStart = textRange.start
+  const replacedLength = textRange.end - textRange.start
+  const firstBlockPlainLength = blocks[0]
+    ? (createFragmentFromString(blocks[0], document).textContent?.length ?? 0)
+    : 0
+  const cursorOffset = replacedStart + firstBlockPlainLength
+
+  return { blocks, cursorOffset, replacedStart, replacedLength }
+}
+
+/**
+ * Applies a prepared paste to the DOM (selection deletion + default insertion hooks).
+ * Call only after command/operation handlers confirm the paste.
+ */
+export function applyPaste(
+  block: HTMLElement,
+  cursor: Cursor | Selection,
+  prepared: PreparedPaste,
+  pasteRules: PasteRules = defaultPasteRules
+): { blocks: string[]; cursor: Cursor | Selection } {
   block.setAttribute(pasteRules.pastingAttribute, 'true')
 
   if (cursor.isSelection) {
@@ -50,15 +95,19 @@ export function paste(
     cursor = selection.deleteExactSurroundingTags().deleteContainedTags().deleteContent()
   }
 
-  // Create a placeholder to help parse HTML
-  const pasteHolder = document.createElement('div')
-  pasteHolder.innerHTML = clipboardContent
-
-  const isPlainText = isPlainTextBlock(block)
-  const blocks = parseContent(pasteHolder, { plainText: isPlainText, pasteRules })
-
   block.removeAttribute(pasteRules.pastingAttribute)
-  return { blocks, cursor }
+  return { blocks: prepared.blocks, cursor }
+}
+
+/** @deprecated Use {@link preparePaste} + {@link applyPaste} for controlled paste flow. */
+export function paste(
+  block: HTMLElement,
+  cursor: Cursor | Selection,
+  clipboardContent: string,
+  pasteRules: PasteRules = defaultPasteRules
+): { blocks: string[]; cursor: Cursor | Selection } {
+  const prepared = preparePaste(block, cursor, clipboardContent, pasteRules)
+  return applyPaste(block, cursor, prepared, pasteRules)
 }
 
 /**

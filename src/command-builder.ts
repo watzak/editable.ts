@@ -7,6 +7,7 @@ import type {
   CommandSource,
   EditableCommand,
   FormatCommand,
+  InputChangeCommand,
   InsertBlockCommand,
   InsertLineBreakCommand,
   MergeBlockCommand,
@@ -127,6 +128,23 @@ export function buildPasteCommand(
   }
 }
 
+/** Paste command when DOM has not yet been mutated (e.g. `defaultBehavior: false`). */
+export function buildPasteCommandAtOffset(
+  host: HTMLElement,
+  blocks: string[],
+  offset: number,
+  source: CommandSource,
+  nativeEvent?: Event,
+  inputType?: string
+): PasteCommand {
+  return {
+    type: 'paste',
+    blocks,
+    cursor: { offset },
+    ...baseFields(host, source, nativeEvent, inputType)
+  }
+}
+
 export function buildFormatCommand(
   host: HTMLElement,
   format: FormatCommand['format'],
@@ -139,6 +157,23 @@ export function buildFormatCommand(
     type: 'format',
     format,
     selection: buildCommandSelection(selection),
+    ...baseFields(host, source, nativeEvent, inputType)
+  }
+}
+
+/**
+ * Metadata command for plain-text input. Always paired with an
+ * {@link EditableOperationBatch} emitted via the operation pipeline for the
+ * same user gesture — see `InputChangeCommand` in command-types.
+ */
+export function buildInputChangeCommand(
+  host: HTMLElement,
+  source: CommandSource,
+  nativeEvent?: Event,
+  inputType?: string
+): InputChangeCommand {
+  return {
+    type: 'input',
     ...baseFields(host, source, nativeEvent, inputType)
   }
 }

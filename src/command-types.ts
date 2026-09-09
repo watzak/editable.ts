@@ -69,7 +69,14 @@ export interface FormatCommand extends CommandBase {
   selection: CommandSelectionPayload
 }
 
-/** Metadata for non-structural text input that only produces a `change` event. */
+/**
+ * Metadata for non-structural text input.
+ *
+ * Emitted together with exactly one {@link EditableOperationBatch} per user
+ * gesture: the batch carries canonical text ops (`insertText`, `deleteText`, …)
+ * while this command preserves 1.x `change` compatibility and links the gesture
+ * to block-level adapters via `ChangeDetails.command`.
+ */
 export interface InputChangeCommand extends CommandBase {
   type: 'input'
 }

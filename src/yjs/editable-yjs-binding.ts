@@ -50,12 +50,20 @@ import {
 } from './remote-sync-state.js'
 import { captureSelectionSnapshot } from '../operation-selection.js'
 import type { EditableOperation, EditableOperationBatch } from '../operation-types.js'
+import type { YjsSyncDiagnosticHandler } from './sync-lifecycle.js'
 
 export interface EditableYjsBindingOptions {
   editable: Editable
   host: HTMLElement
   yText: Y.Text
   initialSync: InitialSyncPolicy
+  /**
+   * When true, skips initial sync and listener attachment until {@link activate}.
+   * Use when a provider or persistence layer may still populate `Y.Text`.
+   */
+  deferInitialSync?: boolean
+  /** Non-fatal sync lifecycle and recovery signals for integrator UI/logging. */
+  onSyncDiagnostic?: YjsSyncDiagnosticHandler
   /** Enables {@link Y.UndoManager} integration scoped to this binding origin. */
   undo?: boolean | BindingUndoOptions
   /** Optional block-structure hooks — no global schema is imposed. */
@@ -83,6 +91,9 @@ export class EditableYjsBinding {
   readonly richText: boolean
 
   private destroyed = false
+  private activated = false
+  private readonly deferInitialSync: boolean
+  private readonly onSyncDiagnostic?: YjsSyncDiagnosticHandler
   private canonicalYText = ''
   private canonicalSnapshot: CanonicalSnapshot = { text: '' }
   private lastRemoteSync: RemoteSyncDiagnostics | null = null
@@ -100,6 +111,9 @@ export class EditableYjsBinding {
     this.yText = options.yText
     this.transactionOrigin = createBindingTransactionOrigin()
     this.richText = !isPlainTextBlock(options.host)
+    this.deferInitialSync = options.deferInitialSync === true
+    this.onSyncDiagnostic = options.onSyncDiagnostic
+    this.activated = !this.deferInitialSync
 
     const undoOptions = resolveBindingUndoOptions(options.undo)
     this.undoController = undoOptions
@@ -123,11 +137,70 @@ export class EditableYjsBinding {
       this.handleYTextChange(event, transaction)
     }
 
-    runInitialSync(this, options.initialSync)
+    this.initialSyncPolicy = options.initialSync
+
+    if (this.deferInitialSync) {
+      this.onSyncDiagnostic?.({
+        kind: 'binding-deferred',
+        scope: 'block',
+        message: 'Initial sync deferred — call activate() after provider/persistence is ready'
+      })
+    } else {
+      this.runActivation(options.initialSync)
+    }
+  }
+
+  /** Whether {@link activate} has completed initial sync and attached listeners. */
+  get isActivated(): boolean {
+    return this.activated
+  }
+
+  /**
+   * Runs initial sync and attaches bidirectional listeners.
+   * Idempotent — safe after provider `synced` or IndexedDB hydration.
+   */
+  activate(): void {
+    this.assertActive()
+    if (this.activated) return
+    this.runActivation(this.getInitialSyncPolicy())
+  }
+
+  private initialSyncPolicy!: InitialSyncPolicy
+
+  private getInitialSyncPolicy(): InitialSyncPolicy {
+    return this.initialSyncPolicy!
+  }
+
+  private runActivation(initialSync: InitialSyncPolicy): void {
+    this.initialSyncPolicy = initialSync
+    try {
+      runInitialSync(this, initialSync)
+    } catch (error) {
+      if (error instanceof InitialSyncConflictError) {
+        this.onSyncDiagnostic?.({
+          kind: 'initial-sync-conflict',
+          scope: 'block',
+          message: error.message,
+          detail: { hostText: error.hostText, yText: error.yText }
+        })
+      }
+      throw error
+    }
+    this.activated = true
     this.refreshCanonicalState()
     this.undoController?.clearStack()
     this.attachSyncListeners()
     this.syncEditableConfirmedState()
+    this.onSyncDiagnostic?.({
+      kind: 'initial-sync-complete',
+      scope: 'block',
+      message: 'Initial sync complete; bidirectional listeners attached'
+    })
+    this.onSyncDiagnostic?.({
+      kind: 'binding-activated',
+      scope: 'block',
+      message: 'Binding activated'
+    })
   }
 
   /** External {@link Y.UndoManager} when configured; otherwise the internal instance. */
@@ -217,6 +290,13 @@ export class EditableYjsBinding {
     this.refreshCanonicalState()
     this.resetIncrementalRemoteState()
     this.syncEditableConfirmedState()
+    if (reason) {
+      this.onSyncDiagnostic?.({
+        kind: 'remote-reconcile',
+        scope: 'block',
+        message: `Reconciled host from canonical Y.Text (${reason})`
+      })
+    }
     return result
   }
 

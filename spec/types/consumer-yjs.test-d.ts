@@ -5,9 +5,13 @@ import { Editable } from 'editable.ts'
 import {
   EditableYjsBinding,
   InitialSyncConflictError,
+  activateBindingsAfterProviderSync,
   classifyInitialSync,
+  createProviderStatusSource,
   type InitialSyncConflictResolver,
-  type InitialSyncPolicy
+  type InitialSyncPolicy,
+  type YjsProviderStatus,
+  type YjsSyncDiagnostic
 } from 'editable.ts/yjs'
 import type * as Y from 'yjs'
 
@@ -37,10 +41,29 @@ const binding = new EditableYjsBinding({
   editable,
   host: block,
   yText,
-  initialSync: policy
+  initialSync: policy,
+  deferInitialSync: true,
+  onSyncDiagnostic: (_d: YjsSyncDiagnostic) => {}
 })
 
+binding.activate()
 binding.destroy()
+
+const statusSource = createProviderStatusSource({
+  status: 'disconnected' as YjsProviderStatus['status']
+})
+const deferred = new EditableYjsBinding({
+  editable,
+  host: block,
+  yText,
+  initialSync: policy,
+  deferInitialSync: true
+})
+activateBindingsAfterProviderSync({
+  providerStatus: statusSource,
+  activate: () => deferred.activate()
+})
+deferred.destroy()
 
 const scenario = classifyInitialSync('a', 'b')
 const conflict = new InitialSyncConflictError('a', 'b')

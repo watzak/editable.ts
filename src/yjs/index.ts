@@ -190,3 +190,19 @@ export type { EditableYjsAnnotationsOptions } from './editable-yjs-annotations.j
 export { EditableYjsDocumentAnnotations } from './editable-yjs-document-annotations.js'
 export type { EditableYjsDocumentAnnotationsOptions } from './editable-yjs-document-annotations.js'
 export { isRelativePositionJson } from './relative-position.js'
+export {
+  createProviderStatusSource,
+  isProviderReadyForInitialSync,
+  sanitizeProviderStatus
+} from './provider-status.js'
+export type {
+  YjsProviderConnectionStatus,
+  YjsProviderStatus,
+  YjsProviderStatusSource
+} from './provider-status.js'
+export { activateBindingsAfterProviderSync } from './sync-lifecycle.js'
+export type {
+  YjsSyncDiagnostic,
+  YjsSyncDiagnosticHandler,
+  YjsSyncDiagnosticKind
+} from './sync-lifecycle.js'

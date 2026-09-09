@@ -19,6 +19,9 @@
     "examples/yjs-collab-demo.js",
     "examples/yjs-document-collab-demo.js",
     "examples/yjs-annotations-demo.js",
+    "examples/yjs-websocket-demo.js",
+    "examples/yjs-offline-demo.js",
+    "scripts/yjs-websocket-server.mjs",
     "scripts/**/*.mjs",
     "vite/**/*.{js,mjs}",
     "vitest.config.js",
@@ -45,6 +48,9 @@
     "rimraf",
     "size-limit",
     "terser",
-    "typescript"
+    "typescript",
+    "ws",
+    "y-indexeddb",
+    "y-websocket"
   ]
 }

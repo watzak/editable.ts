@@ -69,6 +69,8 @@
     "start": "npm run dev",
     "dev": "vite --config vite/vite.config.docs.mjs",
     "dev:e2e": "vite --config vite/vite.config.docs.mjs --host 127.0.0.1 --port 9050 --strictPort",
+    "dev:yjs-websocket": "node scripts/yjs-websocket-server.mjs",
+    "validate:beta-consumers": "node scripts/validate-beta-consumers.mjs",
     "build:ts": "rimraf ./lib && tsc -p tsconfig.build.json",
     "build:dist": "rimraf ./dist && vite build --config vite/vite.config.dist.mjs",
     "build:docs": "rimraf ./examples/dist && vite build --config vite/vite.config.docs.bundle.mjs && vite build --config vite/vite.config.docs.styles.mjs",
@@ -79,7 +81,7 @@
     "typecheck:consumer": "tsc -p tsconfig.consumer.json",
     "validate:core-bundle": "node scripts/validate-core-bundle.mjs",
     "validate:packed-consumer": "node scripts/validate-packed-consumer.mjs",
-    "validate:package": "npm run build -s && npm run validate:core-bundle && npm run typecheck:consumer && publint && attw --pack . && npm run validate:packed-consumer",
+    "validate:package": "npm run build -s && npm run validate:core-bundle && npm run typecheck:consumer && publint && attw --pack . && npm run validate:packed-consumer && npm run validate:beta-consumers",
     "pack:check": "npm pack --dry-run",
     "verify": "npm run typecheck && npm run test:coverage && npm run lint && npm run format:check && npm run knip && npm run validate:package && npm run pack:check && npm run size",
     "build": "npm run build:ts -s && npm run build:dist -s && npm run build:docs -s",
@@ -125,7 +127,10 @@
     "vite": "^8.0.16",
     "vite-plugin-css-injected-by-js": "4.0.1",
     "vitest": "4.1.11",
+    "ws": "^8.19.0",
+    "y-indexeddb": "^9.0.12",
     "y-protocols": "^1.0.7",
+    "y-websocket": "^2.0.4",
     "yjs": "^13.6.32"
   },
   "peerDependencies": {
@@ -150,7 +155,7 @@
     },
     {
       "path": "lib/yjs/editable-yjs-binding.js",
-      "limit": "4 KB"
+      "limit": "4.25 KB"
     },
     {
       "path": "lib/yjs/binding-undo.js",

@@ -29,6 +29,7 @@ import {
   parseStructureSnapshot,
   type DocumentStructureDiagnostic
 } from './document-structure-sync.js'
+import type { YjsSyncDiagnosticHandler } from './sync-lifecycle.js'
 
 export interface EditableYjsDocumentBindingOptions {
   editable: Editable
@@ -39,6 +40,12 @@ export interface EditableYjsDocumentBindingOptions {
   /** Top-level mount container for component views (adapter may nest internally). */
   mountContainer: HTMLElement
   initialSync?: InitialSyncPolicy
+  /**
+   * When true, per-directive bindings defer initial sync until {@link activate}.
+   * Call after provider `synced` or IndexedDB hydration.
+   */
+  deferInitialSync?: boolean
+  onSyncDiagnostic?: YjsSyncDiagnosticHandler
   undo?: boolean | { captureTimeout?: number }
   onStructureDiagnostic?: (diagnostic: DocumentStructureDiagnostic) => void
 }
@@ -80,6 +87,8 @@ export class EditableYjsDocumentBinding {
   private lastComponentNodes = new Map<string, DocumentComponentNode>()
   private lastStructureDiagnostics: DocumentStructureDiagnostic[] = []
   private pendingActiveSelection: ActiveDirectiveSelection | null = null
+  private readonly deferInitialSync: boolean
+  private readonly onSyncDiagnostic?: YjsSyncDiagnosticHandler
 
   constructor(options: EditableYjsDocumentBindingOptions) {
     this.editable = options.editable
@@ -88,6 +97,8 @@ export class EditableYjsDocumentBinding {
     this.adapter = options.adapter
     this.mountContainer = options.mountContainer
     this.onStructureDiagnostic = options.onStructureDiagnostic
+    this.deferInitialSync = options.deferInitialSync === true
+    this.onSyncDiagnostic = options.onSyncDiagnostic
     this.transactionOrigin = createBindingTransactionOrigin()
     this.initialSync = options.initialSync ?? {
       yEmptyHostFilled: 'copy-host-to-y',
@@ -144,7 +155,42 @@ export class EditableYjsDocumentBinding {
       this.scheduleReconcile('remote-structure')
     })
 
+    if (this.deferInitialSync) {
+      this.onSyncDiagnostic?.({
+        kind: 'binding-deferred',
+        scope: 'document',
+        message: 'Document bindings deferred — call activate() after provider/persistence is ready'
+      })
+    }
+
     this.reconcile('initial')
+  }
+
+  /** Activates all mounted directive bindings (initial sync + listeners). */
+  activate(): void {
+    this.assertActive()
+    for (const mounted of this.directiveBindings.values()) {
+      mounted.binding.activate()
+    }
+    this.onSyncDiagnostic?.({
+      kind: 'binding-activated',
+      scope: 'document',
+      message: 'All directive bindings activated'
+    })
+  }
+
+  get isActivated(): boolean {
+    if (this.directiveBindings.size === 0) return !this.deferInitialSync
+    for (const mounted of this.directiveBindings.values()) {
+      if (!mounted.binding.isActivated) return false
+    }
+    return true
+  }
+
+  private assertActive(): void {
+    if (this.destroyed) {
+      throw new Error('EditableYjsDocumentBinding has been destroyed')
+    }
   }
 
   get isDestroyed(): boolean {
@@ -410,6 +456,8 @@ export class EditableYjsDocumentBinding {
       host,
       yText: ref.yText,
       initialSync: this.initialSync,
+      deferInitialSync: this.deferInitialSync,
+      onSyncDiagnostic: this.onSyncDiagnostic,
       undo: this.sharedUndoManager ? { undoManager: this.sharedUndoManager } : false,
       structuralAdapter: this.structuralAdapter
     })

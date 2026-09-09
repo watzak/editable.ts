@@ -44,6 +44,7 @@ import { EditableYjsBinding } from 'editable.ts/yjs'
 - **Not included:** providers (you wire WebSocket/WebRTC yourself)
 - **Optional:** `EditableYjsPresence` for remote cursors via user-supplied `Awareness` (`y-protocols`)
 - **Optional:** `EditableYjsAnnotations` for persistent comments/issues/suggestions in a separate `Y.Map` (never Y.Text attributes)
+- **Provider-ready startup:** `deferInitialSync: true` + `activate()` after transport/persistence sync — see [YJS_PROVIDER_INTEGRATION.md](./YJS_PROVIDER_INTEGRATION.md)
 
 ## Inline format codec
 

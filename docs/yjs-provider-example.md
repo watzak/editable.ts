@@ -1,41 +1,60 @@
 # Provider-neutral Yjs wiring (documentation only)
 
-editable.ts does **not** ship a network provider. This document shows how you might connect `EditableYjsBinding` to [y-websocket](https://github.com/yjs/y-websocket) — **example code only**, not part of the published package.
+editable.ts does **not** ship a network provider. See **[YJS_PROVIDER_INTEGRATION.md](./YJS_PROVIDER_INTEGRATION.md)** for startup sequences, status conventions, deferred initial sync, and lifecycle.
 
 ## Install peers
 
 ```bash
-npm install editable.ts yjs y-protocols y-websocket
+npm install editable.ts yjs y-protocols
+# Optional transport/persistence (integrator-owned, not bundled):
+npm install y-websocket
+# npm install y-indexeddb
 ```
 
-## Minimal server (Node)
+## Minimal y-websocket server (Node)
+
+Run separately — included as `scripts/yjs-websocket-server.mjs` in the repo for local demos:
+
+```bash
+npm run dev:yjs-websocket
+```
 
 ```javascript
-// server.mjs — run separately; not included in editable.ts
+// scripts/yjs-websocket-server.mjs (abbreviated)
 import { WebSocketServer } from 'ws'
-import http from 'http'
-import { setupWSConnection } from 'y-websocket/bin/utils'
-
-const server = http.createServer()
-const wss = new WebSocketServer({ server })
-wss.on('connection', (ws, req) => setupWSConnection(ws, req))
-server.listen(1234)
+import { createRequire } from 'node:module'
+const { setupWSConnection } = createRequire(import.meta.url)('y-websocket/bin/utils.cjs')
 ```
 
-## Browser client sketch
+## Browser client (deferred activate)
 
 ```typescript
 import * as Y from 'yjs'
 import { WebsocketProvider } from 'y-websocket'
 import { Awareness } from 'y-protocols/awareness'
 import { Editable } from 'editable.ts'
-import { EditableYjsBinding, EditableYjsPresence } from 'editable.ts/yjs'
+import {
+  EditableYjsBinding,
+  EditableYjsPresence,
+  createProviderStatusSource,
+  activateBindingsAfterProviderSync
+} from 'editable.ts/yjs'
 
 const doc = new Y.Doc()
+const providerStatus = createProviderStatusSource({ status: 'connecting' })
 const provider = new WebsocketProvider('ws://localhost:1234', 'my-room', doc)
-const awareness = provider.awareness
-const yText = doc.getText('block-1')
 
+provider.on('status', ({ status }) => {
+  providerStatus.setStatus({
+    status:
+      status === 'connected' ? 'connected' : status === 'connecting' ? 'connecting' : 'disconnected'
+  })
+})
+provider.on('sync', (isSynced) => {
+  if (isSynced) providerStatus.setStatus({ status: 'synced' })
+})
+
+const yText = doc.getText('block-1')
 const editable = new Editable()
 const host = document.querySelector('#editor') as HTMLElement
 editable.add(host)
@@ -49,14 +68,21 @@ const binding = new EditableYjsBinding({
     hostEmptyYFilled: 'copy-y-to-host',
     bothFilledDiffer: 'error'
   },
-  undo: true
+  deferInitialSync: true,
+  undo: true,
+  onSyncDiagnostic: (d) => console.info('[sync]', d)
+})
+
+activateBindingsAfterProviderSync({
+  providerStatus,
+  activate: () => binding.activate()
 })
 
 const presence = new EditableYjsPresence({
   editable,
   host,
   yText,
-  awareness,
+  awareness: provider.awareness,
   user: { name: 'Ada', color: '#6366f1' }
 })
 
@@ -71,9 +97,15 @@ window.addEventListener('beforeunload', () => {
 ## Trust boundaries
 
 - Treat remote Yjs updates as **trusted only within your authenticated room**
-- URL attributes and Awareness name/color are sanitized on read, but your provider must authenticate peers
+- URL attributes and Awareness name/color are sanitized on read; authenticate peers in your provider layer
 - Never apply foreign HTML to the host — the binding applies **operations** derived from `Y.Text` deltas only
 
-## Local demo without network
+## Demos
 
-See `examples/yjs-collab-demo.html` for a two-client simulation using manual `Y.applyUpdate` and Awareness encoding.
+| Demo                                     | Transport                        |
+| ---------------------------------------- | -------------------------------- |
+| `examples/yjs-collab-demo.html`          | Manual `Y.applyUpdate`           |
+| `examples/yjs-websocket-demo.html`       | Real `y-websocket`               |
+| `examples/yjs-offline-demo.html`         | `y-indexeddb` + `y-websocket`    |
+| `examples/yjs-document-collab-demo.html` | Manual network, document binding |
+| `examples/yjs-annotations-demo.html`     | Manual network, annotations      |

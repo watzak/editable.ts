@@ -41,7 +41,9 @@ test.describe('Yjs annotations demo', () => {
       return api.countAnnotations(api.clientB())
     })
     expect(count).toBeGreaterThanOrEqual(1)
-    await expect(page.locator('.editable-yjs-annotation-list [data-annotation-id]').first()).toBeVisible()
+    await expect(
+      page.locator('.editable-yjs-annotation-list [data-annotation-id]').first()
+    ).toBeVisible()
   })
 
   test('renderer does not change editor text content', async ({ page }) => {

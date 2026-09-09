@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [Unreleased] — planned `1.3.0-beta.1`
+
+### Experimental: `editable.ts/yjs`
+
+All APIs below are **experimental** until `1.3.0` stable. Semver-minor may include breaking changes under `./yjs` while experimental.
+
+#### Added
+
+- **`EditableYjsBinding`** — single block host ↔ one `Y.Text`; incremental remote sync; rich-text delta attributes; optional undo
+- **`EditableYjsDocumentBinding`** — multi-component document controller with adapter contract, remote structure sync, shared undo
+- **`EditableYjsPresence`** — Awareness-based remote cursors (ephemeral, overlay-only)
+- **`EditableYjsAnnotations`** — persistent comments/issues in separate `Y.Map` (not Y.Text attributes)
+- **`EditableYjsDocumentAnnotations`** — document-wide annotation wiring
+- Provider-neutral **`YjsProviderStatus`** convention and **`createProviderStatusSource`**
+- **`deferInitialSync`** + **`activate()`** — defer binding until provider/persistence is ready
+- **`activateBindingsAfterProviderSync`** helper and **`onSyncDiagnostic`** callbacks
+- Structural adapter hooks, annotation migration helpers, relative-position selection restore
+- Demos: collab (manual network), document collab, annotations, **y-websocket**, **y-indexeddb offline**
+- Docs: `docs/yjs-binding.md`, `docs/YJS_PROVIDER_INTEGRATION.md`, `docs/YJS_IME_TEST_PLAN.md`
+
+#### Notes
+
+- Core, `./features`, and UMD remain Yjs-free (`validate:core-bundle`)
+- `yjs` and `y-protocols` are optional peers — core-only installs do not warn
+- Provider libraries (`y-websocket`, `y-indexeddb`) are **not** dependencies of editable.ts
+
 ## [1.2.1](https://github.com/watzak/editable.ts/compare/v1.2.0...v1.2.1) (2026-09-09)
 
 ### Bug Fixes

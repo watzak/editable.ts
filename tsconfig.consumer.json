@@ -6,7 +6,8 @@
     "baseUrl": ".",
     "paths": {
       "editable.ts": ["lib/core"],
-      "editable.ts/features": ["lib/features"]
+      "editable.ts/features": ["lib/features"],
+      "editable.ts/yjs": ["lib/yjs/index"]
     }
   },
   "include": ["spec/types/**/*.test-d.ts"]

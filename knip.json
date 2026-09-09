@@ -3,6 +3,7 @@
   "entry": [
     "src/core.ts",
     "src/features.ts",
+    "src/yjs/index.ts",
     "spec/**/*.spec.ts",
     "spec/types/**/*.test-d.ts",
     "e2e/**/*.ts",

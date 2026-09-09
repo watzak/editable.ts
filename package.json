@@ -34,7 +34,8 @@
   ],
   "type": "module",
   "sideEffects": [
-    "./lib/features.js"
+    "./lib/features.js",
+    "./src/features.ts"
   ],
   "main": "./lib/core.js",
   "module": "./lib/core.js",

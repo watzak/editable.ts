@@ -5,9 +5,17 @@
 import {
   Editable,
   CommandContext,
+  OperationContext,
+  OPERATION_LINE_BREAK,
   type ChangeDetails,
+  type DispatchOperationOptions,
   type EditableCommand,
-  type EditableConfig
+  type EditableConfig,
+  type EditableOperation,
+  type EditableOperationBatch,
+  type JsonValue,
+  type OperationSource,
+  type SelectionSnapshot
 } from 'editable.ts'
 
 declare const block: HTMLElement
@@ -37,6 +45,40 @@ editable.on('change', (element: HTMLElement, details?: ChangeDetails) => {
 editable.beforeCommand((ctx: CommandContext) => {
   if (ctx.command.type === 'mergeBlock') ctx.cancel()
 })
+
+const operationBatch: EditableOperationBatch = {
+  source: 'api' satisfies OperationSource,
+  selectionBefore: { anchor: 0, head: 2, direction: 'forward' } satisfies SelectionSnapshot,
+  operations: [
+    { type: 'insertText', index: 0, text: 'hi' },
+    { type: 'deleteText', index: 2, length: 1 },
+    {
+      type: 'replaceText',
+      index: 0,
+      length: 2,
+      text: `line${OPERATION_LINE_BREAK}two`,
+      attributes: { bold: true satisfies JsonValue }
+    },
+    {
+      type: 'setTextAttributes',
+      index: 0,
+      length: 4,
+      attributes: { italic: false, mark: null }
+    }
+  ] satisfies readonly EditableOperation[]
+}
+
+editable.beforeOperation((host, ctx: OperationContext) => {
+  if (host === block && ctx.batch.source === 'remote') ctx.cancel()
+})
+
+editable.on('operation', (host, batch) => {
+  return host.tagName + batch.operations.length
+})
+
+const dispatchOptions: DispatchOperationOptions = { emitOperation: true }
+void dispatchOptions
+void operationBatch
 
 editable.on('toggleBold', (selection) => selection.text())
 

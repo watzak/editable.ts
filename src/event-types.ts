@@ -3,6 +3,8 @@ import type Selection from './selection.js'
 import type { Editable } from './core.js'
 import type { ChangeDetails, EditableCommand } from './command-types.js'
 import type { CommandContext } from './command-context.js'
+import type { EditableOperationBatch } from './operation-types.js'
+import type { OperationContext } from './operation-context.js'
 
 export type EventMap = Record<string, unknown[]>
 
@@ -76,6 +78,8 @@ export interface EditableEventMap extends EventMap {
   change: [HTMLElement, ChangeDetails?]
   beforeCommand: [CommandContext]
   command: [EditableCommand]
+  beforeOperation: [HTMLElement, OperationContext]
+  operation: [HTMLElement, EditableOperationBatch]
   switch: [HTMLElement, SwitchDirection, Cursor]
   move: [HTMLElement, Selection, BlockDirection]
   clipboard: [HTMLElement, ClipboardAction, Selection]

@@ -46,8 +46,27 @@ export type {
   SplitBlockCommand,
   StructuralCommand
 } from './command-types.js'
+export type {
+  DeleteTextOperation,
+  EditableOperation,
+  EditableOperationBatch,
+  InsertTextOperation,
+  JsonValue,
+  OperationBatchOrigin,
+  OperationSource,
+  ReplaceTextOperation,
+  SelectionDirection,
+  SelectionSnapshot,
+  SerializableOperationBatch,
+  SetTextAttributesOperation,
+  TextAttributes
+} from './operation-types.js'
+export { OPERATION_LINE_BREAK } from './operation-types.js'
 export { CommandContext } from './command-context.js'
+export { OperationContext } from './operation-context.js'
 export { getHostTextOffset, buildCommandCursor, buildCommandSelection } from './command-builder.js'
+export { dispatchEditableOperations } from './operation-pipeline.js'
+export type { DispatchOperationOptions } from './operation-pipeline.js'
 
 export interface EditableConfig {
   window?: Window
@@ -396,6 +415,8 @@ export interface EditableEventConvenienceMethods {
   change(handler: EditableEventHandler<'change'>): Editable
   beforeCommand(handler: EditableEventHandler<'beforeCommand'>): Editable
   command(handler: EditableEventHandler<'command'>): Editable
+  beforeOperation(handler: EditableEventHandler<'beforeOperation'>): Editable
+  operation(handler: EditableEventHandler<'operation'>): Editable
   switch(handler: EditableEventHandler<'switch'>): Editable
   move(handler: EditableEventHandler<'move'>): Editable
   clipboard(handler: EditableEventHandler<'clipboard'>): Editable
@@ -428,6 +449,8 @@ const eventNames: EditableEvent[] = [
   'change',
   'beforeCommand',
   'command',
+  'beforeOperation',
+  'operation',
   'switch',
   'move',
   'clipboard',

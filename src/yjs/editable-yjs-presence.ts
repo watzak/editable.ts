@@ -79,6 +79,7 @@ export class EditableYjsPresence {
   private readonly onHostBlur: () => void
   private readonly onScrollOrResize: () => void
   private readonly onYTextChange: () => void
+  private disconnectObserver: MutationObserver | null = null
 
   constructor(options: EditableYjsPresenceOptions) {
     validatePresenceOptions(options)
@@ -126,6 +127,7 @@ export class EditableYjsPresence {
 
     ensurePresenceStyles(this.doc)
     this.attachListeners()
+    this.attachHostDisconnectObserver()
     this.hostFocused = this.doc.activeElement === this.host
     this.publishLocalPresence(this.hostFocused ? this.readLocalSelection() : null)
     this.scheduleRender()
@@ -142,6 +144,8 @@ export class EditableYjsPresence {
 
     this.awareness.setLocalStateField(PRESENCE_STATE_KEY, null)
     this.detachListeners()
+    this.disconnectObserver?.disconnect()
+    this.disconnectObserver = null
     this.renderer.destroy?.(getOrCreatePresenceLayer(this.host))
     removePresenceLayer(this.host)
   }
@@ -155,6 +159,18 @@ export class EditableYjsPresence {
     if (this.destroyed) return
     this.publishLocalPresence(this.hostFocused ? this.readLocalSelection() : null)
     this.renderRemotePresences()
+  }
+
+  /** Cleans up when the host node is removed without an explicit {@link destroy}. */
+  private attachHostDisconnectObserver(): void {
+    if (typeof MutationObserver === 'undefined') return
+    const root = this.doc.documentElement
+    if (!root) return
+
+    this.disconnectObserver = new MutationObserver(() => {
+      if (!this.destroyed && !this.host.isConnected) this.destroy()
+    })
+    this.disconnectObserver.observe(root, { childList: true, subtree: true })
   }
 
   private attachListeners(): void {

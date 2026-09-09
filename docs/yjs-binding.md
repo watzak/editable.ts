@@ -1,5 +1,27 @@
 # editable.ts/yjs
 
+> **Experimental API (release candidate)** — The `./yjs` subpath is optional, semver-minor until marked stable. Breaking changes may occur in 1.x while experimental. Not published in this audit — local RC only.
+
+## Installation
+
+```bash
+npm install editable.ts
+# Yjs integration (optional peers):
+npm install yjs y-protocols
+```
+
+Core-only installs do **not** pull Yjs (`peerDependenciesMeta.optional`). TypeScript consumers import `./yjs` only when needed.
+
+## Import map
+
+| Entry                  | Purpose                                                |
+| ---------------------- | ------------------------------------------------------ |
+| `editable.ts`          | Core editor — no Yjs                                   |
+| `editable.ts/features` | Optional highlighting / text-diff                      |
+| `editable.ts/yjs`      | `EditableYjsBinding`, presence, undo, structural hooks |
+
+Yjs is **external** — never bundled into core, features, or UMD (`validate:core-bundle`).
+
 Optional Yjs adapter subpath. Import separately from core:
 
 ```typescript
@@ -116,6 +138,53 @@ No scenario silently drops content. Provide an explicit `InitialSyncPolicy`:
 | Both filled, differ       | `bothFilledDiffer: 'error'` or resolver |
 
 Rich-text initial sync copies attributed DOM runs into `Y.Text` (not plain `innerHTML`).
+
+## Lifecycle and `destroy()`
+
+Always tear down in order:
+
+```typescript
+presence?.destroy()
+binding.destroy()
+editable.unload(host)
+// provider?.destroy() — your network layer
+```
+
+| Component              | `destroy()` behaviour                                                          |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `EditableYjsBinding`   | Removes `operation` + `Y.Text` listeners; destroys internal `UndoManager` only |
+| External `UndoManager` | Left intact; binding removes its tracked origin                                |
+| `EditableYjsPresence`  | Clears Awareness field, removes overlay, scroll/selection listeners            |
+| Host removed from DOM  | Presence auto-cleans via disconnect observer                                   |
+
+Calling `destroy()` on a binding ignores subsequent local operation batches (no echo reentrancy).
+
+## SSR and iframes
+
+- Bindings require a **connected** host at construction (`ownerDocument` must exist)
+- Use `new Editable({ window: iframe.contentWindow })` for iframe hosts
+- Presence overlays append to `host.ownerDocument.body` — not the top-level window
+- No SSR path: instantiate bindings after mount in the browser
+
+## Security and trust boundaries
+
+| Surface               | Mitigation                                                    |
+| --------------------- | ------------------------------------------------------------- |
+| Link URLs in `Y.Text` | Allowlist via `sanitizeUrlAttribute` (same as paste)          |
+| Awareness name/color  | Sanitized in `parsePresencePayload`                           |
+| Remote HTML           | Never applied — only operation batches from delta translation |
+| Presence payload      | Namespaced key; invalid positions ignored                     |
+| Structural adapter    | Your code — must validate intents and reject untrusted shapes |
+
+Treat Yjs room membership as an authentication boundary. See `docs/yjs-provider-example.md`.
+
+## `\n` / `<br>` mapping
+
+Operation text uses `\n` (see `OPERATION_LINE_BREAK`). DOM `<br>` maps to `\n` in the operation model. Rich-text initial sync walks DOM runs, not `innerHTML` snapshots. Normal sync applies **live operation patches** — not full `innerHTML` replacement.
+
+## UTF-16 offsets
+
+All selection and operation indices are **UTF-16 code units** (JavaScript string model). Surrogate pairs (emoji) count as two units. Presence and undo metadata use the same indexing via `Y.RelativePosition`.
 
 ## Ownership
 
@@ -256,9 +325,31 @@ The binding never requires a global block model — only the optional adapter in
 
 Core and UMD builds must not reference Yjs — enforced by `validate:core-bundle`.
 
+## Known limitations (experimental)
+
+- No built-in provider — wire WebSocket/WebRTC yourself
+- Structural hooks are synchronous; async adapters are not supported
+- Multi-block DOM projection across peers requires your adapter + block registry (see example)
+- Real OS IME must be tested manually; Playwright uses simulated `composition*` events
+- `reconcile()` is a diagnostic full-resync — not the hot path
+- Undo is per-binding origin; shared `UndoManager` across blocks is app-defined
+
+## Browser testing notes
+
+| Area                        | Automation                                          | Manual               |
+| --------------------------- | --------------------------------------------------- | -------------------- |
+| `beforeinput` insert/delete | Playwright Chromium/Firefox/WebKit                  | —                    |
+| Composition                 | Simulated `compositionstart/end` in unit tests      | Real OS IME required |
+| Undo/redo                   | Binding API + `historyUndo` intercept               | —                    |
+| Offline/reconnect           | Demo + e2e via manual `Y.applyUpdate`               | —                    |
+| 1000-op convergence         | `spec/yjs-convergence-fuzz.spec.ts` seed `20260909` | —                    |
+
 ## Related
 
 - DOM apply adapter: `docs/apply-operations.md`
 - Operation DTOs: `docs/adr/0001-commands-and-operations.md`
+- Provider sketch: `docs/yjs-provider-example.md`
+- RC readiness: `docs/RELEASE_READINESS_YJS_RC.md`
 - Live demo: `examples/yjs-rich-editor.html`
 - Presence demo: `examples/yjs-presence-editor.html`
+- Full RC demo: `examples/yjs-collab-demo.html`

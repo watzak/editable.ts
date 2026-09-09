@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>editable.ts — Yjs collab RC demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="dist/styles.js"></script>
+    <style>
+      .collab-demo {
+        max-width: 1100px;
+        margin: 1.5rem auto;
+        font-family: system-ui, sans-serif;
+      }
+      .collab-demo h1 {
+        font-size: 1.25rem;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 1rem 0;
+      }
+      .toolbar button,
+      .toolbar label {
+        padding: 0.35rem 0.65rem;
+        border: 1px solid #bbb;
+        border-radius: 4px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+      .toolbar button.active {
+        background: #eef2ff;
+        border-color: #6366f1;
+      }
+      .clients {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .client {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 0.75rem;
+        background: #fafafa;
+      }
+      .client h2 {
+        margin: 0 0 0.5rem;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        color: #666;
+      }
+      .blocks {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .block-host {
+        min-height: 4rem;
+        padding: 0.6rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #fff;
+      }
+      .status {
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        color: #444;
+        font-family: ui-monospace, monospace;
+        white-space: pre-wrap;
+      }
+      .banner {
+        background: #fef3c7;
+        border: 1px solid #fcd34d;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="collab-demo" data-testid="yjs-collab-demo">
+      <h1>Yjs collab — experimental RC demo</h1>
+      <p class="banner">
+        Local two-client simulation (manual <code>Y.applyUpdate</code> + Awareness). Not a
+        production provider. Real OS IME must be tested manually beyond Playwright composition
+        simulation.
+      </p>
+      <div class="toolbar">
+        <button type="button" data-action="mode-plain" class="active">Plain text</button>
+        <button type="button" data-action="mode-rich">Rich text</button>
+        <button type="button" data-action="offline-a">A offline</button>
+        <button type="button" data-action="offline-b">B offline</button>
+        <button type="button" data-action="reconnect">Reconnect all</button>
+        <button type="button" data-action="undo-a">A undo</button>
+        <button type="button" data-action="redo-a">A redo</button>
+        <button type="button" data-action="bold">Bold</button>
+        <button type="button" data-action="split">Split block (A)</button>
+        <button type="button" data-action="destroy-remount">Destroy &amp; remount A</button>
+      </div>
+      <div class="clients">
+        <div class="client" data-client="a">
+          <h2>Client A — Ada</h2>
+          <div class="blocks" id="blocks-a"></div>
+        </div>
+        <div class="client" data-client="b">
+          <h2>Client B — Grace</h2>
+          <div class="blocks" id="blocks-b"></div>
+        </div>
+      </div>
+      <pre class="status" data-testid="collab-status">booting…</pre>
+    </section>
+    <script type="module" src="yjs-collab-demo.js"></script>
+  </body>
+</html>

@@ -40,6 +40,20 @@ console.log('core-import-ok')
   )
   execSync('node core-import.mjs', { cwd: tempDir, stdio: 'pipe' })
 
+  writeFileSync(
+    join(tempDir, 'features-import.mjs'),
+    `import 'editable.ts/features'
+console.log('features-import-ok')
+`
+  )
+  execSync('node features-import.mjs', { cwd: tempDir, stdio: 'pipe' })
+
+  const featuresJs = readFileSync(join(nodeModules, 'editable.ts', 'lib', 'features.js'), 'utf8')
+  if (featuresJs.includes('EditableYjsBinding') || featuresJs.includes('from "yjs"')) {
+    console.error('Published features.js unexpectedly references Yjs')
+    process.exit(1)
+  }
+
   if (existsSync(join(nodeModules, 'yjs'))) {
     console.error('Core-only install unexpectedly resolved yjs into node_modules')
     process.exit(1)

@@ -28,6 +28,22 @@ export interface DocumentComponentNode {
   siblingIndex: number
 }
 
+export interface DocumentComponentValidationValid {
+  status: 'valid'
+  node: DocumentComponentNode
+}
+
+export interface DocumentComponentValidationInvalid {
+  status: 'invalid'
+  componentId: string
+  reason: string
+  detail?: string
+}
+
+export type DocumentComponentValidation =
+  | DocumentComponentValidationValid
+  | DocumentComponentValidationInvalid
+
 /** Mounted component view — DOM is owned by the adapter, lifecycle by the document binding. */
 export interface DocumentComponentView {
   componentId: string
@@ -65,6 +81,12 @@ export interface EditableYjsDocumentAdapter {
 
   /** All component nodes including containers without text directives. */
   listComponents?(root: unknown): DocumentComponentNode[]
+
+  /**
+   * Optional validated component listing. Invalid entries are reported and skipped —
+   * the binding continues syncing the rest of the document.
+   */
+  listComponentsWithValidation?(root: unknown): DocumentComponentValidation[]
 
   /** Parent element where a new component root should be appended (adapter decides placement). */
   getComponentMountParent(

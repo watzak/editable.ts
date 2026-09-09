@@ -1,6 +1,11 @@
 import * as Y from 'yjs'
 import type { Editable } from '../core.js'
-import { createBindingTransactionOrigin, type BindingTransactionOrigin } from './binding-origin.js'
+import { setSelectionFromSnapshot } from '../operation-selection.js'
+import {
+  createBindingTransactionOrigin,
+  type BindingTransactionOrigin,
+  isBindingTransactionOrigin
+} from './binding-origin.js'
 import { EditableYjsBinding } from './editable-yjs-binding.js'
 import type { InitialSyncPolicy } from './initial-sync.js'
 import {
@@ -12,6 +17,18 @@ import {
   type EditableYjsDocumentAdapter
 } from './document-adapter.js'
 import type { EditableYjsStructuralAdapter } from './structural-adapter.js'
+import {
+  captureActiveDirectiveSelection,
+  repositionElementAtIndex,
+  resolveFocusFallbackAfterRemove,
+  restoreDirectiveSelectionFromRelative,
+  type ActiveDirectiveSelection
+} from './document-selection-sync.js'
+import {
+  diffStructureSnapshots,
+  parseStructureSnapshot,
+  type DocumentStructureDiagnostic
+} from './document-structure-sync.js'
 
 export interface EditableYjsDocumentBindingOptions {
   editable: Editable
@@ -23,6 +40,7 @@ export interface EditableYjsDocumentBindingOptions {
   mountContainer: HTMLElement
   initialSync?: InitialSyncPolicy
   undo?: boolean | { captureTimeout?: number }
+  onStructureDiagnostic?: (diagnostic: DocumentStructureDiagnostic) => void
 }
 
 interface MountedDirective {
@@ -35,8 +53,8 @@ interface MountedDirective {
  * @experimental Document-wide Yjs collaboration controller.
  *
  * Manages component mount/unmount, per-directive {@link EditableYjsBinding} lifecycle,
- * shared undo scope, and structural adapter wiring. Does not render CMS templates —
- * that remains the adapter's responsibility.
+ * shared undo scope, bidirectional remote structure sync, and structural adapter wiring.
+ * Does not render CMS templates — that remains the adapter's responsibility.
  */
 export class EditableYjsDocumentBinding {
   readonly editable: Editable
@@ -53,8 +71,15 @@ export class EditableYjsDocumentBinding {
   private readonly runtime: DocumentBindingRuntime
   private readonly directiveBindings = new Map<string, MountedDirective>()
   private readonly componentViews = new Map<string, DocumentComponentView>()
+  private readonly trackedBindingOrigins = new Set<BindingTransactionOrigin>()
+  private readonly onStructureDiagnostic?: (diagnostic: DocumentStructureDiagnostic) => void
   private unobserveStructure: (() => void) | null = null
+  private unobserveTransactions: (() => void) | null = null
   private reconcileScheduled = false
+  private localStructureDepth = 0
+  private lastComponentNodes = new Map<string, DocumentComponentNode>()
+  private lastStructureDiagnostics: DocumentStructureDiagnostic[] = []
+  private pendingActiveSelection: ActiveDirectiveSelection | null = null
 
   constructor(options: EditableYjsDocumentBindingOptions) {
     this.editable = options.editable
@@ -62,6 +87,7 @@ export class EditableYjsDocumentBinding {
     this.root = options.root
     this.adapter = options.adapter
     this.mountContainer = options.mountContainer
+    this.onStructureDiagnostic = options.onStructureDiagnostic
     this.transactionOrigin = createBindingTransactionOrigin()
     this.initialSync = options.initialSync ?? {
       yEmptyHostFilled: 'copy-host-to-y',
@@ -72,13 +98,11 @@ export class EditableYjsDocumentBinding {
     const undoEnabled = options.undo !== false
     this.sharedUndoManager = undoEnabled
       ? new Y.UndoManager(options.yDoc, {
+          trackedOrigins: new Set([this.transactionOrigin]),
           captureTimeout:
             typeof options.undo === 'object' ? (options.undo.captureTimeout ?? 500) : 500
         })
       : null
-    if (this.sharedUndoManager) {
-      this.sharedUndoManager.addTrackedOrigin(this.transactionOrigin)
-    }
 
     this.runtime = {
       editable: this.editable,
@@ -102,8 +126,22 @@ export class EditableYjsDocumentBinding {
     }
 
     this.structuralAdapter = this.adapter.createStructuralAdapter(this.runtime)
+
+    const afterTransaction = (transaction: Y.Transaction) => {
+      if (this.destroyed) return
+      if (transaction.origin === this.transactionOrigin) {
+        this.scheduleReconcile('local-structure-transaction')
+        return
+      }
+      if (this.isLocalTrackedOrigin(transaction.origin)) return
+      this.scheduleReconcile('remote-transaction')
+    }
+    this.yDoc.on('afterTransaction', afterTransaction)
+    this.unobserveTransactions = () => this.yDoc.off('afterTransaction', afterTransaction)
+
     this.unobserveStructure = this.adapter.observeStructure(this.root, () => {
-      this.scheduleReconcile('crdt-structure')
+      if (this.localStructureDepth > 0) return
+      this.scheduleReconcile('remote-structure')
     })
 
     this.reconcile('initial')
@@ -111,6 +149,10 @@ export class EditableYjsDocumentBinding {
 
   get isDestroyed(): boolean {
     return this.destroyed
+  }
+
+  get structureDiagnostics(): readonly DocumentStructureDiagnostic[] {
+    return this.lastStructureDiagnostics
   }
 
   getDirectiveBinding(componentId: string, directiveKey: string): EditableYjsBinding | undefined {
@@ -137,6 +179,7 @@ export class EditableYjsDocumentBinding {
     if (!this.sharedUndoManager?.canUndo()) return false
     this.sharedUndoManager.undo()
     this.reconcile('undo')
+    this.focusAfterHistory('undo')
     return true
   }
 
@@ -144,6 +187,7 @@ export class EditableYjsDocumentBinding {
     if (!this.sharedUndoManager?.canRedo()) return false
     this.sharedUndoManager.redo()
     this.reconcile('redo')
+    this.focusAfterHistory('redo')
     return true
   }
 
@@ -156,84 +200,7 @@ export class EditableYjsDocumentBinding {
     if (this.destroyed) return
     void reason
 
-    const directives = this.adapter.listDirectives(this.root)
-    const nextKeys = new Set(
-      directives.map((d) => directiveBindingKey(d.componentId, d.directiveKey))
-    )
-    const componentsNeeded = new Map<string, DocumentDirectiveRef[]>()
-    const componentNodes = new Map<string, DocumentComponentNode>()
-
-    const nodes = this.adapter.listComponents?.(this.root) ?? []
-    for (const node of nodes) {
-      componentNodes.set(node.componentId, node)
-      if (!componentsNeeded.has(node.componentId)) {
-        componentsNeeded.set(node.componentId, [])
-      }
-    }
-
-    for (const ref of directives) {
-      const list = componentsNeeded.get(ref.componentId) ?? []
-      list.push(ref)
-      componentsNeeded.set(ref.componentId, list)
-      if (!componentNodes.has(ref.componentId)) {
-        componentNodes.set(ref.componentId, {
-          componentId: ref.componentId,
-          componentType: ref.componentType,
-          parentComponentId: ref.parentComponentId,
-          containerId: ref.containerId,
-          siblingIndex: ref.siblingIndex
-        })
-      }
-    }
-
-    for (const [key, mounted] of [...this.directiveBindings.entries()]) {
-      if (!nextKeys.has(key)) {
-        this.unmountDirective(mounted.ref.componentId, mounted.ref.directiveKey)
-      }
-    }
-
-    for (const [componentId, refs] of componentsNeeded.entries()) {
-      const node = componentNodes.get(componentId)
-      if (!node) continue
-      let view = this.componentViews.get(componentId)
-      if (!view) {
-        const mountParent = this.adapter.getComponentMountParent(
-          node,
-          this.root,
-          this.componentViews
-        )
-        view = this.adapter.renderComponent(
-          componentId,
-          node.componentType,
-          this.root,
-          mountParent,
-          node.siblingIndex
-        )
-        this.componentViews.set(componentId, view)
-      }
-
-      for (const ref of refs) {
-        const key = directiveBindingKey(ref.componentId, ref.directiveKey)
-        const host = view.directiveHosts.get(ref.directiveKey)
-        if (!host) continue
-        const existing = this.directiveBindings.get(key)
-        if (existing) {
-          if (existing.host !== host || existing.ref.yText !== ref.yText) {
-            existing.binding.destroy()
-            this.directiveBindings.delete(key)
-            this.mountDirective(ref, host)
-          }
-          continue
-        }
-        this.mountDirective(ref, host)
-      }
-    }
-
-    for (const [componentId] of [...this.componentViews.entries()]) {
-      if (!componentsNeeded.has(componentId)) {
-        this.unmountComponent(componentId)
-      }
-    }
+    this.reconcileStructure()
   }
 
   destroy(): void {
@@ -242,14 +209,26 @@ export class EditableYjsDocumentBinding {
 
     this.unobserveStructure?.()
     this.unobserveStructure = null
+    this.unobserveTransactions?.()
+    this.unobserveTransactions = null
 
     for (const componentId of [...this.componentViews.keys()]) {
-      this.unmountComponent(componentId)
+      this.unmountComponent(componentId, { preserveSelection: false })
     }
 
     this.directiveBindings.clear()
     this.componentViews.clear()
+    this.lastComponentNodes.clear()
     this.sharedUndoManager?.destroy()
+    this.trackedBindingOrigins.clear()
+  }
+
+  private isLocalTrackedOrigin(origin: unknown): boolean {
+    if (origin === this.transactionOrigin) return true
+    for (const bindingOrigin of this.trackedBindingOrigins) {
+      if (isBindingTransactionOrigin(origin, bindingOrigin)) return true
+    }
+    return false
   }
 
   private scheduleReconcile(reason: string): void {
@@ -259,6 +238,157 @@ export class EditableYjsDocumentBinding {
       this.reconcileScheduled = false
       if (!this.destroyed) this.reconcile(reason)
     })
+  }
+
+  private reconcileStructure(): void {
+    const activeSelection = captureActiveDirectiveSelection(
+      this.editable,
+      (componentId, directiveKey) => this.getDirectiveBinding(componentId, directiveKey)?.yText
+    )
+    if (activeSelection) this.pendingActiveSelection = activeSelection
+
+    const snapshot = parseStructureSnapshot(this.adapter, this.root)
+    this.lastStructureDiagnostics = snapshot.diagnostics
+    for (const diagnostic of snapshot.diagnostics) {
+      this.onStructureDiagnostic?.(diagnostic)
+    }
+
+    const diff = diffStructureSnapshots(this.lastComponentNodes, snapshot.nodes)
+
+    for (const entry of diff) {
+      if (entry.kind !== 'remove') continue
+      this.unmountComponent(entry.componentId, {
+        preserveSelection: true,
+        removedNode: entry.previous
+      })
+    }
+
+    for (const entry of diff) {
+      if (entry.kind === 'remove') continue
+      const node = entry.next!
+      this.ensureComponentMounted(node, entry.kind === 'move')
+    }
+
+    this.syncDirectiveBindings(snapshot.directives, snapshot.nodes)
+    this.lastComponentNodes = snapshot.nodes
+
+    this.restorePendingSelection()
+  }
+
+  private ensureComponentMounted(node: DocumentComponentNode, repositionOnly: boolean): void {
+    let view = this.componentViews.get(node.componentId)
+    const mountParent = this.adapter.getComponentMountParent(node, this.root, this.componentViews)
+
+    if (!view) {
+      view = this.adapter.renderComponent(
+        node.componentId,
+        node.componentType,
+        this.root,
+        mountParent,
+        node.siblingIndex
+      )
+      this.componentViews.set(node.componentId, view)
+      return
+    }
+
+    if (repositionOnly) {
+      repositionElementAtIndex(view.rootElement, mountParent, node.siblingIndex)
+    } else if (view.rootElement.parentElement !== mountParent) {
+      repositionElementAtIndex(view.rootElement, mountParent, node.siblingIndex)
+    } else {
+      repositionElementAtIndex(view.rootElement, mountParent, node.siblingIndex)
+    }
+  }
+
+  private syncDirectiveBindings(
+    directives: DocumentDirectiveRef[],
+    activeNodes: Map<string, DocumentComponentNode>
+  ): void {
+    const nextKeys = new Set(
+      directives.map((d) => directiveBindingKey(d.componentId, d.directiveKey))
+    )
+
+    for (const [key, mounted] of [...this.directiveBindings.entries()]) {
+      if (!nextKeys.has(key)) {
+        this.unmountDirective(mounted.ref.componentId, mounted.ref.directiveKey)
+      }
+    }
+
+    for (const ref of directives) {
+      const view = this.componentViews.get(ref.componentId)
+      const host = view?.directiveHosts.get(ref.directiveKey)
+      if (!host) continue
+
+      const key = directiveBindingKey(ref.componentId, ref.directiveKey)
+      const existing = this.directiveBindings.get(key)
+      if (existing) {
+        if (existing.host !== host || existing.ref.yText !== ref.yText) {
+          existing.binding.destroy()
+          this.trackedBindingOrigins.delete(existing.binding.transactionOrigin)
+          this.directiveBindings.delete(key)
+          this.mountDirective(ref, host)
+        }
+        continue
+      }
+      this.mountDirective(ref, host)
+    }
+
+    for (const [componentId] of [...this.componentViews.entries()]) {
+      if (!activeNodes.has(componentId)) {
+        this.unmountComponent(componentId, { preserveSelection: false })
+      }
+    }
+  }
+
+  private restorePendingSelection(): void {
+    const pending = this.pendingActiveSelection
+    if (!pending) return
+
+    const binding = this.getDirectiveBinding(pending.componentId, pending.directiveKey)
+    const host =
+      this.getComponentView(pending.componentId)?.directiveHosts.get(pending.directiveKey) ??
+      pending.host
+
+    if (
+      binding &&
+      pending.relativeAnchor !== null &&
+      restoreDirectiveSelectionFromRelative(
+        this.yDoc,
+        host,
+        binding.yText,
+        pending.relativeAnchor,
+        pending.relativeHead
+      )
+    ) {
+      this.pendingActiveSelection = null
+      return
+    }
+
+    if (document.contains(host)) {
+      host.focus()
+      setSelectionFromSnapshot(host, pending.snapshot)
+    }
+    this.pendingActiveSelection = null
+  }
+
+  private focusAfterHistory(kind: 'undo' | 'redo'): void {
+    void kind
+    const captured = captureActiveDirectiveSelection(
+      this.editable,
+      (componentId, directiveKey) => this.getDirectiveBinding(componentId, directiveKey)?.yText
+    )
+    if (captured) {
+      const host = this.getComponentView(captured.componentId)?.directiveHosts.get(
+        captured.directiveKey
+      )
+      if (host) {
+        host.focus()
+        setSelectionFromSnapshot(host, captured.snapshot)
+        return
+      }
+    }
+    const first = this.directiveBindings.values().next().value as MountedDirective | undefined
+    first?.host.focus()
   }
 
   private mountDirective(ref: DocumentDirectiveRef, host: HTMLElement): EditableYjsBinding {
@@ -284,6 +414,11 @@ export class EditableYjsDocumentBinding {
       structuralAdapter: this.structuralAdapter
     })
 
+    this.trackedBindingOrigins.add(binding.transactionOrigin)
+    if (this.sharedUndoManager) {
+      this.sharedUndoManager.addTrackedOrigin(binding.transactionOrigin)
+    }
+
     this.directiveBindings.set(key, { ref, host, binding })
     return binding
   }
@@ -294,6 +429,8 @@ export class EditableYjsDocumentBinding {
     if (!mounted) return
 
     mounted.binding.destroy()
+    this.trackedBindingOrigins.delete(mounted.binding.transactionOrigin)
+    this.sharedUndoManager?.removeTrackedOrigin(mounted.binding.transactionOrigin)
     this.directiveBindings.delete(key)
 
     if (this.editable.ownsBlock(mounted.host)) {
@@ -301,9 +438,45 @@ export class EditableYjsDocumentBinding {
     }
   }
 
-  private unmountComponent(componentId: string): void {
+  private unmountComponent(
+    componentId: string,
+    options: { preserveSelection: boolean; removedNode?: DocumentComponentNode }
+  ): void {
     const view = this.componentViews.get(componentId)
     if (!view) return
+
+    if (options.preserveSelection && options.removedNode) {
+      const active =
+        this.pendingActiveSelection ??
+        captureActiveDirectiveSelection(
+          this.editable,
+          (cid, key) => this.getDirectiveBinding(cid, key)?.yText
+        )
+      if (active?.componentId === componentId) {
+        const fallback = resolveFocusFallbackAfterRemove({
+          removedComponentId: componentId,
+          refs: this.adapter.listDirectives(this.root),
+          views: this.componentViews,
+          previousIndex: options.removedNode.siblingIndex,
+          parentComponentId: options.removedNode.parentComponentId,
+          containerId: options.removedNode.containerId
+        })
+        if (fallback) {
+          this.pendingActiveSelection = {
+            componentId: fallback.componentId,
+            directiveKey: fallback.directiveKey,
+            host: fallback.host,
+            yText:
+              this.getDirectiveBinding(fallback.componentId, fallback.directiveKey)?.yText ?? null,
+            snapshot: fallback.selection,
+            relativeAnchor: null,
+            relativeHead: null
+          }
+        } else {
+          this.pendingActiveSelection = null
+        }
+      }
+    }
 
     for (const directiveKey of view.directiveHosts.keys()) {
       this.unmountDirective(componentId, directiveKey)

@@ -11,6 +11,7 @@ import { EditableYjsBinding } from '../src/yjs/index.js'
 import type {
   DocumentBindingRuntime,
   DocumentComponentNode,
+  DocumentComponentValidation,
   DocumentComponentView,
   DocumentDirectiveRef,
   EditableYjsDocumentAdapter
@@ -35,6 +36,103 @@ export interface CmsComponentRecord {
 }
 
 const TEXT_DIRECTIVE_KEYS = ['body', 'title', 'lead'] as const
+const CMS_COMPONENT_TYPES = new Set<CmsComponentType>([
+  'paragraph',
+  'heading',
+  'quote',
+  'two-column'
+])
+const COLUMN_CHILDREN = new Set<CmsComponentType>(['paragraph', 'heading', 'quote'])
+
+export function validateCmsComponentRecord(
+  map: unknown,
+  context: {
+    parentComponentId?: string
+    parentType?: CmsComponentType
+    containerId?: string
+    siblingIndex: number
+  }
+): DocumentComponentValidation {
+  if (!(map instanceof Y.Map)) {
+    return { status: 'invalid', componentId: 'unknown', reason: 'not-a-map' }
+  }
+  const id = map.get('id')
+  const type = map.get('type')
+  if (typeof id !== 'string' || id.length === 0) {
+    return { status: 'invalid', componentId: 'unknown', reason: 'missing-id' }
+  }
+  if (typeof type !== 'string' || !CMS_COMPONENT_TYPES.has(type as CmsComponentType)) {
+    return {
+      status: 'invalid',
+      componentId: id,
+      reason: 'unknown-type',
+      detail: typeof type === 'string' ? type : undefined
+    }
+  }
+  const typed = type as CmsComponentType
+  if (context.parentType === 'two-column' && context.containerId) {
+    if (!COLUMN_CHILDREN.has(typed)) {
+      return {
+        status: 'invalid',
+        componentId: id,
+        reason: 'child-not-allowed',
+        detail: `${context.containerId}:${typed}`
+      }
+    }
+  }
+  return {
+    status: 'valid',
+    node: {
+      componentId: id,
+      componentType: typed,
+      parentComponentId: context.parentComponentId,
+      containerId: context.containerId,
+      siblingIndex: context.siblingIndex
+    }
+  }
+}
+
+export function listCmsComponentsWithValidation(
+  root: Y.Array<Y.Map<unknown>>
+): DocumentComponentValidation[] {
+  const results: DocumentComponentValidation[] = []
+
+  function walkArray(
+    array: Y.Array<Y.Map<unknown>>,
+    parentComponentId: string | undefined,
+    containerId: string | undefined,
+    parentType: CmsComponentType | undefined
+  ): void {
+    for (let index = 0; index < array.length; index += 1) {
+      const map = array.get(index)
+      const validation = validateCmsComponentRecord(map, {
+        parentComponentId,
+        parentType,
+        containerId,
+        siblingIndex: index
+      })
+      results.push(validation)
+      if (validation.status !== 'valid') continue
+
+      const containers = map instanceof Y.Map ? map.get('containers') : null
+      if (containers instanceof Y.Map && validation.node.componentType === 'two-column') {
+        containers.forEach((childArray, key) => {
+          const arr = asComponentArray(childArray)
+          if (!arr) return
+          walkArray(
+            arr,
+            validation.node.componentId,
+            String(key),
+            validation.node.componentType as CmsComponentType
+          )
+        })
+      }
+    }
+  }
+
+  walkArray(root, undefined, undefined, undefined)
+  return results
+}
 
 export function createCmsDocumentRoot(doc: Y.Doc): Y.Array<Y.Map<unknown>> {
   return doc.getArray(CMS_DOCUMENT_ROOT_KEY)
@@ -181,11 +279,13 @@ function walkComponents(
   array: Y.Array<Y.Map<unknown>>,
   parentComponentId: string | undefined,
   containerId: string | undefined,
+  parentType: CmsComponentType | undefined,
   visit: (
     record: CmsComponentRecord,
     refs: DocumentDirectiveRef[],
     parentId?: string,
-    container?: string
+    container?: string,
+    parentComponentType?: CmsComponentType
   ) => void
 ): void {
   for (let index = 0; index < array.length; index += 1) {
@@ -194,6 +294,7 @@ function walkComponents(
     const id = map.get('id')
     const type = map.get('type')
     if (typeof id !== 'string' || typeof type !== 'string') continue
+    if (!CMS_COMPONENT_TYPES.has(type as CmsComponentType)) continue
 
     const record: CmsComponentRecord = { id, type: type as CmsComponentType, map, array, index }
     const refs: DocumentDirectiveRef[] = []
@@ -216,14 +317,14 @@ function walkComponents(
       }
     }
 
-    visit(record, refs, parentComponentId, containerId)
+    visit(record, refs, parentComponentId, containerId, parentType)
 
     const containers = map.get('containers')
     if (containers instanceof Y.Map) {
       containers.forEach((childArray, key) => {
         const arr = asComponentArray(childArray)
         if (!arr) return
-        walkComponents(arr, id, String(key), visit)
+        walkComponents(arr, id, String(key), record.type, visit)
       })
     }
   }
@@ -231,7 +332,7 @@ function walkComponents(
 
 export function listCmsDirectives(root: Y.Array<Y.Map<unknown>>): DocumentDirectiveRef[] {
   const refs: DocumentDirectiveRef[] = []
-  walkComponents(root, undefined, undefined, (_record, componentRefs) => {
+  walkComponents(root, undefined, undefined, undefined, (_record, componentRefs) => {
     refs.push(...componentRefs)
   })
   return refs
@@ -239,7 +340,7 @@ export function listCmsDirectives(root: Y.Array<Y.Map<unknown>>): DocumentDirect
 
 export function listCmsComponents(root: Y.Array<Y.Map<unknown>>): DocumentComponentNode[] {
   const nodes: DocumentComponentNode[] = []
-  walkComponents(root, undefined, undefined, (record, _refs, parentId, containerId) => {
+  walkComponents(root, undefined, undefined, undefined, (record, _refs, parentId, containerId) => {
     nodes.push({
       componentId: record.id,
       componentType: record.type,
@@ -256,7 +357,7 @@ export function findCmsComponentByYText(
   yText: Y.Text
 ): CmsComponentRecord | null {
   let found: CmsComponentRecord | null = null
-  walkComponents(root, undefined, undefined, (record, refs) => {
+  walkComponents(root, undefined, undefined, undefined, (record, refs) => {
     if (found) return
     if (refs.some((ref) => ref.yText === yText)) found = record
   })
@@ -546,6 +647,10 @@ export function createCmsDocumentAdapter(
       return listCmsComponents(root as Y.Array<Y.Map<unknown>>)
     },
 
+    listComponentsWithValidation(root) {
+      return listCmsComponentsWithValidation(root as Y.Array<Y.Map<unknown>>)
+    },
+
     getComponentMountParent(node, _root, mounted) {
       if (node.parentComponentId && node.containerId) {
         const column = containerMounts.get(node.parentComponentId)?.get(node.containerId)
@@ -559,7 +664,7 @@ export function createCmsDocumentAdapter(
     renderComponent(componentId, componentType, root, mountParent, siblingIndex) {
       const array = root as Y.Array<Y.Map<unknown>>
       let record: CmsComponentRecord | null = null
-      walkComponents(array, undefined, undefined, (candidate) => {
+      walkComponents(array, undefined, undefined, undefined, (candidate) => {
         if (candidate.id === componentId) record = candidate
       })
       if (!record) {
@@ -602,7 +707,7 @@ export function moveCmsComponent(
   origin?: unknown
 ): boolean {
   let source: CmsComponentRecord | null = null
-  walkComponents(root, undefined, undefined, (record) => {
+  walkComponents(root, undefined, undefined, undefined, (record) => {
     if (record.id === componentId) source = record
   })
   if (!source) return false
@@ -627,7 +732,7 @@ export function deleteCmsComponent(
   origin?: unknown
 ): boolean {
   let source: CmsComponentRecord | null = null
-  walkComponents(root, undefined, undefined, (record) => {
+  walkComponents(root, undefined, undefined, undefined, (record) => {
     if (record.id === componentId) source = record
   })
   if (!source) return false

@@ -7,7 +7,7 @@
     <script src="dist/styles.js"></script>
     <style>
       .doc-demo {
-        max-width: 960px;
+        max-width: 1100px;
         margin: 1.5rem auto;
         font-family: system-ui, sans-serif;
       }
@@ -25,29 +25,38 @@
         cursor: pointer;
         font-size: 0.85rem;
       }
-      .cms-document {
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        padding: 1rem;
-        background: #fafafa;
-        min-height: 12rem;
-      }
-      .cms-component {
-        margin: 0.75rem 0;
-      }
-      .cms-two-column-row {
+      .clients {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1rem;
       }
+      .client {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 0.75rem;
+        background: #fafafa;
+      }
+      .client h2 {
+        margin: 0 0 0.5rem;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        color: #666;
+      }
+      .cms-document {
+        min-height: 10rem;
+      }
+      .cms-component {
+        margin: 0.5rem 0;
+      }
+      .cms-two-column-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+      }
       .cms-column {
         border: 1px dashed #ccc;
-        padding: 0.5rem;
-        min-height: 4rem;
-      }
-      .cms-quote-title {
-        font-weight: 600;
-        margin-bottom: 0.35rem;
+        padding: 0.35rem;
+        min-height: 3rem;
       }
       [contenteditable] {
         min-height: 2rem;
@@ -73,24 +82,34 @@
   </head>
   <body>
     <section class="doc-demo" data-testid="yjs-document-collab-demo">
-      <h1>Yjs document binding — experimental demo</h1>
+      <h1>Yjs document binding — two-client demo</h1>
       <p class="banner">
-        Example CMS schema (<code>paragraph</code>, <code>heading</code>, <code>quote</code>,
-        <code>two-column</code>). Adapter rendering only — not part of the core library.
+        Transport via <code>Y.applyUpdate</code> / state vectors (manual network simulation). Not a
+        production provider.
       </p>
       <div class="toolbar">
-        <button type="button" data-action="insert-paragraph">+ Paragraph</button>
-        <button type="button" data-action="insert-heading">+ Heading</button>
-        <button type="button" data-action="insert-quote">+ Quote</button>
-        <button type="button" data-action="insert-columns">+ Two columns</button>
-        <button type="button" data-action="split">Split</button>
-        <button type="button" data-action="merge">Merge with previous</button>
-        <button type="button" data-action="delete">Delete component</button>
-        <button type="button" data-action="undo">Undo</button>
-        <button type="button" data-action="redo">Redo</button>
-        <button type="button" data-action="destroy-remount">Destroy &amp; remount</button>
+        <button type="button" data-action="insert-a">A: + Paragraph</button>
+        <button type="button" data-action="insert-b">B: + Quote</button>
+        <button type="button" data-action="insert-two-column-a">A: + Two-column</button>
+        <button type="button" data-action="move-a">A: move first to end</button>
+        <button type="button" data-action="move-nested-a">A: move paragraph → left col</button>
+        <button type="button" data-action="delete-a">A: delete focused</button>
+        <button type="button" data-action="offline-a">A offline</button>
+        <button type="button" data-action="offline-b">B offline</button>
+        <button type="button" data-action="reconnect">Reconnect</button>
+        <button type="button" data-action="undo-a">A undo</button>
+        <button type="button" data-action="destroy-a">A destroy</button>
       </div>
-      <div class="cms-document" id="cms-document"></div>
+      <div class="clients">
+        <div class="client" data-client="a">
+          <h2>Client A</h2>
+          <div class="cms-document" id="cms-document-a"></div>
+        </div>
+        <div class="client" data-client="b">
+          <h2>Client B</h2>
+          <div class="cms-document" id="cms-document-b"></div>
+        </div>
+      </div>
       <pre class="status" data-testid="doc-collab-status">booting…</pre>
     </section>
     <script type="module" src="yjs-document-collab-demo.js"></script>

@@ -409,7 +409,30 @@ binding.destroy()
 
 The document binding controller manages mount/unmount, per-directive `EditableYjsBinding` lifecycle, block ownership, shared undo scope, and wires one structural adapter into all text bindings. Structural CRDT mutations should use `runtime.transactionOrigin` (document scope), not individual binding origins.
 
-**Example schema (illustrative only):** `examples/yjs-cms-document-adapter.ts` — `root: Y.Array<Component>` with `content: Y.Map<string, Y.Text>`, `containers`, split/merge/paste/move/delete helpers. Demo: `examples/yjs-document-collab-demo.html`.
+**Example schema (illustrative only):** `examples/yjs-cms-document-adapter.ts` — `root: Y.Array<Component>` with `content: Y.Map<string, Y.Text>`, `containers`, split/merge/paste/move/delete helpers. Demo: `examples/yjs-document-collab-demo.html` (two clients via `Y.applyUpdate`).
+
+### Remote structure sync
+
+`EditableYjsDocumentBinding` observes CRDT structure (`observeStructure` + `afterTransaction`) and applies **batched** reconcile passes:
+
+- **Remote insert:** validate component → render view → mount directives at sibling index
+- **Remote remove:** destroy bindings/presence scope → release block ownership → remove DOM → deterministic focus fallback
+- **Remote move:** reuse existing view where possible (`repositionElementAtIndex`); remount bindings only when `Y.Text` identity changes
+- **Invalid components:** skipped via `listComponentsWithValidation`; reported through `onStructureDiagnostic` (no unchecked HTML)
+- **Echo suppression:** local structural transactions use `runtime.transactionOrigin`; remote `applyUpdate` does not enter the undo stack
+- **Selection:** relative positions preserved across moves; inserts before the active component do not shift the text caret
+
+Undo scope uses explicit `trackedOrigins` (document + per-binding origins only). Remote CRDT updates never appear in the local undo stack.
+
+### Responsibility boundaries
+
+| Layer                    | Owns                                                                                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Yjs Document Binding** | Mount/unmount lifecycle, per-directive text bindings, shared undo scope, structure diff/reconcile, selection fallbacks, echo/undo policy |
+| **CMS / view adapter**   | CRDT schema, component validation, allowed children, DOM templates, structural command mapping                                           |
+| **Transport provider**   | WebSocket/WebRTC/`Y.applyUpdate` wiring, awareness, offline queue (see `examples/yjs-document-collab-demo.js`)                           |
+| **Persistence**          | Loading/saving `Y.Doc` updates or encoded state — outside the binding                                                                    |
+| **Permissions**          | Who may insert/move/delete component types — application policy, optionally enforced in adapter validation                               |
 
 ### Binding vs host document model
 

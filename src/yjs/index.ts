@@ -6,10 +6,22 @@ export {
   directiveBindingKey,
   type DocumentBindingRuntime,
   type DocumentComponentNode,
+  type DocumentComponentValidation,
   type DocumentComponentView,
   type DocumentDirectiveRef,
   type EditableYjsDocumentAdapter
 } from './document-adapter.js'
+export {
+  diffStructureSnapshots,
+  parseStructureSnapshot,
+  type DocumentStructureDiagnostic
+} from './document-structure-sync.js'
+export {
+  captureActiveDirectiveSelection,
+  repositionElementAtIndex,
+  resolveFocusFallbackAfterRemove,
+  restoreDirectiveSelectionFromRelative
+} from './document-selection-sync.js'
 export { applyEditableOperationsToYText } from './apply-operations-to-ytext.js'
 export {
   createBindingTransactionOrigin,

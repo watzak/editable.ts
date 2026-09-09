@@ -155,7 +155,7 @@ describe('EditableYjsDocumentBinding', function () {
   })
 
   it('merges paragraphs with rich text', function () {
-    const { binding, editable, bodyHost, root } = createFixture()
+    const { binding, editable, root } = createFixture()
     const second = insertCmsComponent(root, 'paragraph', 1)
     second.body!.insert(0, ' tail', { italic: true })
 

@@ -402,6 +402,7 @@ Cross-browser behavior is verified with Playwright E2E tests on desktop browser 
 npm install
 npm run dev        # demo (Vite dev server)
 npm test           # Vitest + lint + format
+npm run verify     # full pre-release gate (typecheck, coverage, lint, build, package)
 npm run test:e2e   # Playwright (Chromium, Firefox, WebKit)
 npm run build      # lib/ + dist/ + demo bundle
 npm run size       # bundle-size guard

@@ -4,6 +4,7 @@ npm-debug.log
 dist
 lib
 coverage
+examples/dist/
 hmr.js
 hmr.js.map
 docs/dist

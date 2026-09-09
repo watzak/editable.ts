@@ -2,30 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
-## [Unreleased]
+## [1.2.0](https://github.com/watzak/editable.ts/compare/v1.1.2...v1.2.0) (2026-09-09)
 
-### Added
 
-- Cross-browser Playwright E2E matrix (Chromium, Firefox, WebKit) with CI job split and failure artifacts.
-- `npm run verify` — single local/CI quality gate before release.
-- Release documentation refresh (`docs/publish.md`, `docs/RELEASE_CHECKLIST.md`) for OIDC Trusted Publishing.
+### Features
 
-### Changed
+* **events:** add typed semantic command pipeline ([777f2fa](https://github.com/watzak/editable.ts/commit/777f2fafaed05dee94b9caba5ae07c630e9b8443))
+* **input:** add beforeinput and composition-aware editing ([770c8e6](https://github.com/watzak/editable.ts/commit/770c8e6bd7ccac95db37080f2fab2acb2276c8f9))
 
-- Dev dependency audit remediation (Vitest 4.1.11, transitive toolchain updates).
-- Publish workflow: single `release: published` trigger, concurrency guard, provenance, full `verify` step.
-- Stop tracking generated `examples/dist/` bundles (GitHub Pages builds demo in CI).
 
-### Features (since 1.1.2)
+### Bug Fixes
 
-- **Typed Command API:** Browser input normalized into discriminated `EditableCommand` objects; `beforeCommand` / `command` events; optional `ChangeDetails` on `change`; legacy events preserved.
-- **Input pipeline:** `beforeinput` + composition-aware editing with keydown deduplication fallback.
-- **Package quality:** Split `tsconfig`, consumer type tests, `validate:package` (publint + attw), typed convenience methods.
-
-### Security (since 1.1.2)
-
-- Paste sanitizer hardening: DOM-based attribute application, blocked URL schemes (`javascript:`, `data:`, `vbscript:`, `file:`), `noopener`/`noreferrer` on `target="_blank"`.
-- Per-instance isolation for paste rules and block ownership; iframe/SSR-safe realm handling.
+* **core:** isolate editable instances and configuration ([17cb0cc](https://github.com/watzak/editable.ts/commit/17cb0cc897820118c7e75c6ae81872d8b7915063))
+* **core:** make iframe handling and imports realm-safe ([3bcc08f](https://github.com/watzak/editable.ts/commit/3bcc08f5d457e9d215df2605a183ae98261a0805))
+* **security:** harden pasted HTML and URL sanitization ([254614d](https://github.com/watzak/editable.ts/commit/254614d0a8a345fc332a9c483b1faf0747fa5a55))
 
 ## [1.1.2](https://github.com/watzak/editable.ts/compare/v1.1.1...v1.1.2) (2026-06-02)
 

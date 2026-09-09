@@ -1,6 +1,7 @@
-import { applyLiveOperationBatchToDom } from '../operation-apply.js'
 import { getBlockOperationText } from '../operation-text-model.js'
 import { getOperationTextLength } from '../operation-offset.js'
+import { OPERATION_LINE_BREAK } from '../operation-types.js'
+import type { TextAttributes } from '../operation-types.js'
 import type { Editable } from '../core.js'
 import type { EditableOperation } from '../operation-types.js'
 import type * as Y from 'yjs'
@@ -9,9 +10,9 @@ import {
   applyHostInlineMarkupToYText,
   getBlockTextRuns,
   hostDomHasFormattingMarkup,
-  textRunsToPlainText,
-  type TextRun
+  textRunsToPlainText
 } from './dom-text-runs.js'
+import { textRunsEqual, textRunsFromYText } from './remote-sync-state.js'
 import { defaultInlineFormatRegistry, type InlineFormatRegistry } from './inline-format-codec.js'
 
 export interface ReconcileDiagnostics {
@@ -22,6 +23,49 @@ export interface ReconcileDiagnostics {
 }
 
 export { hostDomHasFormattingMarkup } from './dom-text-runs.js'
+
+function clearHostChildren(host: HTMLElement): void {
+  while (host.firstChild) {
+    host.removeChild(host.firstChild)
+  }
+}
+
+function appendStyledRun(
+  doc: Document,
+  host: HTMLElement,
+  text: string,
+  attributes: TextAttributes | undefined,
+  registry: InlineFormatRegistry
+): void {
+  const parts = text.split(OPERATION_LINE_BREAK)
+  parts.forEach((part, index) => {
+    if (part) {
+      host.appendChild(registry.wrapStyledText(doc, part, attributes))
+    }
+    if (index < parts.length - 1) {
+      host.appendChild(doc.createElement('br'))
+    }
+  })
+}
+
+/** Recovery-only: append each Y.Text delta run at the host tail (avoids index skew from inline wrappers). */
+export function applyYTextDeltaToHostDom(
+  host: HTMLElement,
+  yText: Y.Text,
+  doc: Document,
+  registry: InlineFormatRegistry = defaultInlineFormatRegistry
+): void {
+  clearHostChildren(host)
+
+  for (const op of yText.toDelta() as Array<{
+    insert?: string | unknown
+    attributes?: Record<string, unknown>
+  }>) {
+    if (typeof op.insert !== 'string' || op.insert.length === 0) continue
+    const attributes = registry.sanitizeDeltaAttributes(op.attributes, doc)
+    appendStyledRun(doc, host, op.insert, attributes, registry)
+  }
+}
 
 export function yTextHasInlineAttributes(yText: Y.Text): boolean {
   return (yText.toDelta() as Array<{ attributes?: Record<string, unknown> }>).some(
@@ -97,37 +141,6 @@ export function buildCopyYTextDeltaToHostOperations(
   return operations
 }
 
-function textRunsFromYText(
-  yText: Y.Text,
-  doc: Document,
-  registry: InlineFormatRegistry
-): TextRun[] {
-  const runs: TextRun[] = []
-  for (const op of yText.toDelta() as Array<{
-    insert?: string | unknown
-    attributes?: Record<string, unknown>
-  }>) {
-    if (typeof op.insert !== 'string' || op.insert.length === 0) continue
-    const attributes = registry.sanitizeDeltaAttributes(op.attributes, doc) ?? {}
-    runs.push({ text: op.insert, attributes: { ...attributes } })
-  }
-  return runs
-}
-
-function textRunsEqual(a: readonly TextRun[], b: readonly TextRun[]): boolean {
-  if (a.length !== b.length) return false
-  for (let i = 0; i < a.length; i += 1) {
-    if (a[i].text !== b[i].text) return false
-    const left = a[i].attributes
-    const right = b[i].attributes
-    const keys = new Set([...Object.keys(left), ...Object.keys(right)])
-    for (const key of keys) {
-      if (JSON.stringify(left[key]) !== JSON.stringify(right[key])) return false
-    }
-  }
-  return true
-}
-
 /** True when DOM inline runs match the canonical {@link Y.Text} delta (text + attributes). */
 export function hostRichTextMatchesYText(
   host: HTMLElement,
@@ -176,8 +189,14 @@ export function reconcileHostToCanonicalYText(
     }
 
     // Promote host formatting only when the text itself already matches — otherwise Y.Text
-    // stays canonical and host content is rebuilt from it below.
+    // stays canonical and host content is rebuilt from it below. Remote recovery paths
+    // always apply canonical Y.Text to the host (never promote stale DOM markup).
+    const allowPromoteHostToY =
+      reason !== 'rich-format-recovery' &&
+      reason !== 'incremental-apply-incomplete' &&
+      !reason?.startsWith('remote-')
     if (
+      allowPromoteHostToY &&
       !yTextHasInlineAttributes(yText) &&
       hostHasInlineAttributes(host, registry) &&
       textRunsToPlainText(getBlockTextRuns(host, registry)) === canonical
@@ -191,15 +210,7 @@ export function reconcileHostToCanonicalYText(
       }
     }
 
-    const hostLength = getOperationTextLength(host)
-    applyLiveOperationBatchToDom(
-      host,
-      {
-        source: 'remote',
-        operations: buildCopyYTextDeltaToHostOperations(yText, hostLength, doc, registry)
-      },
-      { preserveSelection: true }
-    )
+    applyYTextDeltaToHostDom(host, yText, doc, registry)
 
     return { hostText, yText: canonical, action: 'applied-y-to-host', reason }
   }

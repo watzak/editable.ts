@@ -13,7 +13,7 @@ import { promoteHostInlineFormatsToYText } from '../lib/yjs/reconcile.js'
 import {
   createExampleArrayStructuralAdapter,
   createExampleBlocksArray
-} from './yjs-array-structural-adapter.js'
+} from './yjs-array-structural-adapter.ts'
 import { buildSplitBlockCommand } from '../lib/command-builder.js'
 import { dispatchEditableCommand } from '../lib/command-pipeline.js'
 import * as content from '../lib/content.js'

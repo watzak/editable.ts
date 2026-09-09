@@ -46,6 +46,7 @@ export {
 } from './initial-sync.js'
 export { PlainTextYjsError } from './plain-text-yjs-error.js'
 export {
+  applyYTextDeltaToHostDom,
   buildCopyYTextDeltaToHostOperations,
   hostDomHasFormattingMarkup,
   hostHasInlineAttributes,
@@ -58,12 +59,34 @@ export type { ReconcileDiagnostics, ReconcileHostOptions } from './reconcile.js'
 export { yTextDeltaToOperations } from './ytext-delta-to-operations.js'
 export type { YTextDeltaOp, YTextDeltaToOperationsOptions } from './ytext-delta-to-operations.js'
 export {
+  applyDeltaToText,
+  buildFormatRepairOperations,
+  captureCanonicalSnapshot,
+  countDirectTextNodes,
+  deltaChangesText,
+  hostMatchesCanonicalSnapshot,
+  isFullHostReplaceBatch,
+  textRunsEqual,
+  textRunsFromYText
+} from './remote-sync-state.js'
+export type {
+  CanonicalSnapshot,
+  RemoteSyncDiagnostics,
+  RemoteSyncPath
+} from './remote-sync-state.js'
+export {
   InlineFormatRegistry,
   defaultInlineFormatRegistry,
   sanitizeUrlAttribute,
   isAllowedUrl
 } from './inline-format-codec.js'
-export type { InlineFormatCodec, FormatYjsKey, LinkAttributeValue } from './inline-format-codec.js'
+export type {
+  InlineFormatCodec,
+  FormatKey,
+  FormatYjsKey,
+  StandardFormatKey,
+  LinkAttributeValue
+} from './inline-format-codec.js'
 export {
   applyHostInlineMarkupToYText,
   getBlockTextRuns,

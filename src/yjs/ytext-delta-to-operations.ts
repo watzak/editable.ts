@@ -1,3 +1,4 @@
+import { sanitizeRemoteAttributesForHost } from '../host-policy.js'
 import { PlainTextYjsError } from './plain-text-yjs-error.js'
 import { defaultInlineFormatRegistry, type InlineFormatRegistry } from './inline-format-codec.js'
 import type { EditableOperation, TextAttributes } from '../operation-types.js'
@@ -13,6 +14,8 @@ export interface YTextDeltaToOperationsOptions {
   registry?: InlineFormatRegistry
   doc?: Document
   richText?: boolean
+  /** When set, remote attributes are filtered by host policy after codec sanitization. */
+  host?: HTMLElement
 }
 
 /**
@@ -27,6 +30,16 @@ export function yTextDeltaToOperations(
   const registry = options.registry ?? defaultInlineFormatRegistry
   const doc = options.doc ?? (typeof document !== 'undefined' ? document : undefined)
 
+  const sanitizeAttributes = (
+    attributes: Record<string, unknown> | undefined
+  ): TextAttributes | undefined => {
+    if (!attributes || !doc) return undefined
+    if (options.host) {
+      return sanitizeRemoteAttributesForHost(options.host, attributes, doc)
+    }
+    return registry.sanitizeDeltaAttributes(attributes, doc)
+  }
+
   const operations: EditableOperation[] = []
   let index = 0
 
@@ -36,7 +49,7 @@ export function yTextDeltaToOperations(
         if (!doc) {
           throw new PlainTextYjsError('Rich-text delta conversion requires a Document')
         }
-        const attributes = registry.sanitizeDeltaAttributes(op.attributes, doc)
+        const attributes = sanitizeAttributes(op.attributes)
         if (attributes && op.retain > 0) {
           operations.push({
             type: 'setTextAttributes',
@@ -67,7 +80,7 @@ export function yTextDeltaToOperations(
         if (!doc) {
           throw new PlainTextYjsError('Rich-text delta conversion requires a Document')
         }
-        attributes = registry.sanitizeDeltaAttributes(op.attributes, doc)
+        attributes = sanitizeAttributes(op.attributes)
       }
 
       if (op.insert.length > 0) {

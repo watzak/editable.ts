@@ -14,7 +14,7 @@
     "examples/styles-entry.js",
     "examples/yjs-rich-editor.js",
     "examples/yjs-presence-editor.js",
-    "examples/yjs-array-structural-adapter.js",
+    "examples/yjs-array-structural-adapter.ts",
     "examples/yjs-collab-demo.js",
     "scripts/**/*.mjs",
     "vite/**/*.{js,mjs}",
@@ -25,7 +25,7 @@
     "src/**/*.ts",
     "spec/**/*.ts",
     "e2e/**/*.ts",
-    "examples/**/*.{js,jsx}",
+    "examples/**/*.{js,jsx,ts}",
     "scripts/**/*.mjs",
     "vite/**/*.{js,mjs}",
     "*.config.{js,ts}"

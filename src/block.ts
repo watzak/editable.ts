@@ -31,6 +31,7 @@ export function disable(elem: HTMLElement): void {
   elem.removeAttribute('contenteditable')
   elem.removeAttribute('spellcheck')
   elem.removeAttribute('data-plaintext')
+  elem.removeAttribute('data-editable-placeholder')
 
   setState(elem, undefined)
 

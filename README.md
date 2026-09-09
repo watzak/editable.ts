@@ -97,11 +97,11 @@ Capability detection probes `onbeforeinput` and `InputEvent.prototype.inputType`
 
 ### Package exports: core vs. features
 
-| Import                 | Purpose                                                                                   |
-| ---------------------- | ----------------------------------------------------------------------------------------- |
+| Import                 | Purpose                                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------- |
 | `editable.ts`          | Lean entry: `Editable`, events, cursor, content, operations — **without** highlighting/text-diff or Yjs |
-| `editable.ts/features` | Same class plus `highlight`, `setupHighlighting`, `setupSpellcheck`, `setupTextDiff`, …   |
-| `editable.ts/yjs`      | `EditableYjsBinding`, presence, undo, structural hooks — **experimental**; Yjs is external |
+| `editable.ts/features` | Same class plus `highlight`, `setupHighlighting`, `setupSpellcheck`, `setupTextDiff`, …                 |
+| `editable.ts/yjs`      | `EditableYjsBinding`, presence, undo, structural hooks — **experimental**; Yjs is external              |
 
 Types such as `HighlightOptions` and `TextDiffOptions` are re-exported from the core entry for convenience:
 
@@ -120,15 +120,15 @@ import { EditableYjsBinding } from 'editable.ts/yjs'
 
 ### Bundle size
 
-| Artifact                            | Size (approx.)        | Notes                                                                  |
-| ----------------------------------- | --------------------- | ---------------------------------------------------------------------- |
-| `lib/core.js` (ESM)                 | ~10.5 KB (~2.7 KB gzip) | Core entry; bundlers tree-shake further modules                      |
-| `lib/features.js`                   | ~3 KB (~0.9 KB gzip)  | Optional entry; pulls in highlight/text-diff code                    |
-| `lib/yjs/editable-yjs-binding.js`   | ~13 KB (~3.2 KB gzip) | Optional; Yjs is a peer — not bundled into core or UMD               |
-| `lib/yjs/binding-undo.js`           | ~6 KB (~1.6 KB gzip)  | Optional undo controller                                             |
-| `lib/yjs/editable-yjs-presence.js`  | ~9 KB (~2.1 KB gzip)  | Optional remote cursors via Awareness                                |
-| `dist/editable.umd.cjs`             | ~91 KB (~26 KB gzip)  | Single file for `<script>` / legacy bundlers (core only)             |
-| `lib/` (total, unpacked)            | <1 MB                 | Publish build omits source maps; bundlers include only what you import |
+| Artifact                           | Size (approx.)          | Notes                                                                  |
+| ---------------------------------- | ----------------------- | ---------------------------------------------------------------------- |
+| `lib/core.js` (ESM)                | ~10.5 KB (~2.7 KB gzip) | Core entry; bundlers tree-shake further modules                        |
+| `lib/features.js`                  | ~3 KB (~0.9 KB gzip)    | Optional entry; pulls in highlight/text-diff code                      |
+| `lib/yjs/editable-yjs-binding.js`  | ~13 KB (~3.2 KB gzip)   | Optional; Yjs is a peer — not bundled into core or UMD                 |
+| `lib/yjs/binding-undo.js`          | ~6 KB (~1.6 KB gzip)    | Optional undo controller                                               |
+| `lib/yjs/editable-yjs-presence.js` | ~9 KB (~2.1 KB gzip)    | Optional remote cursors via Awareness                                  |
+| `dist/editable.umd.cjs`            | ~91 KB (~26 KB gzip)    | Single file for `<script>` / legacy bundlers (core only)               |
+| `lib/` (total, unpacked)           | <1 MB                   | Publish build omits source maps; bundlers include only what you import |
 
 Verify locally after `npm run build`:
 
@@ -171,6 +171,52 @@ const editable = new Editable({
 const element = document.querySelector('.my-editable')
 editable.add(element)
 ```
+
+### Per-host rich-text policy
+
+Each block can declare its own format and validation rules when enabled (similar to a CMS component directive — without coupling to any specific CMS):
+
+```typescript
+import {
+  Editable,
+  InlineFormatRegistry,
+  defaultInlineFormatRegistry,
+  type InlineFormatCodec
+} from 'editable.ts'
+
+const registry = new InlineFormatRegistry()
+registry.register({
+  yjsKey: 'highlight',
+  domTags: ['span'],
+  readDomElement(el) {
+    return el.getAttribute('data-highlight') === 'true' ? true : undefined
+  },
+  createDomWrapper(doc) {
+    const span = doc.createElement('span')
+    span.setAttribute('data-highlight', 'true')
+    return span
+  },
+  sanitizeYjsValue(value) {
+    return value === true ? true : null
+  }
+})
+
+editable.add(document.querySelector('.title')!, {
+  allowedFormats: ['bold', 'highlight'],
+  formatRegistry: registry,
+  maxLength: 120,
+  recommendedMaxLength: 80,
+  placeholder: 'Headline'
+})
+
+editable.add(document.querySelector('.caption')!, {
+  plainText: true
+})
+```
+
+- **`maxLength`** rejects operations that would exceed the limit (validation for publishing workflows — content is never silently truncated)
+- **`placeholder`** is stored as `data-editable-placeholder` only — never part of operation text or Y.Text
+- The same `InlineFormatRegistry` flows through operation capture, DOM apply, paste sanitization (via allowed tags), and optional `editable.ts/yjs` sync
 
 ## Examples
 
@@ -416,18 +462,18 @@ Full API, security notes, and lifecycle: [docs/yjs-binding.md](docs/yjs-binding.
 
 ### Content modification
 
-| Event            | When                                                 |
-| ---------------- | ---------------------------------------------------- |
-| `beforeCommand`  | Before default behavior; call `ctx.cancel()` to skip |
-| `command`        | Typed `EditableCommand` for every structural edit    |
+| Event            | When                                                  |
+| ---------------- | ----------------------------------------------------- |
+| `beforeCommand`  | Before default behavior; call `ctx.cancel()` to skip  |
+| `command`        | Typed `EditableCommand` for every structural edit     |
 | `operation`      | Typed `EditableOperationBatch` after local text edits |
-| `insert`         | Enter at beginning or end of block                   |
-| `split`          | Enter in the middle of a block                       |
-| `merge`          | Backspace at start or Delete at end of block         |
-| `newline`        | Shift+Enter                                          |
-| `switch`         | Arrow key at block boundary (move to adjacent block) |
-| `toggleBold`     | Bold shortcut (Ctrl/Cmd+B)                           |
-| `toggleEmphasis` | Italic shortcut (Ctrl/Cmd+I)                         |
+| `insert`         | Enter at beginning or end of block                    |
+| `split`          | Enter in the middle of a block                        |
+| `merge`          | Backspace at start or Delete at end of block          |
+| `newline`        | Shift+Enter                                           |
+| `switch`         | Arrow key at block boundary (move to adjacent block)  |
+| `toggleBold`     | Bold shortcut (Ctrl/Cmd+B)                            |
+| `toggleEmphasis` | Italic shortcut (Ctrl/Cmd+I)                          |
 
 ### Clipboard & highlighting
 
@@ -469,8 +515,8 @@ interface EditableConfig {
 
 Cross-browser behavior is verified with Playwright E2E tests on desktop browser **engines** (not pinned vendor versions):
 
-| Engine   | Desktop profile | E2E coverage                                                                               |
-| -------- | --------------- | ------------------------------------------------------------------------------------------ |
+| Engine   | Desktop profile | E2E coverage                                                                                           |
+| -------- | --------------- | ------------------------------------------------------------------------------------------------------ |
 | Chromium | Desktop Chrome  | Enter/split/merge, paste, formatting, lifecycle, iframe, dual instance, IME guard, unicode, Yjs collab |
 | Firefox  | Desktop Firefox | Same suite as Chromium                                                                                 |
 | WebKit   | Desktop Safari  | Same suite as Chromium                                                                                 |

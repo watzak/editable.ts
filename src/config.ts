@@ -77,6 +77,8 @@ const config: Config = {
       },
       strong: {},
       em: {},
+      sup: {},
+      sub: {},
       br: {}
     },
     allowedPlainTextElements: {

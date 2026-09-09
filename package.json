@@ -146,7 +146,7 @@
   "size-limit": [
     {
       "path": "dist/editable.umd.cjs",
-      "limit": "24 KB"
+      "limit": "25 KB"
     },
     {
       "path": "lib/yjs/editable-yjs-binding.js",

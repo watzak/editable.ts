@@ -19,6 +19,8 @@ import { deepMerge } from './util/merge.js'
 import { requireBrowserWindow } from './util/browser-globals.js'
 import { claimBlock, releaseBlock, isBlockOwnedBy } from './instance-registry.js'
 import { compilePasteRules, type PasteRules } from './paste-rules.js'
+import type { EditableHostPolicy } from './host-policy.js'
+import { installHostPolicy, resolveHostPolicy } from './host-policy.js'
 import type { SmartQuotesConfig } from './smartQuotes.js'
 import type {
   EditableEvent,
@@ -89,9 +91,47 @@ export interface EditableConfig {
   pastedHtmlRules?: Partial<PastedHtmlRules>
 }
 
-export interface EnableOptions {
+export type {
+  EditableHostPolicy,
+  HostLengthValidation,
+  HostValidationIssue,
+  HostValidationIssueCode,
+  ResolvedHostPolicy
+} from './host-policy.js'
+export {
+  defaultInlineFormatRegistry,
+  InlineFormatRegistry,
+  isAllowedUrl,
+  sanitizeUrlAttribute
+} from './inline-format-codec.js'
+export type {
+  FormatKey,
+  FormatYjsKey,
+  StandardFormatKey,
+  InlineFormatCodec,
+  InlineFormatRegistryOptions,
+  LinkAttributeValue
+} from './inline-format-codec.js'
+export {
+  getHostFormatRegistry,
+  getHostPolicy,
+  installHostPolicy,
+  isFormatAllowed,
+  resolveHostPolicy,
+  validateHostLength,
+  validateHostTextLength,
+  filterAttributesForHost,
+  sanitizeRemoteAttributesForHost
+} from './host-policy.js'
+export type { TextRun } from './dom-text-runs.js'
+export {
+  getBlockTextRuns,
+  hostDomHasFormattingMarkup,
+  textRunsToPlainText
+} from './dom-text-runs.js'
+
+export interface EnableOptions extends EditableHostPolicy {
   normalize?: boolean
-  plainText?: boolean
 }
 
 export type CursorPosition = 'beginning' | 'end' | 'before' | 'after'
@@ -214,8 +254,9 @@ export class Editable {
 
   enable(target?: HTMLElement | HTMLElement[] | string, options?: EnableOptions | boolean): this {
     const opts = typeof options === 'boolean' ? { normalize: options } : (options ?? {})
-    const { normalize = false, plainText = false } = opts
+    const { normalize = false, plainText = false, ...policyOptions } = opts
     const shouldSpellcheck = this.config.browserSpellcheck
+    const hostPolicy = resolveHostPolicy({ ...policyOptions, plainText })
     const targets = target
       ? domArray(target, this.win.document)
       : [...this.registeredBlocks].filter((element) =>
@@ -225,7 +266,8 @@ export class Editable {
     for (const element of targets) {
       const blockElement = adoptBlockElement(element, this.win.document)
       this.claimBlock(blockElement)
-      block.init(blockElement, { normalize, plainText, shouldSpellcheck })
+      block.init(blockElement, { normalize, plainText: hostPolicy.plainText, shouldSpellcheck })
+      installHostPolicy(blockElement, hostPolicy)
       this.dispatcher.notify('init', blockElement)
     }
 

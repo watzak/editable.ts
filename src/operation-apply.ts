@@ -3,8 +3,8 @@ import { transformSelectionThroughBatch } from './operation-selection-transform.
 import { validateOperationBatch, OperationValidationError } from './operation-validate.js'
 import { setSelectionFromSnapshot } from './operation-selection.js'
 import { OPERATION_LINE_BREAK } from './operation-types.js'
-import { defaultInlineFormatRegistry } from './yjs/inline-format-codec.js'
-import { normalizeRelForBlankTarget, sanitizeUrlAttribute } from './url-security.js'
+import { getHostFormatRegistry } from './host-policy.js'
+import type { InlineFormatCodec } from './inline-format-codec.js'
 import type {
   EditableOperation,
   EditableOperationBatch,
@@ -25,16 +25,18 @@ export interface ApplyOperationsResult {
 }
 
 function textToInsertFragment(
+  host: HTMLElement,
   doc: Document,
   text: string,
   attributes?: TextAttributes
 ): DocumentFragment {
+  const registry = getHostFormatRegistry(host)
   const parts = text.split(OPERATION_LINE_BREAK)
   const fragment = doc.createDocumentFragment()
 
   parts.forEach((part, index) => {
     if (part) {
-      appendStyledText(doc, fragment, part, attributes)
+      fragment.appendChild(registry.wrapStyledText(doc, part, attributes))
     }
     if (index < parts.length - 1) {
       fragment.appendChild(doc.createElement('br'))
@@ -44,20 +46,11 @@ function textToInsertFragment(
   return fragment
 }
 
-function appendStyledText(
-  doc: Document,
-  parent: DocumentFragment | HTMLElement,
-  text: string,
-  attributes?: TextAttributes
-): void {
-  parent.appendChild(defaultInlineFormatRegistry.wrapStyledText(doc, text, attributes))
-}
-
-function applyBooleanFormat(
+function applyFormatViaCodec(
   host: HTMLElement,
   index: number,
   length: number,
-  tagNames: string[],
+  codec: InlineFormatCodec,
   value: JsonValue | null | undefined
 ): void {
   if (value === undefined) return
@@ -65,67 +58,29 @@ function applyBooleanFormat(
   const doc = host.ownerDocument!
 
   if (value === null) {
-    for (const tag of tagNames) unwrapTagInRange(range, tag.toUpperCase())
-    return
-  }
-  if (value !== true) return
-
-  const wrapper = doc.createElement(tagNames[0])
-  try {
-    range.surroundContents(wrapper)
-  } catch {
-    const extracted = range.extractContents()
-    wrapper.appendChild(extracted)
-    range.insertNode(wrapper)
-  }
-}
-
-function applyLinkFormat(
-  host: HTMLElement,
-  index: number,
-  length: number,
-  value: JsonValue | null | undefined
-): void {
-  if (value === undefined) return
-  const range = createOperationRange(host, index, index + length)
-  const doc = host.ownerDocument!
-
-  if (value === null) {
-    unwrapTagInRange(range, 'A')
-    unwrapAncestorTagInRange(range, 'A')
+    for (const tag of codec.domTags) {
+      unwrapTagInRange(range, tag.toUpperCase())
+    }
+    if (codec.yjsKey === 'link') {
+      unwrapAncestorTagInRange(range, 'A')
+    }
     return
   }
 
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return
-  const hrefValue = value.href
-  if (typeof hrefValue !== 'string') return
+  const wrapper = codec.createDomWrapper(doc, value)
+  if (!wrapper) return
 
-  const href = sanitizeUrlAttribute(hrefValue, doc)
-  if (!href) return
-
-  unwrapTagInRange(range, 'A')
+  for (const tag of codec.domTags) {
+    unwrapTagInRange(createOperationRange(host, index, index + length), tag.toUpperCase())
+  }
   const updatedRange = createOperationRange(host, index, index + length)
 
-  const anchor = doc.createElement('a')
-  anchor.setAttribute('href', href)
-  if (value.target === '_blank') {
-    anchor.setAttribute('target', '_blank')
-    anchor.setAttribute(
-      'rel',
-      typeof value.rel === 'string'
-        ? normalizeRelForBlankTarget(value.rel)
-        : normalizeRelForBlankTarget(undefined)
-    )
-  } else if (typeof value.rel === 'string' && value.rel) {
-    anchor.setAttribute('rel', value.rel)
-  }
-
   try {
-    updatedRange.surroundContents(anchor)
+    updatedRange.surroundContents(wrapper)
   } catch {
     const extracted = updatedRange.extractContents()
-    anchor.appendChild(extracted)
-    updatedRange.insertNode(anchor)
+    wrapper.appendChild(extracted)
+    updatedRange.insertNode(wrapper)
   }
 }
 
@@ -136,11 +91,13 @@ function applySetTextAttributes(
   attributes: TextAttributes
 ): void {
   if (length === 0) return
+  const registry = getHostFormatRegistry(host)
 
-  applyBooleanFormat(host, index, length, ['strong', 'b'], attributes.bold)
-  applyBooleanFormat(host, index, length, ['em', 'i'], attributes.italic)
-  applyBooleanFormat(host, index, length, ['u'], attributes.underline)
-  applyLinkFormat(host, index, length, attributes.link)
+  for (const [key, value] of Object.entries(attributes)) {
+    const codec = registry.getCodec(key)
+    if (!codec) continue
+    applyFormatViaCodec(host, index, length, codec, value)
+  }
 }
 
 function unwrapTagInRange(range: Range, tagName: string): void {
@@ -188,7 +145,7 @@ function applySingleOperation(
   switch (op.type) {
     case 'insertText': {
       const range = createOperationRange(host, appliedIndex, appliedIndex)
-      const fragment = textToInsertFragment(doc, op.text, op.attributes)
+      const fragment = textToInsertFragment(host, doc, op.text, op.attributes)
       range.insertNode(fragment)
       break
     }
@@ -200,7 +157,7 @@ function applySingleOperation(
     case 'replaceText': {
       const range = createOperationRange(host, appliedIndex, appliedIndex + op.length)
       range.deleteContents()
-      const fragment = textToInsertFragment(doc, op.text, op.attributes)
+      const fragment = textToInsertFragment(host, doc, op.text, op.attributes)
       range.insertNode(fragment)
       break
     }

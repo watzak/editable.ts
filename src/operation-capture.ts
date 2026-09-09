@@ -106,6 +106,10 @@ export class OperationCapture {
     return this.composition.has(block)
   }
 
+  hasPendingMutation(block: HTMLElement): boolean {
+    return this.pending.has(block) || this.composition.has(block)
+  }
+
   isApplyingSmartQuote(block: HTMLElement): boolean {
     return this.applyingSmartQuote.has(block)
   }

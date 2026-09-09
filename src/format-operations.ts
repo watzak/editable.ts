@@ -3,27 +3,30 @@ import {
   buildLinkFormatAttributes,
   buildToggleFormatAttributes,
   getBlockTextRuns
-} from './yjs/dom-text-runs.js'
-import { defaultInlineFormatRegistry, type FormatYjsKey } from './yjs/inline-format-codec.js'
+} from './dom-text-runs.js'
+import { getHostFormatRegistry, isFormatAllowed } from './host-policy.js'
+import type { FormatKey } from './inline-format-codec.js'
 import { captureSelectionSnapshot, selectionSpan } from './operation-selection.js'
 import type { EditableOperation, SelectionSnapshot, TextAttributes } from './operation-types.js'
 import type Selection from './selection.js'
 
-export type ToggleFormatKey = 'bold' | 'italic' | 'underline'
+export type ToggleFormatKey = 'bold' | 'italic' | 'underline' | 'superscript' | 'subscript'
 
 export function buildToggleFormatOperation(
   host: HTMLElement,
   selectionBefore: SelectionSnapshot,
-  formatKey: ToggleFormatKey
+  formatKey: ToggleFormatKey | FormatKey
 ): EditableOperation | null {
   if (isPlainTextBlock(host)) return null
+  if (!isFormatAllowed(host, formatKey)) return null
 
   const { start, end } = selectionSpan(selectionBefore)
   const length = end - start
   if (length <= 0) return null
 
-  const runs = getBlockTextRuns(host)
-  const attributes = buildToggleFormatAttributes(runs, start, end, formatKey)
+  const registry = getHostFormatRegistry(host)
+  const runs = getBlockTextRuns(host, registry)
+  const attributes = buildToggleFormatAttributes(runs, start, end, formatKey, registry)
   return { type: 'setTextAttributes', index: start, length, attributes }
 }
 
@@ -34,13 +37,15 @@ export function buildLinkOperation(
   attrs: { rel?: string; target?: string } = {}
 ): EditableOperation | null {
   if (isPlainTextBlock(host)) return null
+  if (!isFormatAllowed(host, 'link')) return null
 
   const { start, end } = selectionSpan(selectionBefore)
   const length = end - start
   if (length <= 0) return null
 
   const doc = host.ownerDocument!
-  const attributes = buildLinkFormatAttributes(href, doc, attrs)
+  const registry = getHostFormatRegistry(host)
+  const attributes = buildLinkFormatAttributes(href, doc, attrs, registry)
   if (!attributes) return null
 
   return { type: 'setTextAttributes', index: start, length, attributes }
@@ -51,6 +56,7 @@ export function buildUnlinkOperation(
   selectionBefore: SelectionSnapshot
 ): EditableOperation | null {
   if (isPlainTextBlock(host)) return null
+  if (!isFormatAllowed(host, 'link')) return null
 
   const { start, end } = selectionSpan(selectionBefore)
   const length = end - start
@@ -73,12 +79,14 @@ export function readUniformFormatAttributes(
   host: HTMLElement,
   start: number,
   end: number,
-  keys: readonly FormatYjsKey[]
+  keys: readonly FormatKey[]
 ): TextAttributes {
-  const runs = getBlockTextRuns(host)
+  const registry = getHostFormatRegistry(host)
+  const runs = getBlockTextRuns(host, registry)
   const attributes: TextAttributes = {}
   for (const key of keys) {
-    if (defaultInlineFormatRegistry.spanHasUniformFormat(runs, start, end, key)) {
+    if (!isFormatAllowed(host, key)) continue
+    if (registry.spanHasUniformFormat(runs, start, end, key)) {
       const sample = sampleAttributeValue(runs, start, key)
       if (sample !== undefined) attributes[key] = sample
     }
@@ -89,7 +97,7 @@ export function readUniformFormatAttributes(
 function sampleAttributeValue(
   runs: ReturnType<typeof getBlockTextRuns>,
   index: number,
-  key: FormatYjsKey
+  key: FormatKey
 ): TextAttributes[string] | undefined {
   let offset = 0
   for (const run of runs) {

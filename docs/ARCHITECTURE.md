@@ -97,6 +97,12 @@ Each `Editable` instance maintains a registry of its editable blocks (`WeakMap` 
 - Each instance stores an immutable snapshot in `globalSettings` at construction time; optional constructor `pastedHtmlRules` are deep-merged into that snapshot.
 - Paste sanitization uses the instance snapshot (`pasteRules`), not the live global singleton.
 
+**Rich-text formats and host policy:**
+
+- `InlineFormatRegistry` (`inline-format-codec.ts`) lives in **core** — not under `./yjs`. Codecs map DOM inline marks ↔ canonical operation / Y.Text attribute keys (`bold`, `italic`, `link`, `superscript`, …).
+- `EditableHostPolicy` (`host-policy.ts`) is installed per block via `editable.add(host, options)`. Policy controls allowed formats, line breaks, length validation, placeholder UI, and optional custom registries.
+- The same registry instance flows through operation capture → `operation-apply` → optional Yjs delta conversion / reconcile. Core does **not** import the `yjs` npm package; `validate:core-bundle` walks the full `lib/core.js` dependency graph and rejects any `lib/yjs/` import.
+
 **SSR and iframe safety:**
 
 - Module import does not require browser globals; `new Editable()` resolves `{ window }` or the current browser window and throws a clear error otherwise.

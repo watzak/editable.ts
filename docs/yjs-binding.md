@@ -36,9 +36,9 @@ import { EditableYjsBinding } from 'editable.ts/yjs'
 - One `EditableYjsBinding` connects **one** block host to **one** user-supplied `Y.Text`
 - After initial sync, **`Y.Text` is canonical**
 - Local `EditableOperationBatch` objects from capture are applied in **one** `Y.Doc` transaction with a binding-specific origin (echo-safe)
-- Foreign `Y.Text` deltas are translated to operations and applied with **live** DOM patches
-- When a delta batch does not fully converge, a **diagnostic diff repair** runs (`diffToOperations` from the last synced host text to current `Y.Text`) — not the normal path
-- Explicit full replace recovery: `binding.reconcile(reason?)`
+- Foreign `Y.Text` deltas are translated to `EditableOperation`s and applied with **live** DOM patches (insert/delete/replace/attributes) — no `innerHTML` in the hot path
+- Each binding keeps a **canonical pre-update snapshot** (plain text; rich text also stores normalized text runs). Incremental apply runs only when the host still matches that snapshot
+- When incremental apply cannot converge, or the host drifted, **`binding.reconcile(reason?)`** rebuilds from canonical `Y.Text` (recovery only)
 - **Rich-text hosts** (`data-plaintext="false"`, default): inline formats sync via Y.Text delta attributes through `InlineFormatRegistry`
 - **Plain-text hosts** (`data-plaintext="true"`): character data only; attributed operations are rejected
 - **Not included:** providers (you wire WebSocket/WebRTC yourself)
@@ -46,15 +46,37 @@ import { EditableYjsBinding } from 'editable.ts/yjs'
 
 ## Inline format codec
 
-Rich text never stores HTML in the CRDT. Formats map to canonical Y.Text attributes:
+Rich text never stores HTML in the CRDT. Formats map to canonical Y.Text attributes via **`InlineFormatRegistry`** in the **core** package (`editable.ts`), not under `./yjs`. The Yjs adapter imports the same registry from the host policy so capture, apply, reconcile, and remote delta conversion stay aligned.
 
-| Format     | Y.Text key                      | DOM                     |
-| ---------- | ------------------------------- | ----------------------- |
-| Bold       | `bold: true`                    | `<strong>`              |
-| Italic     | `italic: true`                  | `<em>`                  |
-| Underline  | `underline: true`               | `<u>`                   |
-| Link       | `link: { href, rel?, target? }` | `<a>` (safe attrs only) |
-| Line break | `\n` in operation text          | `<br>`                  |
+| Format      | Y.Text key                      | DOM                     |
+| ----------- | ------------------------------- | ----------------------- |
+| Bold        | `bold: true`                    | `<strong>`              |
+| Italic      | `italic: true`                  | `<em>`                  |
+| Underline   | `underline: true`               | `<u>`                   |
+| Superscript | `superscript: true`             | `<sup>`                 |
+| Subscript   | `subscript: true`               | `<sub>`                 |
+| Link        | `link: { href, rel?, target? }` | `<a>` (safe attrs only) |
+| Line break  | `\n` in operation text          | `<br>`                  |
+
+Register custom codecs with `registry.register(codec)` — each codec defines a unique key, allowed DOM tags, read/sanitize/create hooks, and participates in deterministic wrapper order.
+
+### Host policy (per block)
+
+Configure via `editable.add(host, { … })`:
+
+```typescript
+editable.add(host, {
+  plainText: false,
+  allowedFormats: ['bold', 'italic', 'link'],
+  allowLineBreaks: true,
+  maxLength: 500, // validates and rejects ops — never silently truncates
+  placeholder: 'Write a headline…' // UI only — not stored in Y.Text
+})
+```
+
+- **`allowedFormats` / `deniedFormats`** — mutually exclusive; disallowed local format commands return `null` / throw on apply; remote Yjs attributes are stripped after codec sanitization
+- **`formatRegistry`** — optional custom `InlineFormatRegistry` instance per host
+- Unknown or unsafe remote keys/URLs never reach the DOM
 
 - Attribute values are `JsonValue` only
 - `null` removes a format (e.g. `{ link: null }`)
@@ -192,13 +214,60 @@ All selection and operation indices are **UTF-16 code units** (JavaScript string
 - `destroy()` removes `operation` and `Y.Text` listeners and clears references
 - Call `destroy()` before `editable.unload(host)`
 
+## Remote sync: incremental vs reconcile
+
+### Incremental path (normal)
+
+Used when **all** of the following hold:
+
+1. The host is not mid-composition or mid-input (`beforeinput` pending)
+2. Host operation text matches the binding's canonical snapshot from the previous successful sync
+3. For **attribute-only** remote deltas on rich-text hosts, plain-text agreement is sufficient and inline runs must already match `Y.Text.toDelta()` (otherwise reconcile rebuilds formatting from Y)
+4. For **text-changing** deltas on rich-text hosts, plain-text agreement is sufficient (format repair runs afterward if needed)
+5. `yTextDeltaToOperations(event.delta)` applies cleanly and the host reaches `Y.Text.toString()`
+
+Behavior:
+
+- Inserts, deletes, replacements, and attribute changes patch the DOM via `applyLiveOperationBatchToDom`
+- Local selection is transformed through the remote batch; echo and operation capture are suppressed (`beginRemoteApply`)
+- Rich-text formatting is repaired incrementally via `setTextAttributes` when text matches but runs diverged
+
+Diagnostics (tests): `binding.getRemoteSyncDiagnostics()` returns `{ path: 'incremental', operationCount }`.
+
+### Reconcile path (recovery)
+
+`binding.reconcile(reason?)` or automatic recovery when incremental preconditions fail:
+
+| Reason                         | When                                                                                         |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| `remote-host-not-canonical`    | Host text or (for attribute-only deltas) runs diverged from snapshot before the remote event |
+| `remote-during-composition`    | IME composition session active on the host                                                   |
+| `remote-during-pending-input`  | `beforeinput` mutation pending on the host                                                   |
+| `incremental-apply-incomplete` | Live apply did not reach canonical `Y.Text`                                                  |
+| `remote-delta-target-mismatch` | Delta simulation disagreed with resulting `Y.Text`                                           |
+| `remote-rich-attribute`        | Rich attribute delta after prior incremental text sync — full `Y.Text` DOM rebuild           |
+| `remote-format-fragmented-dom` | Fragmented DOM or normalized text mismatch before attribute delta                            |
+| `rich-format-recovery`         | Incremental format repair could not match `Y.Text.toDelta()`                                 |
+| `post-local-batch`             | Local batch left host text out of sync with `Y.Text`                                         |
+
+Reconcile applies canonical `Y.Text` to the host (plain replace or rich append-from-delta via `applyYTextDeltaToHostDom`). **`Y.Text` always wins** — the host is never copied back over the CRDT silently.
+
+### Guarantees
+
+| Concern        | Incremental                                  | Reconcile                                                    |
+| -------------- | -------------------------------------------- | ------------------------------------------------------------ |
+| UTF-16 offsets | Preserved via selection transform            | Restored when possible; may collapse to nearest valid offset |
+| Composition    | Skipped — reconcile instead                  | Safe — full rebuild from `Y.Text`                            |
+| Inline formats | Delta attributes + incremental format repair | Full mirror of `Y.Text.toDelta()`                            |
+| Echo / capture | Suppressed during remote apply               | Suppressed during remote apply                               |
+
 ## Recovery
 
 ```typescript
 binding.reconcile('manual recovery after provider gap')
 ```
 
-Applies canonical `Y.Text` to the host when operation text diverged. Use after network gaps or debugging; not part of the hot sync path.
+Explicit recovery when operation text or rich runs diverged. Use after network gaps or debugging; automatic reconcile covers drift during remote sync.
 
 ## Awareness / remote presence (optional)
 

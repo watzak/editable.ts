@@ -19,7 +19,8 @@ import { EditableYjsBinding } from 'editable.ts/yjs'
 - Explicit full replace recovery: `binding.reconcile(reason?)`
 - **Rich-text hosts** (`data-plaintext="false"`, default): inline formats sync via Y.Text delta attributes through `InlineFormatRegistry`
 - **Plain-text hosts** (`data-plaintext="true"`): character data only; attributed operations are rejected
-- **Not included:** providers, awareness
+- **Not included:** providers (you wire WebSocket/WebRTC yourself)
+- **Optional:** `EditableYjsPresence` for remote cursors via user-supplied `Awareness` (`y-protocols`)
 
 ## Inline format codec
 
@@ -130,12 +131,48 @@ binding.reconcile('manual recovery after provider gap')
 
 Applies canonical `Y.Text` to the host when operation text diverged. Use after network gaps or debugging; not part of the hot sync path.
 
+## Awareness / remote presence (optional)
+
+Presence is **never** written to `Y.Text` or serialized document updates. User name, color, and selection live only in Awareness under the namespaced key `editable.ts:presence:v1`.
+
+```typescript
+import { Awareness } from 'y-protocols/awareness'
+import { EditableYjsPresence } from 'editable.ts/yjs'
+
+const awareness = new Awareness(doc) // supplied by your app — no provider here
+
+const presence = new EditableYjsPresence({
+  editable,
+  host,
+  yText,
+  awareness,
+  user: { name: 'Ada', color: '#ef4444' },
+  throttleMs: 50, // selection publish interval
+  hideOnBlur: true, // clear local presence when host blurs
+  renderCursors: true, // set false to publish only
+  renderer: undefined // optional custom PresenceRenderer
+})
+
+presence.destroy()
+```
+
+Behavior:
+
+- Local UTF-16 anchor/head offsets convert to `Y.RelativePosition` JSON relative to **this** `Y.Text`
+- Remote positions resolve against the local `Y.Doc`; invalid, foreign, or deleted-type positions are ignored
+- Rendering uses a **fixed overlay** (`Range.getClientRects()`), not host DOM mutation — safe inside iframes via `host.ownerDocument`
+- Respects `prefers-reduced-motion` (caret blink disabled)
+- Re-renders on awareness changes, `Y.Text` edits (overlay only), scroll, and resize
+
+See `examples/yjs-presence-editor.html` for a two-client demo with manual doc + awareness sync.
+
 ## Bundle size
 
-| Artifact                          | Raw    | Brotli (approx.) |
-| --------------------------------- | ------ | ---------------- |
-| `lib/yjs/editable-yjs-binding.js` | ~12 kB | ~2.5 kB          |
-| `lib/yjs/` total                  | ~35 kB | —                |
+| Artifact                           | Raw    | Brotli (approx.) |
+| ---------------------------------- | ------ | ---------------- |
+| `lib/yjs/editable-yjs-binding.js`  | ~12 kB | ~2.5 kB          |
+| `lib/yjs/editable-yjs-presence.js` | ~8 kB  | ~3 kB            |
+| `lib/yjs/` total                   | ~43 kB | —                |
 
 Core and UMD builds must not reference Yjs — enforced by `validate:core-bundle`.
 
@@ -144,3 +181,4 @@ Core and UMD builds must not reference Yjs — enforced by `validate:core-bundle
 - DOM apply adapter: `docs/apply-operations.md`
 - Operation DTOs: `docs/adr/0001-commands-and-operations.md`
 - Live demo: `examples/yjs-rich-editor.html`
+- Presence demo: `examples/yjs-presence-editor.html`

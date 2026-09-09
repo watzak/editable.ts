@@ -37,3 +37,28 @@ export {
   buildUnlinkOperation
 } from '../format-operations.js'
 export type { ToggleFormatKey } from '../format-operations.js'
+export { EditableYjsPresence } from './editable-yjs-presence.js'
+export type { EditableYjsPresenceOptions, PresenceUser } from './editable-yjs-presence.js'
+export {
+  buildPresencePayload,
+  parsePresencePayload,
+  sanitizePresenceColor,
+  sanitizePresenceName,
+  isPresenceOnlyAwarenessState,
+  PRESENCE_STATE_KEY,
+  PRESENCE_PAYLOAD_VERSION
+} from './presence-payload.js'
+export type { PresencePayloadV1 } from './presence-payload.js'
+export { offsetsToRelativePositionJson, resolvePresenceSelection } from './relative-position.js'
+export type { ResolvedPresenceSelection } from './relative-position.js'
+export {
+  defaultPresenceRenderer,
+  ensurePresenceStyles,
+  getOrCreatePresenceLayer,
+  removePresenceLayer
+} from './presence-renderer.js'
+export type {
+  PresenceRenderer,
+  PresenceRendererContext,
+  RemotePresenceView
+} from './presence-renderer.js'

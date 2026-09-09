@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>editable.ts — Yjs presence demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="dist/styles.js"></script>
+    <style>
+      .yjs-demo {
+        max-width: 960px;
+        margin: 2rem auto;
+        font-family: system-ui, sans-serif;
+      }
+      .yjs-demo h1 {
+        font-size: 1.25rem;
+      }
+      .yjs-demo p {
+        color: #444;
+      }
+      .editors {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .editor-panel {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 0.75rem;
+        background: #fafafa;
+      }
+      .editor-panel h2 {
+        margin: 0 0 0.5rem;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #666;
+      }
+      .presence-host {
+        min-height: 8rem;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #fff;
+      }
+      .legend {
+        margin-top: 1rem;
+        font-size: 0.85rem;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="yjs-demo" data-testid="yjs-presence-demo">
+      <h1>Yjs presence (Awareness)</h1>
+      <p>
+        Two editors share one <code>Y.Text</code> and sync <code>Awareness</code> manually. Remote
+        cursors render in a fixed overlay — host HTML and CRDT content stay unchanged.
+      </p>
+      <div class="editors">
+        <div class="editor-panel">
+          <h2>Peer A — Ada</h2>
+          <div id="editor-a" class="presence-host" contenteditable="true"></div>
+        </div>
+        <div class="editor-panel">
+          <h2>Peer B — Grace</h2>
+          <div id="editor-b" class="presence-host" contenteditable="true"></div>
+        </div>
+      </div>
+      <p class="legend">
+        Focus an editor and move the caret or selection. The other peer shows a colored remote
+        caret/selection overlay only — never inline DOM markers.
+      </p>
+    </section>
+    <script type="module" src="yjs-presence-editor.js"></script>
+  </body>
+</html>

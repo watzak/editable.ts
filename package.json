@@ -125,13 +125,18 @@
     "vite": "^8.0.16",
     "vite-plugin-css-injected-by-js": "4.0.1",
     "vitest": "4.1.11",
+    "y-protocols": "^1.0.7",
     "yjs": "^13.6.32"
   },
   "peerDependencies": {
+    "y-protocols": "^1.0.6",
     "yjs": "^13.6.0"
   },
   "peerDependenciesMeta": {
     "yjs": {
+      "optional": true
+    },
+    "y-protocols": {
       "optional": true
     }
   },
@@ -146,6 +151,10 @@
     {
       "path": "lib/yjs/editable-yjs-binding.js",
       "limit": "2.5 KB"
+    },
+    {
+      "path": "lib/yjs/editable-yjs-presence.js",
+      "limit": "3 KB"
     }
   ],
   "engines": {

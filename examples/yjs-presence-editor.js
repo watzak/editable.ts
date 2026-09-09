@@ -94,6 +94,8 @@ function scheduleDocSync() {
 
 hostA.addEventListener('input', scheduleDocSync)
 hostB.addEventListener('input', scheduleDocSync)
+editableA.on('operation', scheduleDocSync)
+editableB.on('operation', scheduleDocSync)
 
 awarenessA.on('update', syncAwarenessBothWays)
 awarenessB.on('update', syncAwarenessBothWays)

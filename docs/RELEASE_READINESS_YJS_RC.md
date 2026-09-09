@@ -17,6 +17,7 @@ The optional `./yjs` subpath (Prompts 4–9) is ready for an **experimental** re
 | Area | Status | Notes |
 | --- | --- | --- |
 | Echo / reentrancy | Pass | Binding origin skips self-updates; `beginRemoteApply` suppresses capture; destroy ignores late ops; demo uses sync guard + debounced awareness |
+| Remote apply under concurrent typing | Pass | Delta patching restricted to attribute-only deltas; text changes rebuild the host from canonical `Y.Text`. Non-convergence reconciles instead of throwing out of the `Y.Text` observer |
 | Composition / blur / destroy races | Pass | Hardening specs; presence `MutationObserver` auto-destroy on host removal |
 | Listener leaks | Pass | `destroy()` on binding, presence, structural bridge, undo controller |
 | innerHTML in sync hot path | Pass | Live operation apply; `innerHTML` only in example structural adapter split helper |
@@ -67,6 +68,7 @@ E2e notes:
 - Chromium/Firefox/WebKit via Playwright; real `beforeinput` paths where Playwright generates them.
 - Composition simulated in `e2e/composition-unicode-flows.spec.ts`; **real OS IME requires manual QA**.
 - Collab e2e asserts **Y.Text convergence** as canonical; remote DOM may lag Playwright typing (ZWSP) until reconcile.
+- The collab demo syncs only after confirmed `operation` batches (no raw `input` trigger) and diffs against the peer state vector, so peers never re-exchange known operations.
 
 ## Known limits (experimental)
 

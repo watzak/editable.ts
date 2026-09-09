@@ -24,12 +24,20 @@ import {
   type InitialSyncPolicy
 } from './initial-sync.js'
 import { insertHostRunsIntoYText } from './dom-to-ytext.js'
-import { defaultInlineFormatRegistry } from './inline-format-codec.js'
 import { PlainTextYjsError } from './plain-text-yjs-error.js'
-import { reconcileHostToCanonicalYText, type ReconcileDiagnostics } from './reconcile.js'
+import {
+  buildCopyYTextDeltaToHostOperations,
+  hostHasInlineAttributes,
+  hostRichTextMatchesYText,
+  promoteHostInlineFormatsToYText,
+  reconcileHostToCanonicalYText,
+  yTextHasInlineAttributes,
+  type ReconcileDiagnostics
+} from './reconcile.js'
 import { YjsStructuralBridge } from './structural-bridge.js'
 import type { EditableYjsStructuralAdapter } from './structural-adapter.js'
-import { yTextDeltaToOperations } from './ytext-delta-to-operations.js'
+import { getBlockTextRuns, textRunsToPlainText } from './dom-text-runs.js'
+import { yTextDeltaToOperations, type YTextDeltaOp } from './ytext-delta-to-operations.js'
 import { captureSelectionSnapshot } from '../operation-selection.js'
 import type { EditableOperation, EditableOperationBatch } from '../operation-types.js'
 
@@ -167,9 +175,40 @@ export class EditableYjsBinding {
    */
   reconcile(reason?: string): ReconcileDiagnostics {
     this.assertActive()
-    const result = reconcileHostToCanonicalYText(this.editable, this.host, this.yText, reason)
+    const run = () =>
+      reconcileHostToCanonicalYText(
+        this.editable,
+        this.host,
+        this.yText,
+        reason,
+        this.yjsApplyOptions()
+      )
+
+    // Rich-text reconcile may promote host formatting into Y.Text. Running it under the
+    // binding origin keeps that write from re-entering our own Y.Text observer.
+    const doc = this.yText.doc
+    let result!: ReconcileDiagnostics
+    if (doc) {
+      doc.transact(() => {
+        result = run()
+      }, this.transactionOrigin)
+    } else {
+      result = run()
+    }
+
+    this.canonicalYText = this.yText.toString()
     this.syncEditableConfirmedState()
     return result
+  }
+
+  /**
+   * Copies inline runs from the host into canonical {@link Y.Text} when they diverge
+   * (e.g. DOM was formatted before the CRDT received attributes).
+   */
+  syncRichHostRunsToYText(): void {
+    this.assertActive()
+    this.syncRichYTextFromHostIfNeeded()
+    this.syncEditableConfirmedState()
   }
 
   private attachSyncListeners(): void {
@@ -209,6 +248,31 @@ export class EditableYjsBinding {
       applyEditableOperationsToYText(this.yText, batch.operations, this.yjsApplyOptions())
     }, this.transactionOrigin)
     this.canonicalYText = this.yText.toString()
+    const hostAfterLocal = getBlockOperationText(this.host)
+    if (hostAfterLocal !== this.canonicalYText) {
+      this.reconcile('post-local-batch')
+      this.canonicalYText = this.yText.toString()
+    }
+    this.syncRichYTextFromHostIfNeeded()
+  }
+
+  /**
+   * Copies host formatting into Y.Text after a local batch left the CRDT plain
+   * (e.g. a toggle that only reached the DOM). Text content must already match, so this
+   * never overwrites remote edits.
+   */
+  private syncRichYTextFromHostIfNeeded(): void {
+    if (!this.richText) return
+    const doc = this.host.ownerDocument
+    if (!doc) return
+    if (yTextHasInlineAttributes(this.yText)) return
+    if (!hostHasInlineAttributes(this.host)) return
+    if (textRunsToPlainText(getBlockTextRuns(this.host)) !== this.yText.toString()) return
+
+    this.yText.doc?.transact(() => {
+      promoteHostInlineFormatsToYText(this.yText, this.host, doc)
+    }, this.transactionOrigin)
+    this.canonicalYText = this.yText.toString()
   }
 
   private handleYTextChange(event: Y.YTextEvent, transaction: Y.Transaction): void {
@@ -216,15 +280,28 @@ export class EditableYjsBinding {
     if (isBindingTransactionOrigin(transaction.origin, this.transactionOrigin)) return
 
     const hostText = getBlockOperationText(this.host)
-    if (hostText !== this.canonicalYText) {
-      throw new PlainTextYjsError(
-        `Host operation text diverged from canonical Y.Text before applying delta (host=${JSON.stringify(hostText)}, y=${JSON.stringify(this.canonicalYText)})`
-      )
+    const targetY = this.yText.toString()
+
+    // Incremental delta patching relies on host indices matching canonical Y.Text. That only
+    // holds for attribute-only deltas; any insert/delete arriving while the host is mid-edit
+    // (or after a sync race) would apply at shifted offsets. Text changes therefore go through
+    // the full reconcile path, which rebuilds the host from canonical Y.Text.
+    if (hostText === targetY && isAttributeOnlyDelta(event.delta)) {
+      const operations = yTextDeltaToOperations(event.delta, this.yjsApplyOptions())
+      if (operations.length > 0) {
+        this.applyRemoteOperationsToHost(operations)
+        this.syncHostToCanonicalYText('delta')
+      }
+    } else {
+      this.reconcile('remote-yjs-drift')
     }
 
-    const operations = yTextDeltaToOperations(event.delta, this.yjsApplyOptions())
-    if (operations.length === 0) return
+    this.canonicalYText = this.yText.toString()
+    this.ensureRichHostMatchesYText()
+    this.syncEditableConfirmedState()
+  }
 
+  private applyRemoteOperationsToHost(operations: readonly EditableOperation[]): void {
     const capture = this.editable.dispatcher.operationCapture
     const selectionWatcher = this.editable.dispatcher.selectionWatcher
     const selectionBefore = captureSelectionSnapshot(
@@ -242,9 +319,34 @@ export class EditableYjsBinding {
     } finally {
       capture.endRemoteApply(this.host)
     }
+  }
 
-    this.syncHostToCanonicalYText('delta')
-    this.syncEditableConfirmedState()
+  /** Rebuilds inline formatting from {@link Y.Text} when plain text matches but attributes do not. */
+  private ensureRichHostMatchesYText(): void {
+    if (!this.richText) return
+    const doc = this.host.ownerDocument
+    if (!doc) return
+    if (hostRichTextMatchesYText(this.host, this.yText, doc)) return
+
+    this.syncRichYTextFromHostIfNeeded()
+    if (hostRichTextMatchesYText(this.host, this.yText, doc)) return
+
+    const hostLength = getOperationTextLength(this.host)
+    const capture = this.editable.dispatcher.operationCapture
+    capture.beginRemoteApply(this.host)
+    try {
+      applyLiveOperationBatchToDom(
+        this.host,
+        {
+          source: 'remote',
+          operations: buildCopyYTextDeltaToHostOperations(this.yText, hostLength, doc)
+        },
+        { preserveSelection: true }
+      )
+    } finally {
+      capture.endRemoteApply(this.host)
+    }
+    this.canonicalYText = this.yText.toString()
   }
 
   /** Recovery when delta-based apply did not reach canonical {@link Y.Text}. */
@@ -259,21 +361,29 @@ export class EditableYjsBinding {
 
     const repairOps = diffToOperations(hostText, target)
     if (repairOps.length > 0) {
-      applyLiveOperationBatchToDom(this.host, { source: 'remote', operations: repairOps })
+      applyLiveOperationBatchToDom(this.host, {
+        source: 'remote',
+        operations: repairOps
+      })
       hostText = getBlockOperationText(this.host)
     }
 
     if (hostText !== target) {
-      throw new PlainTextYjsError(
-        `${reason} apply did not converge (host=${JSON.stringify(hostText)}, y=${JSON.stringify(target)})`
-      )
+      // Throwing here would escape through the Y.Text observer and tear down the sync
+      // pipeline for every later edit. Rebuild the host from canonical Y.Text instead.
+      this.reconcile(reason)
     }
 
-    this.canonicalYText = target
+    this.canonicalYText = this.yText.toString()
   }
 }
 
 export type { BindingUndoOptions, YjsBindingUndoStatus }
+
+/** True when a delta only changes formatting, leaving every text offset untouched. */
+function isAttributeOnlyDelta(delta: readonly YTextDeltaOp[]): boolean {
+  return delta.every((op) => op.insert === undefined && op.delete === undefined)
+}
 
 function validateBindingOptions(options: EditableYjsBindingOptions): void {
   const { editable, host, yText, initialSync } = options
@@ -393,7 +503,7 @@ function copyYToHost(binding: EditableYjsBinding, text: string): void {
       binding.host,
       {
         source: 'remote',
-        operations: buildLiveCopyYToHostOperations(binding.yText, hostLength, doc)
+        operations: buildCopyYTextDeltaToHostOperations(binding.yText, hostLength, doc)
       },
       { preserveSelection: false }
     )
@@ -410,31 +520,4 @@ function copyYToHost(binding: EditableYjsBinding, text: string): void {
     { source: 'remote', operations },
     { preserveSelection: false, emitChange: false }
   )
-}
-
-function buildLiveCopyYToHostOperations(yText: Y.Text, hostLength: number, doc: Document) {
-  const operations: EditableOperation[] = []
-  if (hostLength > 0) {
-    operations.push({ type: 'deleteText', index: 0, length: hostLength })
-  }
-
-  let index = 0
-  const delta = yText.toDelta() as Array<{
-    insert?: string | unknown
-    attributes?: Record<string, unknown>
-  }>
-
-  for (const op of delta) {
-    if (typeof op.insert !== 'string' || op.insert.length === 0) continue
-    const attributes = defaultInlineFormatRegistry.sanitizeDeltaAttributes(op.attributes, doc)
-    operations.push({
-      type: 'insertText',
-      index,
-      text: op.insert,
-      ...(attributes ? { attributes } : {})
-    })
-    index += op.insert.length
-  }
-
-  return operations
 }

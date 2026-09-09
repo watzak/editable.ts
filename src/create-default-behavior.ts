@@ -189,18 +189,17 @@ export default function createDefaultBehavior(editable: Editable) {
       const host = selection.host
       const selectionBefore = captureSelectionBeforeFormat(selection)
       const operation = selectionBefore && buildToggleFormatOperation(host, selectionBefore, 'bold')
+      if (!operation || !selectionBefore) return
       selection.toggleBold()
-      if (operation && selectionBefore) {
-        editable.dispatcher.operationCapture.commitFormatMutation(
-          editable.dispatcher.notify,
-          host,
-          editable.dispatcher.selectionWatcher,
-          {
-            operations: [operation],
-            selectionBefore
-          }
-        )
-      }
+      editable.dispatcher.operationCapture.commitFormatMutation(
+        editable.dispatcher.notify,
+        host,
+        editable.dispatcher.selectionWatcher,
+        {
+          operations: [operation],
+          selectionBefore
+        }
+      )
     },
 
     toggleEmphasis(selection: Selection): void {
@@ -208,18 +207,17 @@ export default function createDefaultBehavior(editable: Editable) {
       const selectionBefore = captureSelectionBeforeFormat(selection)
       const operation =
         selectionBefore && buildToggleFormatOperation(host, selectionBefore, 'italic')
+      if (!operation || !selectionBefore) return
       selection.toggleEmphasis()
-      if (operation && selectionBefore) {
-        editable.dispatcher.operationCapture.commitFormatMutation(
-          editable.dispatcher.notify,
-          host,
-          editable.dispatcher.selectionWatcher,
-          {
-            operations: [operation],
-            selectionBefore
-          }
-        )
-      }
+      editable.dispatcher.operationCapture.commitFormatMutation(
+        editable.dispatcher.notify,
+        host,
+        editable.dispatcher.selectionWatcher,
+        {
+          operations: [operation],
+          selectionBefore
+        }
+      )
     }
   }
 }

@@ -211,7 +211,12 @@ function updateCode(elem) {
   const elemContent = editable.getContent(elem)
   const codeBlock = document.querySelector('.formatting-code-js')
   if (!codeBlock) return
-  codeBlock.textContent = elemContent.trim()
+  const innerHtml = elemContent
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  const markup = innerHtml.startsWith('<') ? innerHtml : `<p>${innerHtml}</p>`
+  codeBlock.textContent = markup
   Prism.highlightElement(codeBlock)
 }
 

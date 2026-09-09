@@ -6,6 +6,10 @@ import {
   buildToggleFormatOperation,
   captureSelectionBeforeFormat
 } from '../lib/format-operations.js'
+import { setSelectionFromSnapshot } from '../lib/operation-selection.js'
+import { applyEditableOperationsToYText } from '../lib/yjs/apply-operations-to-ytext.js'
+import { applyHostInlineMarkupToYText } from '../lib/yjs/dom-text-runs.js'
+import { promoteHostInlineFormatsToYText } from '../lib/yjs/reconcile.js'
 import {
   createExampleArrayStructuralAdapter,
   createExampleBlocksArray
@@ -66,7 +70,9 @@ class ManualNetwork {
   }
 
   syncDoc(fromDoc, toDoc, fromId, toId) {
-    const update = Y.encodeStateAsUpdate(fromDoc)
+    // Diff against the target state vector — full-state updates echo known operations back
+    // and re-trigger Y.Text observers on both peers.
+    const update = Y.encodeStateAsUpdate(fromDoc, Y.encodeStateVector(toDoc))
     if (!this.isOnline(toId)) {
       this.queue(fromId, toId, update)
       return
@@ -84,12 +90,97 @@ class ManualNetwork {
 }
 
 const network = new ManualNetwork()
-let richMode = false
+let richMode = true
 let clientA = null
 let clientB = null
 let syncing = false
 let syncTimer = null
 let awarenessTimer = null
+/** Last non-collapsed selection for toolbar format actions. */
+let lastFormatSelection = null
+
+function deltaHasBold(delta) {
+  return JSON.stringify(delta ?? []).includes('"bold":true')
+}
+
+function hostDomHasBold(host) {
+  return Boolean(host?.querySelector('strong, b'))
+}
+
+function cacheFormatSelection(client, selection) {
+  if (!selection?.isSelection) return false
+  const match = findClientEntryForHost(selection.host)
+  if (!match || match.client !== client) return false
+  const selectionBefore = captureSelectionBeforeFormat(selection)
+  if (!selectionBefore) return false
+  lastFormatSelection = {
+    client,
+    host: selection.host,
+    selection,
+    selectionBefore
+  }
+  return true
+}
+
+function trackFormatSelection(client) {
+  client.editable.on('selection', (selection) => {
+    cacheFormatSelection(client, selection)
+  })
+}
+
+/** Caches the live selection before a toolbar click can clear it. */
+function cacheActiveFormatSelection() {
+  const active = getActiveFormatSelection()
+  if (!active) return
+  cacheFormatSelection(active.client, active.selection)
+}
+
+/** Ensures toggle-bold reached canonical Y.Text (operation pipeline + DOM fallback). */
+function ensureFormatOpInYText(client, host, op) {
+  const entry = findClientEntryForHost(host)?.entry
+  if (!entry) return
+
+  const yText = entry.binding?.yText ?? entry.body
+  if (!(yText instanceof Y.Text)) return
+
+  if (deltaHasBold(yText.toDelta())) return
+
+  const origin = entry.binding?.transactionOrigin
+
+  if (hostDomHasBold(host)) {
+    client.doc.transact(() => {
+      promoteHostInlineFormatsToYText(yText, host, document)
+    }, origin)
+    if (deltaHasBold(yText.toDelta())) return
+  }
+
+  entry.binding?.syncRichHostRunsToYText()
+  if (deltaHasBold(yText.toDelta())) return
+
+  if (!op) return
+  client.doc.transact(() => {
+    applyEditableOperationsToYText(yText, [op], {
+      richText: true,
+      doc: document
+    })
+    if (!deltaHasBold(yText.toDelta())) {
+      applyHostInlineMarkupToYText(yText, host, document)
+    }
+  }, origin)
+
+  if (!deltaHasBold(yText.toDelta())) {
+    entry.binding?.reconcile('format-fallback')
+  }
+}
+
+function resolveFormatAction(client, host, selectionBefore) {
+  let selection = client.editable.dispatcher.selectionWatcher.getFreshSelection()
+  if (!selection?.isSelection && selectionBefore) {
+    setSelectionFromSnapshot(host, selectionBefore)
+    selection = client.editable.dispatcher.selectionWatcher.getFreshSelection()
+  }
+  return selection?.isSelection ? selection : null
+}
 
 function createBlockHost(container, plain, clientId, options = {}) {
   const host = document.createElement('div')
@@ -113,6 +204,7 @@ function createClient(id, label, color, containerId, options = {}) {
   container.replaceChildren(blocksEl)
 
   const editable = new Editable({ defaultBehavior: true })
+  editable.on('operation', scheduleSync)
   const registryMap = new Map()
   const registry = {
     get: (key) => registryMap.get(key),
@@ -169,7 +261,6 @@ function createClient(id, label, color, containerId, options = {}) {
     registry.set(mountId, { host, binding, presence, body: bodyText })
     state.bindings.push(binding)
     state.presences.push(presence)
-    host.addEventListener('input', scheduleSync)
     return { binding, presence }
   }
 
@@ -188,6 +279,7 @@ function createClient(id, label, color, containerId, options = {}) {
   state.mountBlock = mountBlock
   state.adapter = adapter
   state.awareness = awareness
+  trackFormatSelection(state)
   return state
 }
 
@@ -210,6 +302,13 @@ function scheduleAwarenessSync() {
   }, 50)
 }
 
+function refreshRichDomFromY(client) {
+  if (!richMode || !client) return
+  for (const entry of client.registryMap.values()) {
+    entry.binding?.reconcile('post-sync')
+  }
+}
+
 function syncAll() {
   if (!clientA || !clientB || syncing) return
   syncing = true
@@ -220,6 +319,8 @@ function syncAll() {
     network.syncAwareness(clientB.awareness, clientA.awareness, 'b', 'a')
     reconcileBlockHosts(clientA)
     reconcileBlockHosts(clientB)
+    refreshRichDomFromY(clientA)
+    refreshRichDomFromY(clientB)
     updateStatus()
   } finally {
     syncing = false
@@ -236,7 +337,9 @@ function reconcileBlockHosts(client) {
       ids.push(id)
       if (!client.registry.get(id)) {
         const isPrimary = i === 0
-        const host = createBlockHost(client.blocksEl, !richMode, client.id, { primary: isPrimary })
+        const host = createBlockHost(client.blocksEl, !richMode, client.id, {
+          primary: isPrimary
+        })
         client.mountBlock(id, body, host, isPrimary)
         if (isPrimary) client.primaryBlockId = id
       }
@@ -266,10 +369,13 @@ function destroyClient(client) {
 }
 
 function bootClients() {
+  lastFormatSelection = null
   destroyClient(clientA)
   destroyClient(clientB)
   clientA = createClient('a', 'Ada', '#ef4444', 'blocks-a')
-  clientB = createClient('b', 'Grace', '#3b82f6', 'blocks-b', { skipInitialBlock: true })
+  clientB = createClient('b', 'Grace', '#3b82f6', 'blocks-b', {
+    skipInitialBlock: true
+  })
   Y.applyUpdate(clientB.doc, Y.encodeStateAsUpdate(clientA.doc))
   clientB.blocks = createExampleBlocksArray(clientB.doc)
   clientB.primaryBlockId = clientA.primaryBlockId
@@ -277,6 +383,28 @@ function bootClients() {
   clientA.awareness.on('update', scheduleAwarenessSync)
   clientB.awareness.on('update', scheduleAwarenessSync)
   syncAll()
+}
+
+function findClientEntryForHost(host) {
+  for (const client of [clientA, clientB]) {
+    if (!client) continue
+    for (const entry of client.registryMap.values()) {
+      if (entry.host === host) return { client, entry }
+    }
+  }
+  return null
+}
+
+/** Active non-collapsed selection in either client (global browser selection). */
+function getActiveFormatSelection() {
+  for (const client of [clientA, clientB]) {
+    if (!client) continue
+    const selection = client.editable.dispatcher.selectionWatcher.getFreshSelection()
+    if (!selection?.isSelection) continue
+    const match = findClientEntryForHost(selection.host)
+    if (match) return { ...match, selection }
+  }
+  return null
 }
 
 function getPrimary(client) {
@@ -294,24 +422,41 @@ function getPrimary(client) {
 }
 
 function getPrimaryYText(client) {
+  const primaryBody = getPrimary(client)?.body
+  if (primaryBody instanceof Y.Text) return primaryBody
   const map = client.blocks.get(0)
   const body = map?.get('body')
-  return body instanceof Y.Text ? body : getPrimary(client)?.body
+  return body instanceof Y.Text ? body : undefined
+}
+
+function updateToolbarState() {
+  const boldButton = document.querySelector('[data-action="bold"]')
+  if (boldButton) {
+    boldButton.disabled = !richMode
+    boldButton.title = richMode
+      ? 'Toggle bold on the current selection (A or B)'
+      : 'Switch to Rich text mode first'
+  }
 }
 
 function updateStatus() {
   if (!clientA || !clientB || !statusEl) return
+  updateToolbarState()
   const bodyA = getPrimaryYText(clientA)
   const bodyB = getPrimaryYText(clientB)
   const yA = bodyA?.toString() ?? ''
   const yB = bodyB?.toString() ?? ''
-  const deltaMatch =
-    JSON.stringify(bodyA?.toDelta() ?? []) === JSON.stringify(bodyB?.toDelta() ?? [])
+  const deltaA = bodyA?.toDelta() ?? []
+  const deltaB = bodyB?.toDelta() ?? []
+  const deltaMatch = JSON.stringify(deltaA) === JSON.stringify(deltaB)
+  const hasBold = (delta) => JSON.stringify(delta).includes('"bold":true')
   statusEl.textContent = [
     `mode: ${richMode ? 'rich' : 'plain'}`,
     `A online: ${network.isOnline('a')}  B online: ${network.isOnline('b')}`,
     `A canUndo: ${getPrimary(clientA)?.binding?.canUndo?.() ?? false}  canRedo: ${getPrimary(clientA)?.binding?.canRedo?.() ?? false}`,
     `Y.Text equal: ${yA === yB}  delta equal: ${deltaMatch}`,
+    `A bold in Y: ${hasBold(deltaA)}  B bold in Y: ${hasBold(deltaB)}`,
+    `A dom bold: ${hostDomHasBold(getPrimary(clientA)?.host)}  B dom bold: ${hostDomHasBold(getPrimary(clientB)?.host)}`,
     `A blocks: ${clientA.blocks.length}  B blocks: ${clientB.blocks.length}`,
     `A text: ${JSON.stringify(yA)}`,
     `B text: ${JSON.stringify(yB)}`
@@ -331,7 +476,9 @@ function splitPrimaryBlock(client) {
     cursor,
     'api'
   )
-  dispatchEditableCommand(client.editable.dispatcher.notify, command, { cursor })
+  dispatchEditableCommand(client.editable.dispatcher.notify, command, {
+    cursor
+  })
   syncAll()
 }
 
@@ -357,6 +504,12 @@ function remountClientA() {
 }
 
 document.querySelectorAll('[data-action]').forEach((button) => {
+  button.addEventListener('mousedown', (event) => {
+    if (button.getAttribute('data-action') !== 'bold') return
+    // Keep the host selection alive across the click and snapshot it while it still exists.
+    event.preventDefault()
+    cacheActiveFormatSelection()
+  })
   button.addEventListener('click', () => {
     const action = button.getAttribute('data-action')
     if (action === 'mode-plain') {
@@ -386,21 +539,42 @@ document.querySelectorAll('[data-action]').forEach((button) => {
       getPrimary(clientA)?.binding?.redo()
       syncAll()
     } else if (action === 'bold') {
-      const entry = getPrimary(clientA)
-      if (!entry?.host) return
-      const selection = clientA.editable.dispatcher.selectionWatcher.getFreshSelection()
-      if (!selection?.isSelection) return
-      const selectionBefore = captureSelectionBeforeFormat(selection)
+      if (!richMode) return
+
+      let client
+      let host
+      let selectionBefore
+      const cached = lastFormatSelection
+      if (cached?.selectionBefore) {
+        client = cached.client
+        host = cached.host
+        selectionBefore = cached.selectionBefore
+      } else {
+        const active = getActiveFormatSelection()
+        if (!active) return
+        client = active.client
+        host = active.selection.host
+        selectionBefore = captureSelectionBeforeFormat(active.selection)
+      }
       if (!selectionBefore) return
-      const op = buildToggleFormatOperation(entry.host, selectionBefore, 'bold')
+
+      const op = buildToggleFormatOperation(host, selectionBefore, 'bold')
+      if (!op) return
+
+      const selection = resolveFormatAction(client, host, selectionBefore)
+      if (!selection) return
+
       selection.toggleBold()
-      if (op) {
-        clientA.editable.dispatcher.operationCapture.commitFormatMutation(
-          clientA.editable.dispatcher.notify,
-          entry.host,
-          clientA.editable.dispatcher.selectionWatcher,
-          { operations: [op], selectionBefore }
-        )
+      client.editable.dispatcher.operationCapture.commitFormatMutation(
+        client.editable.dispatcher.notify,
+        host,
+        client.editable.dispatcher.selectionWatcher,
+        { operations: [op], selectionBefore }
+      )
+      ensureFormatOpInYText(client, host, op)
+      if (syncTimer !== null) {
+        clearTimeout(syncTimer)
+        syncTimer = null
       }
       syncAll()
     } else if (action === 'split') {

@@ -348,6 +348,71 @@ describe('Yjs plain-text sync', function () {
     binding.destroy()
     peer.editable.unload()
   })
+
+  it('recovers instead of throwing when a remote update lands on a drifted host', function () {
+    const a = createPeer('drift-remote')
+    const b = createPeer('drift-remote')
+    const bindingA = new EditableYjsBinding({
+      editable: a.editable,
+      host: a.host,
+      yText: a.yText,
+      initialSync: defaultInitialSyncPolicy
+    })
+    const bindingB = new EditableYjsBinding({
+      editable: b.editable,
+      host: b.host,
+      yText: b.yText,
+      initialSync: defaultInitialSyncPolicy
+    })
+
+    simulateInsertText(a.host, a.editable, 'das i')
+    syncDocToTarget(a.doc, b.doc)
+
+    // Host B drifts without a committed batch (mid-input DOM state, sync race).
+    b.host.textContent = 'dsa i'
+
+    simulateInsertText(a.host, a.editable, 'st')
+    expect(() => syncDocToTarget(a.doc, b.doc)).not.toThrow()
+
+    expect(b.yText.toString()).toBe('das ist')
+    expect(getBlockOperationText(b.host)).toBe('das ist')
+
+    bindingA.destroy()
+    bindingB.destroy()
+    a.editable.unload()
+    b.editable.unload()
+  })
+
+  it('converges through bidirectional syncs while typing', function () {
+    const a = createPeer('typing')
+    const b = createPeer('typing')
+    const bindingA = new EditableYjsBinding({
+      editable: a.editable,
+      host: a.host,
+      yText: a.yText,
+      initialSync: defaultInitialSyncPolicy
+    })
+    const bindingB = new EditableYjsBinding({
+      editable: b.editable,
+      host: b.host,
+      yText: b.yText,
+      initialSync: defaultInitialSyncPolicy
+    })
+
+    for (const chunk of ['das ', 'ist ', 'ein ', 'bold ', 'Text.']) {
+      simulateInsertText(a.host, a.editable, chunk)
+      expect(() => mergeDocs(a.doc, b.doc)).not.toThrow()
+    }
+
+    expect(a.yText.toString()).toBe('das ist ein bold Text.')
+    expect(b.yText.toString()).toBe('das ist ein bold Text.')
+    expect(getBlockOperationText(b.host)).toBe('das ist ein bold Text.')
+
+    bindingA.destroy()
+    bindingB.destroy()
+    a.editable.unload()
+    b.editable.unload()
+  })
 })
 
 describe('Yjs seeded convergence', function () {

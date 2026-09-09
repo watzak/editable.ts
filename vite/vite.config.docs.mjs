@@ -38,11 +38,15 @@ export default defineConfig({
     extensionAlias: {
       '.js': ['.ts', '.js']
     },
-    alias: {
-      react: 'preact/compat',
-      'react-dom': 'preact/compat',
-      'react/jsx-runtime': 'preact/jsx-runtime'
-    }
+    alias: [
+      {
+        find: /^\.\.\/lib\/(.+)\.js$/,
+        replacement: resolve(__dirname, '../src/$1.ts')
+      },
+      { find: 'react', replacement: 'preact/compat' },
+      { find: 'react-dom', replacement: 'preact/compat' },
+      { find: 'react/jsx-runtime', replacement: 'preact/jsx-runtime' }
+    ]
   },
   server: {
     port: 9050,

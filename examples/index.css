@@ -178,6 +178,13 @@ section {
 
 .code-example pre {
   border: 1px solid #eee;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.code-example pre code {
+  white-space: pre;
+  display: block;
 }
 
 .code-example h3 {

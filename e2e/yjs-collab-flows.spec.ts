@@ -125,6 +125,50 @@ test.describe('Yjs collab RC demo', () => {
     await expect(hostAfter).toContainText('persist')
   })
 
+  test('syncs bold formatting in rich mode', async ({ page }) => {
+    await page.click('[data-action="mode-rich"]')
+    await page.waitForFunction(() => {
+      const status = document.querySelector('[data-testid="collab-status"]')?.textContent ?? ''
+      return status.includes('mode: rich')
+    })
+
+    const hostA = page.locator('[data-test-primary-host="a"]')
+    const hostB = page.locator('[data-test-primary-host="b"]')
+
+    await hostA.click()
+    await hostA.pressSequentially('hello world', { delay: 20 })
+    await waitForSharedYText(page, 'hello world')
+
+    await hostA.click()
+    await hostA.press('Home')
+
+    // Focusing an empty block appends a U+FEFF placeholder so it renders with a height.
+    // It is stripped from the operation text model but still occupies one caret position,
+    // so skip it before selecting, otherwise the selection ends one character short.
+    const hasPlaceholder = await page.evaluate(() =>
+      Boolean(
+        document.querySelector('[data-test-primary-host="a"]')?.textContent?.startsWith('\uFEFF')
+      )
+    )
+    if (hasPlaceholder) await hostA.press('ArrowRight')
+
+    for (let i = 0; i < 5; i += 1) await hostA.press('Shift+ArrowRight')
+    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe('hello')
+
+    await page.click('[data-action="bold"]')
+
+    await page.waitForFunction(() => {
+      const api = window.__yjsCollabE2E
+      if (!api) return false
+      const delta = api.getPrimaryYText(api.clientB())?.toDelta() ?? []
+      return JSON.stringify(delta).includes('"bold":true')
+    })
+
+    await expect(hostB.locator('strong')).toHaveText('hello')
+    const status = await page.locator('[data-testid="collab-status"]').textContent()
+    expect(status).toContain('delta equal: true')
+  })
+
   test('shows remote presence overlay after selection sync', async ({ page }) => {
     const hostA = page.locator('[data-test-primary-host="a"]')
     await hostA.click()

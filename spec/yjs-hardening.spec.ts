@@ -7,7 +7,8 @@ import { Awareness } from 'y-protocols/awareness'
 import {
   createPlainHost,
   defaultInitialSyncPolicy,
-  simulateInsertText
+  simulateInsertText,
+  syncDocToTarget
 } from './helpers/yjs-sync-harness.js'
 
 describe('Yjs hardening', function () {
@@ -127,6 +128,49 @@ describe('Yjs hardening', function () {
     presence.destroy()
     editable.unload()
     iframe.remove()
+  })
+
+  it('reconciles host/Y drift on remote update instead of throwing (e.g. trailing space)', function () {
+    const docA = new Y.Doc()
+    const docB = new Y.Doc()
+    const yTextA = docA.getText('demo')
+    const yTextB = docB.getText('demo')
+
+    const hostA = createPlainHost()
+    const hostB = createPlainHost()
+    const editableA = new Editable({ defaultBehavior: false })
+    const editableB = new Editable({ defaultBehavior: false })
+    editableA.add(hostA)
+    editableB.add(hostB)
+
+    const bindingA = new EditableYjsBinding({
+      editable: editableA,
+      host: hostA,
+      yText: yTextA,
+      initialSync: defaultInitialSyncPolicy
+    })
+    const bindingB = new EditableYjsBinding({
+      editable: editableB,
+      host: hostB,
+      yText: yTextB,
+      initialSync: defaultInitialSyncPolicy
+    })
+
+    simulateInsertText(hostA, editableA, 'ztu tut')
+    syncDocToTarget(docA, docB)
+
+    docA.transact(() => {
+      yTextA.insert(yTextA.length, ' ')
+    }, 'remote-peer')
+
+    expect(() => syncDocToTarget(docA, docB)).not.toThrow()
+    expect(getBlockOperationText(hostB)).toBe('ztu tut ')
+    expect(yTextB.toString()).toBe('ztu tut ')
+
+    bindingA.destroy()
+    bindingB.destroy()
+    editableA.unload()
+    editableB.unload()
   })
 
   it('reports undo status without leaking listeners after destroy', function () {

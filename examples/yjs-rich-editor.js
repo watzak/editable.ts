@@ -15,7 +15,7 @@ const policy = {
 
 const docA = new Y.Doc()
 const docB = new Y.Doc()
-const yText = docA.getText('demo')
+const yTextA = docA.getText('demo')
 docB.getText('demo')
 
 const hostA = document.querySelector('#editor-a')
@@ -29,7 +29,7 @@ editableB.add(hostB)
 const bindingA = new EditableYjsBinding({
   editable: editableA,
   host: hostA,
-  yText,
+  yText: yTextA,
   initialSync: policy
 })
 
@@ -40,30 +40,47 @@ const bindingB = new EditableYjsBinding({
   initialSync: policy
 })
 
+let lastPeer = { editable: editableA, host: hostA, binding: bindingA }
+let syncing = false
+let docSyncTimer = null
+
 function sync(from, to) {
   Y.applyUpdate(to, Y.encodeStateAsUpdate(from))
 }
 
 function syncBoth() {
-  sync(docA, docB)
-  sync(docB, docA)
+  if (syncing) return
+  syncing = true
+  try {
+    sync(docA, docB)
+    sync(docB, docA)
+  } finally {
+    syncing = false
+  }
 }
 
-hostA.addEventListener('input', syncBoth)
-hostB.addEventListener('input', syncBoth)
-
-function activeEditable() {
-  return document.activeElement === hostA ? editableA : editableB
+function scheduleDocSync() {
+  if (docSyncTimer !== null) clearTimeout(docSyncTimer)
+  docSyncTimer = setTimeout(() => {
+    docSyncTimer = null
+    syncBoth()
+  }, 80)
 }
 
-function activeHost() {
-  return document.activeElement === hostA ? hostA : hostB
+function trackPeer(editable, host, binding) {
+  lastPeer = { editable, host, binding }
 }
+
+hostA.addEventListener('focusin', () => trackPeer(editableA, hostA, bindingA))
+hostB.addEventListener('focusin', () => trackPeer(editableB, hostB, bindingB))
+
+editableA.on('operation', scheduleDocSync)
+editableB.on('operation', scheduleDocSync)
 
 document.querySelectorAll('[data-cmd]').forEach((button) => {
+  button.addEventListener('mousedown', (event) => event.preventDefault())
   button.addEventListener('click', () => {
-    const editable = activeEditable()
-    const host = activeHost()
+    const { editable, host } = lastPeer
     const selection = editable.dispatcher.selectionWatcher.getFreshSelection()
     if (!selection?.isSelection) return
 
@@ -119,11 +136,24 @@ document.querySelectorAll('[data-cmd]').forEach((button) => {
       )
     }
 
-    syncBoth()
+    scheduleDocSync()
   })
 })
 
+window.__yjsRichE2E = {
+  docA,
+  docB,
+  bindingA,
+  bindingB,
+  syncBoth,
+  scheduleDocSync,
+  getYTextA: () => yTextA.toString(),
+  getYTextB: () => docB.getText('demo').toString(),
+  getYDeltaJson: () => JSON.stringify(yTextA.toDelta())
+}
+
 window.addEventListener('beforeunload', () => {
+  if (docSyncTimer !== null) clearTimeout(docSyncTimer)
   bindingA.destroy()
   bindingB.destroy()
   editableA.unload()

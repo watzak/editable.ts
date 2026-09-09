@@ -166,13 +166,93 @@ Behavior:
 
 See `examples/yjs-presence-editor.html` for a two-client demo with manual doc + awareness sync.
 
+## Undo / redo (optional)
+
+`EditableYjsBinding` can integrate `Y.UndoManager` scoped to **one** `Y.Text` and **one** binding transaction origin:
+
+```typescript
+const binding = new EditableYjsBinding({
+  editable,
+  host,
+  yText,
+  initialSync: policy,
+  undo: {
+    captureTimeout: 500,
+    onStatusChange: ({ canUndo, canRedo }) => {
+      /* … */
+    }
+    // undoManager: externalManager // optional — never destroyed by binding
+  }
+})
+
+binding.undo()
+binding.redo()
+binding.canUndo()
+binding.canRedo()
+binding.stopUndoCapturing() // paste/format/structure boundaries
+```
+
+Behavior:
+
+- Only transactions with this binding's origin enter the local undo stack — remote CRDT edits are excluded
+- Continuous typing merges within `captureTimeout`; paste, composition, format (`setTextAttributes`), and `api` batches start new stack items
+- Selection before each captured edit is stored as `Y.RelativePosition` metadata (`editable.ts:undo:selection:v1`) and restored after undo/redo when still valid
+- Native `historyUndo` / `historyRedo` is intercepted while undo is enabled — no competing browser undo stack
+- Initial sync uses a non-tracked origin; the stack is cleared after construction
+- Externally supplied `undoManager` instances are left intact on `destroy()`; internally created managers are destroyed
+
+## Structural adapter hooks (optional)
+
+The text binding does **not** impose a document block schema. Optional hooks confirm or reject structure intents inside a `Y.Doc` transaction:
+
+```typescript
+const binding = new EditableYjsBinding({
+  editable,
+  host,
+  yText,
+  initialSync: policy,
+  structuralAdapter: {
+    splitBlock(ctx, intent) {
+      // mutate Y.Array / Y.Map / nested Y.Text — or reject
+      return { status: 'accepted', focusHost, selection: { anchor: 0, head: 0, direction: 'none' } }
+    },
+    mergeBlock(ctx, intent) {
+      /* … */ return { status: 'accepted', focusHost, selection }
+    },
+    insertBlock(ctx, intent) {
+      /* … */ return { status: 'defer' }
+    }, // fall back to default DOM
+    pasteBlocks(ctx, intent) {
+      /* … */ return { status: 'rejected', reason: '…' }
+    }
+  }
+})
+```
+
+When a hook returns `accepted`, default DOM split/merge/insert/paste is cancelled; the adapter owns CRDT + DOM updates, focus, and selection. Returning `defer` keeps editable.ts default behavior. Returning `rejected` cancels the gesture entirely.
+
+Helpers `splitYTextDeltaAt`, `moveYTextTailToTarget`, and `mergeYTextIntoTarget` preserve inline format attributes across splits/merges without HTML snapshots.
+
+**Example only (not a required schema):** `examples/yjs-array-structural-adapter.ts` — `Y.Array<Y.Map>` of `{ id, body: Y.Text }` blocks.
+
+### Binding vs host document model
+
+| Layer                   | Responsibility                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| `EditableYjsBinding`    | One block host ↔ one `Y.Text`; text operations; optional undo + structure hooks |
+| Host / `Editable`       | DOM blocks, commands (`splitBlock`, …), default behavior                        |
+| Your structural adapter | Maps commands to **your** CRDT block tree; registers additional bindings        |
+
+The binding never requires a global block model — only the optional adapter interprets structure.
+
 ## Bundle size
 
 | Artifact                           | Raw    | Brotli (approx.) |
 | ---------------------------------- | ------ | ---------------- |
-| `lib/yjs/editable-yjs-binding.js`  | ~12 kB | ~2.5 kB          |
+| `lib/yjs/editable-yjs-binding.js`  | ~14 kB | ~3.5 kB          |
+| `lib/yjs/binding-undo.js`          | ~4 kB  | ~1.5 kB          |
 | `lib/yjs/editable-yjs-presence.js` | ~8 kB  | ~3 kB            |
-| `lib/yjs/` total                   | ~43 kB | —                |
+| `lib/yjs/` total                   | ~55 kB | —                |
 
 Core and UMD builds must not reference Yjs — enforced by `validate:core-bundle`.
 

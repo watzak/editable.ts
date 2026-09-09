@@ -1,8 +1,40 @@
 export { EditableYjsBinding } from './editable-yjs-binding.js'
 export type { EditableYjsBindingOptions } from './editable-yjs-binding.js'
 export { applyEditableOperationsToYText } from './apply-operations-to-ytext.js'
-export { createBindingTransactionOrigin, isBindingTransactionOrigin } from './binding-origin.js'
-export type { BindingTransactionOrigin } from './binding-origin.js'
+export {
+  createBindingTransactionOrigin,
+  INITIAL_SYNC_ORIGIN,
+  isBindingTransactionOrigin,
+  isInitialSyncOrigin
+} from './binding-origin.js'
+export type { BindingTransactionOrigin, InitialSyncTransactionOrigin } from './binding-origin.js'
+export {
+  resolveBindingUndoOptions,
+  shouldStopCapturing,
+  UNDO_SELECTION_META_KEY,
+  YjsBindingUndoController
+} from './binding-undo.js'
+export type { BindingUndoOptions, YjsBindingUndoStatus } from './binding-undo.js'
+export type {
+  EditableYjsStructuralAdapter,
+  StructuralAcceptedResult,
+  StructuralBlockContext,
+  StructuralDeferResult,
+  StructuralInsertBlockIntent,
+  StructuralIntentResult,
+  StructuralIntentStatus,
+  StructuralMergeIntent,
+  StructuralPasteIntent,
+  StructuralRejectedResult,
+  StructuralSplitIntent
+} from './structural-adapter.js'
+export {
+  applyDeltaSegments,
+  mergeYTextIntoTarget,
+  moveYTextTailToTarget,
+  splitYTextDeltaAt
+} from './structural-ytext.js'
+export type { YTextDeltaSegment } from './structural-ytext.js'
 export {
   classifyInitialSync,
   InitialSyncConflictError,

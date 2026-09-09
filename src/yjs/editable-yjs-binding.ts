@@ -8,9 +8,16 @@ import { getOperationTextLength } from '../operation-offset.js'
 import { applyEditableOperationsToYText } from './apply-operations-to-ytext.js'
 import {
   createBindingTransactionOrigin,
+  INITIAL_SYNC_ORIGIN,
   isBindingTransactionOrigin,
   type BindingTransactionOrigin
 } from './binding-origin.js'
+import {
+  resolveBindingUndoOptions,
+  YjsBindingUndoController,
+  type BindingUndoOptions,
+  type YjsBindingUndoStatus
+} from './binding-undo.js'
 import {
   classifyInitialSync,
   InitialSyncConflictError,
@@ -20,6 +27,8 @@ import { insertHostRunsIntoYText } from './dom-to-ytext.js'
 import { defaultInlineFormatRegistry } from './inline-format-codec.js'
 import { PlainTextYjsError } from './plain-text-yjs-error.js'
 import { reconcileHostToCanonicalYText, type ReconcileDiagnostics } from './reconcile.js'
+import { YjsStructuralBridge } from './structural-bridge.js'
+import type { EditableYjsStructuralAdapter } from './structural-adapter.js'
 import { yTextDeltaToOperations } from './ytext-delta-to-operations.js'
 import { captureSelectionSnapshot } from '../operation-selection.js'
 import type { EditableOperation, EditableOperationBatch } from '../operation-types.js'
@@ -29,6 +38,10 @@ export interface EditableYjsBindingOptions {
   host: HTMLElement
   yText: Y.Text
   initialSync: InitialSyncPolicy
+  /** Enables {@link Y.UndoManager} integration scoped to this binding origin. */
+  undo?: boolean | BindingUndoOptions
+  /** Optional block-structure hooks — no global schema is imposed. */
+  structuralAdapter?: EditableYjsStructuralAdapter
 }
 
 type OperationHandler = (host: HTMLElement, batch: EditableOperationBatch) => void
@@ -55,6 +68,8 @@ export class EditableYjsBinding {
   private canonicalYText = ''
   private readonly operationHandler: OperationHandler
   private readonly yTextObserver: YTextObserver
+  private readonly undoController: YjsBindingUndoController | null
+  private readonly structuralBridge: YjsStructuralBridge | null
 
   constructor(options: EditableYjsBindingOptions) {
     validateBindingOptions(options)
@@ -65,6 +80,21 @@ export class EditableYjsBinding {
     this.transactionOrigin = createBindingTransactionOrigin()
     this.richText = !isPlainTextBlock(options.host)
 
+    const undoOptions = resolveBindingUndoOptions(options.undo)
+    this.undoController = undoOptions
+      ? new YjsBindingUndoController({
+          editable: this.editable,
+          host: this.host,
+          yText: this.yText,
+          transactionOrigin: this.transactionOrigin,
+          undo: undoOptions
+        })
+      : null
+
+    this.structuralBridge = options.structuralAdapter
+      ? new YjsStructuralBridge(this, options.structuralAdapter)
+      : null
+
     this.operationHandler = (host, batch) => {
       this.handleLocalOperationBatch(host, batch)
     }
@@ -74,8 +104,41 @@ export class EditableYjsBinding {
 
     runInitialSync(this, options.initialSync)
     this.canonicalYText = this.yText.toString()
+    this.undoController?.clearStack()
     this.attachSyncListeners()
     this.syncEditableConfirmedState()
+  }
+
+  /** External {@link Y.UndoManager} when configured; otherwise the internal instance. */
+  get undoManager(): Y.UndoManager | null {
+    return this.undoController?.undoManager ?? null
+  }
+
+  canUndo(): boolean {
+    return this.undoController?.canUndo() ?? false
+  }
+
+  canRedo(): boolean {
+    return this.undoController?.canRedo() ?? false
+  }
+
+  undo(): boolean {
+    if (!this.undoController?.undo()) return false
+    this.canonicalYText = this.yText.toString()
+    this.syncEditableConfirmedState()
+    return true
+  }
+
+  redo(): boolean {
+    if (!this.undoController?.redo()) return false
+    this.canonicalYText = this.yText.toString()
+    this.syncEditableConfirmedState()
+    return true
+  }
+
+  /** Forces the next local edit to become a separate undo stack item. */
+  stopUndoCapturing(): void {
+    this.undoController?.stopCapturing()
   }
 
   /** Releases listeners and references. Idempotent. */
@@ -84,6 +147,8 @@ export class EditableYjsBinding {
     this.destroyed = true
     this.editable.off('operation', this.operationHandler)
     this.yText.unobserve(this.yTextObserver)
+    this.structuralBridge?.destroy()
+    this.undoController?.destroy()
   }
 
   get isDestroyed(): boolean {
@@ -137,6 +202,8 @@ export class EditableYjsBinding {
     if (!doc) {
       throw new PlainTextYjsError('EditableYjsBinding: Y.Text must belong to a Y.Doc')
     }
+
+    this.undoController?.prepareTransaction(batch)
 
     doc.transact(() => {
       applyEditableOperationsToYText(this.yText, batch.operations, this.yjsApplyOptions())
@@ -205,6 +272,8 @@ export class EditableYjsBinding {
     this.canonicalYText = target
   }
 }
+
+export type { BindingUndoOptions, YjsBindingUndoStatus }
 
 function validateBindingOptions(options: EditableYjsBindingOptions): void {
   const { editable, host, yText, initialSync } = options
@@ -312,7 +381,7 @@ function copyHostToY(binding: EditableYjsBinding, hostText: string): void {
         binding.yText.insert(0, hostText)
       }
     }
-  }, binding.transactionOrigin)
+  }, INITIAL_SYNC_ORIGIN)
 }
 
 function copyYToHost(binding: EditableYjsBinding, text: string): void {

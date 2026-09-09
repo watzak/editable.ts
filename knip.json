@@ -14,6 +14,7 @@
     "examples/styles-entry.js",
     "examples/yjs-rich-editor.js",
     "examples/yjs-presence-editor.js",
+    "examples/yjs-array-structural-adapter.ts",
     "scripts/**/*.mjs",
     "vite/**/*.{js,mjs}",
     "vitest.config.js",

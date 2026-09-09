@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.2.1](https://github.com/watzak/editable.ts/compare/v1.2.0...v1.2.1) (2026-09-09)
+
+
+### Bug Fixes
+
+* tree shaking ([ec9a31f](https://github.com/watzak/editable.ts/commit/ec9a31f1a32882c6cc0e6765fcf65f7c5750bcf6))
+
 ## [1.2.0](https://github.com/watzak/editable.ts/compare/v1.1.2...v1.2.0) (2026-09-09)
 
 ### Features

@@ -4,10 +4,9 @@ All notable changes to this project will be documented in this file. See [commit
 
 ## [1.2.1](https://github.com/watzak/editable.ts/compare/v1.2.0...v1.2.1) (2026-09-09)
 
-
 ### Bug Fixes
 
-* tree shaking ([ec9a31f](https://github.com/watzak/editable.ts/commit/ec9a31f1a32882c6cc0e6765fcf65f7c5750bcf6))
+- tree shaking ([ec9a31f](https://github.com/watzak/editable.ts/commit/ec9a31f1a32882c6cc0e6765fcf65f7c5750bcf6))
 
 ## [1.2.0](https://github.com/watzak/editable.ts/compare/v1.1.2...v1.2.0) (2026-09-09)
 
@@ -113,7 +112,9 @@ First stable release. The public API is considered stable; future 1.x releases w
 
 See [git history](https://github.com/watzak/editable.ts/commits/main) for changes prior to 0.0.8.
 
-[Unreleased]: https://github.com/watzak/editable.ts/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/watzak/editable.ts/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/watzak/editable.ts/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/watzak/editable.ts/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/watzak/editable.ts/releases/tag/v1.1.2
 [1.1.1]: https://github.com/watzak/editable.ts/releases/tag/v1.1.1
 [1.1.0]: https://github.com/watzak/editable.ts/releases/tag/v1.1.0

@@ -77,11 +77,19 @@ export function setSelectionFromSnapshot(host: HTMLElement, snapshot: SelectionS
   const win = doc?.defaultView
   if (!doc || !win) return
 
-  const anchorRange = createOperationRange(host, snapshot.anchor, snapshot.anchor)
-  const headRange = createOperationRange(host, snapshot.head, snapshot.head)
+  const start = Math.min(snapshot.anchor, snapshot.head)
+  const end = Math.max(snapshot.anchor, snapshot.head)
+  const startRange = createOperationRange(host, start, start)
   const range = doc.createRange()
-  range.setStart(anchorRange.startContainer, anchorRange.startOffset)
-  range.setEnd(headRange.startContainer, headRange.startOffset)
+
+  if (start === end) {
+    range.setStart(startRange.startContainer, startRange.startOffset)
+    range.collapse(true)
+  } else {
+    const endRange = createOperationRange(host, end, end)
+    range.setStart(startRange.startContainer, startRange.startOffset)
+    range.setEnd(endRange.endContainer, endRange.endOffset)
+  }
 
   const selection = win.getSelection()
   if (!selection) return

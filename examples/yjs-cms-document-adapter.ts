@@ -36,6 +36,18 @@ export interface CmsComponentRecord {
 }
 
 const TEXT_DIRECTIVE_KEYS = ['body', 'title', 'lead'] as const
+
+function directiveKeysForComponentType(type: CmsComponentType): readonly string[] {
+  switch (type) {
+    case 'paragraph':
+    case 'heading':
+      return ['body']
+    case 'quote':
+      return ['title', 'body']
+    case 'two-column':
+      return []
+  }
+}
 const CMS_COMPONENT_TYPES = new Set<CmsComponentType>([
   'paragraph',
   'heading',
@@ -301,7 +313,7 @@ function walkComponents(
 
     const contentMap = map.get('content')
     if (contentMap instanceof Y.Map) {
-      for (const key of TEXT_DIRECTIVE_KEYS) {
+      for (const key of directiveKeysForComponentType(type as CmsComponentType)) {
         const value = contentMap.get(key)
         if (value instanceof Y.Text) {
           refs.push({
@@ -375,6 +387,81 @@ export function findCmsDirectiveRef(
 export interface CmsDocumentAdapterOptions {
   mountContainer: HTMLElement
   createHost?: () => HTMLElement
+  /** Test/diagnostic hook — invoked once per destroyed component view. */
+  onDestroyComponentView?: (view: DocumentComponentView) => void
+}
+
+function ensureCmsContentForType(
+  type: CmsComponentType,
+  contentMap: Y.Map<unknown>,
+  propertiesMap: Y.Map<unknown>,
+  containersMap: Y.Map<unknown>
+): void {
+  switch (type) {
+    case 'paragraph':
+    case 'heading': {
+      if (!(contentMap.get('body') instanceof Y.Text)) {
+        contentMap.set('body', new Y.Text())
+      }
+      if (type === 'heading' && !propertiesMap.has('level')) {
+        propertiesMap.set('level', 2)
+      }
+      break
+    }
+    case 'quote': {
+      if (!(contentMap.get('title') instanceof Y.Text)) {
+        contentMap.set('title', new Y.Text())
+      }
+      if (!(contentMap.get('body') instanceof Y.Text)) {
+        contentMap.set('body', new Y.Text())
+      }
+      break
+    }
+    case 'two-column': {
+      if (!(containersMap.get('left') instanceof Y.Array)) {
+        containersMap.set('left', new Y.Array<Y.Map<unknown>>())
+      }
+      if (!(containersMap.get('right') instanceof Y.Array)) {
+        containersMap.set('right', new Y.Array<Y.Map<unknown>>())
+      }
+      break
+    }
+  }
+}
+
+export function changeCmsComponentType(
+  root: Y.Array<Y.Map<unknown>>,
+  componentId: string,
+  newType: CmsComponentType,
+  origin?: unknown
+): boolean {
+  let record: CmsComponentRecord | null = null
+  walkComponents(root, undefined, undefined, undefined, (candidate) => {
+    if (candidate.id === componentId) record = candidate
+  })
+  if (!record) return false
+  const doc = root.doc
+  if (!doc) return false
+
+  doc.transact(() => {
+    record!.map.set('type', newType)
+    const contentMap = record!.map.get('content')
+    const propertiesMap = record!.map.get('properties')
+    const containersMap = record!.map.get('containers')
+    if (
+      contentMap instanceof Y.Map &&
+      propertiesMap instanceof Y.Map &&
+      containersMap instanceof Y.Map
+    ) {
+      ensureCmsContentForType(newType, contentMap, propertiesMap, containersMap)
+      for (const key of TEXT_DIRECTIVE_KEYS) {
+        if (!directiveKeysForComponentType(newType).includes(key)) {
+          contentMap.delete(key)
+        }
+      }
+    }
+  }, origin)
+  return true
 }
 
 export function createCmsDocumentAdapter(
@@ -675,6 +762,7 @@ export function createCmsDocumentAdapter(
 
     destroyComponentView(view) {
       containerMounts.delete(view.componentId)
+      options.onDestroyComponentView?.(view)
     },
 
     createStructuralAdapter(runtime) {

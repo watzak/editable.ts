@@ -1,14 +1,14 @@
+import { getBlockTextRuns, type TextRun } from './dom-text-runs.js'
 import { createOperationRange } from './operation-offset.js'
 import { transformSelectionThroughBatch } from './operation-selection-transform.js'
 import { validateOperationBatch, OperationValidationError } from './operation-validate.js'
 import { setSelectionFromSnapshot } from './operation-selection.js'
 import { OPERATION_LINE_BREAK } from './operation-types.js'
 import { getHostFormatRegistry } from './host-policy.js'
-import type { InlineFormatCodec } from './inline-format-codec.js'
+import type { InlineFormatRegistry } from './inline-format-codec.js'
 import type {
   EditableOperation,
   EditableOperationBatch,
-  JsonValue,
   TextAttributes
 } from './operation-types.js'
 import type { SelectionSnapshot } from './operation-types.js'
@@ -46,41 +46,115 @@ function textToInsertFragment(
   return fragment
 }
 
-function applyFormatViaCodec(
+function textAttributesEqual(a: TextAttributes, b: TextAttributes): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)])
+  for (const key of keys) {
+    if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) return false
+  }
+  return true
+}
+
+function coalesceTextRuns(runs: TextRun[]): TextRun[] {
+  const merged: TextRun[] = []
+  for (const run of runs) {
+    if (!run.text) continue
+    const last = merged[merged.length - 1]
+    if (last && textAttributesEqual(last.attributes, run.attributes)) {
+      last.text += run.text
+    } else {
+      merged.push({ text: run.text, attributes: { ...run.attributes } })
+    }
+  }
+  return merged
+}
+
+/** Applies attribute updates only on `[start, end)` while preserving text order and other formats. */
+function applyAttributesToRunSpan(
+  runs: readonly TextRun[],
+  start: number,
+  end: number,
+  attributes: TextAttributes,
+  registry: InlineFormatRegistry
+): TextRun[] {
+  let offset = 0
+  const next: TextRun[] = []
+
+  for (const run of runs) {
+    const runStart = offset
+    const runEnd = offset + run.text.length
+    offset = runEnd
+
+    if (runEnd <= start || runStart >= end) {
+      next.push({ text: run.text, attributes: { ...run.attributes } })
+      continue
+    }
+
+    const overlapStart = Math.max(runStart, start)
+    const overlapEnd = Math.min(runEnd, end)
+    const sliceStart = overlapStart - runStart
+    const sliceEnd = overlapEnd - runStart
+
+    if (runStart < overlapStart) {
+      next.push({
+        text: run.text.slice(0, sliceStart),
+        attributes: { ...run.attributes }
+      })
+    }
+
+    let updatedAttributes = { ...run.attributes }
+    for (const [key, value] of Object.entries(attributes)) {
+      if (!registry.getCodec(key)) continue
+      updatedAttributes = registry.mergeAttributeUpdates(updatedAttributes, { [key]: value })
+    }
+    next.push({
+      text: run.text.slice(sliceStart, sliceEnd),
+      attributes: updatedAttributes
+    })
+
+    if (runEnd > overlapEnd) {
+      next.push({
+        text: run.text.slice(sliceEnd),
+        attributes: { ...run.attributes }
+      })
+    }
+  }
+
+  return coalesceTextRuns(next)
+}
+
+function clearHostChildren(host: HTMLElement): void {
+  while (host.firstChild) {
+    host.removeChild(host.firstChild)
+  }
+}
+
+function appendStyledRun(
+  doc: Document,
   host: HTMLElement,
-  index: number,
-  length: number,
-  codec: InlineFormatCodec,
-  value: JsonValue | null | undefined
+  text: string,
+  attributes: TextAttributes | undefined,
+  registry: InlineFormatRegistry
 ): void {
-  if (value === undefined) return
-  const range = createOperationRange(host, index, index + length)
+  const parts = text.split(OPERATION_LINE_BREAK)
+  parts.forEach((part, index) => {
+    if (part) {
+      host.appendChild(registry.wrapStyledText(doc, part, attributes))
+    }
+    if (index < parts.length - 1) {
+      host.appendChild(doc.createElement('br'))
+    }
+  })
+}
+
+function renderTextRunsToHost(
+  host: HTMLElement,
+  runs: readonly TextRun[],
+  registry: InlineFormatRegistry
+): void {
   const doc = host.ownerDocument!
-
-  if (value === null) {
-    for (const tag of codec.domTags) {
-      unwrapTagInRange(range, tag.toUpperCase())
-    }
-    if (codec.yjsKey === 'link') {
-      unwrapAncestorTagInRange(range, 'A')
-    }
-    return
-  }
-
-  const wrapper = codec.createDomWrapper(doc, value)
-  if (!wrapper) return
-
-  for (const tag of codec.domTags) {
-    unwrapTagInRange(createOperationRange(host, index, index + length), tag.toUpperCase())
-  }
-  const updatedRange = createOperationRange(host, index, index + length)
-
-  try {
-    updatedRange.surroundContents(wrapper)
-  } catch {
-    const extracted = updatedRange.extractContents()
-    wrapper.appendChild(extracted)
-    updatedRange.insertNode(wrapper)
+  clearHostChildren(host)
+  for (const run of runs) {
+    appendStyledRun(doc, host, run.text, run.attributes, registry)
   }
 }
 
@@ -92,47 +166,9 @@ function applySetTextAttributes(
 ): void {
   if (length === 0) return
   const registry = getHostFormatRegistry(host)
-
-  for (const [key, value] of Object.entries(attributes)) {
-    const codec = registry.getCodec(key)
-    if (!codec) continue
-    applyFormatViaCodec(host, index, length, codec, value)
-  }
-}
-
-function unwrapTagInRange(range: Range, tagName: string): void {
-  const doc = range.commonAncestorContainer.ownerDocument
-  if (!doc) return
-  const container = range.cloneContents()
-  const wrapper = doc.createElement('div')
-  wrapper.appendChild(container)
-  wrapper.querySelectorAll(tagName.toLowerCase()).forEach((el) => {
-    while (el.firstChild) el.parentNode?.insertBefore(el.firstChild, el)
-    el.remove()
-  })
-  range.deleteContents()
-  while (wrapper.firstChild) range.insertNode(wrapper.firstChild)
-}
-
-function unwrapAncestorTagInRange(range: Range, tagName: string): void {
-  const host = range.commonAncestorContainer
-  const root = host.nodeType === Node.ELEMENT_NODE ? (host as Element) : host.parentElement
-  if (!root) return
-
-  const upperTag = tagName.toUpperCase()
-  let node: Node | null = range.startContainer
-  if (node.nodeType === Node.TEXT_NODE) node = node.parentNode
-
-  const anchors: Element[] = []
-  while (node && node !== root.parentNode) {
-    if (node.nodeName === upperTag) anchors.push(node as Element)
-    node = node.parentNode
-  }
-
-  for (const anchor of anchors) {
-    while (anchor.firstChild) anchor.parentNode?.insertBefore(anchor.firstChild, anchor)
-    anchor.remove()
-  }
+  const runs = getBlockTextRuns(host, registry)
+  const updated = applyAttributesToRunSpan(runs, index, index + length, attributes, registry)
+  renderTextRunsToHost(host, updated, registry)
 }
 
 function applySingleOperation(

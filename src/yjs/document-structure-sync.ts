@@ -67,7 +67,7 @@ export function parseStructureSnapshot(
   return { nodes, directives, diagnostics }
 }
 
-export type StructureDiffKind = 'insert' | 'remove' | 'move' | 'unchanged'
+export type StructureDiffKind = 'insert' | 'remove' | 'move' | 'typeChange' | 'unchanged'
 
 export interface StructureDiffEntry {
   componentId: string
@@ -77,8 +77,8 @@ export interface StructureDiffEntry {
 }
 
 export function diffStructureSnapshots(
-  previous: Map<string, DocumentComponentNode>,
-  next: Map<string, DocumentComponentNode>
+  previous: ReadonlyMap<string, DocumentComponentNode>,
+  next: ReadonlyMap<string, DocumentComponentNode>
 ): StructureDiffEntry[] {
   const diff: StructureDiffEntry[] = []
 
@@ -88,11 +88,12 @@ export function diffStructureSnapshots(
       diff.push({ componentId, kind: 'insert', next: node })
       continue
     }
-    if (
+    if (old.componentType !== node.componentType) {
+      diff.push({ componentId, kind: 'typeChange', previous: old, next: node })
+    } else if (
       old.parentComponentId !== node.parentComponentId ||
       old.containerId !== node.containerId ||
-      old.siblingIndex !== node.siblingIndex ||
-      old.componentType !== node.componentType
+      old.siblingIndex !== node.siblingIndex
     ) {
       diff.push({ componentId, kind: 'move', previous: old, next: node })
     } else {

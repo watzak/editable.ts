@@ -9,7 +9,7 @@ import {
 import { setSelectionFromSnapshot } from '../lib/operation-selection.js'
 import { applyEditableOperationsToYText } from '../lib/yjs/apply-operations-to-ytext.js'
 import { applyHostInlineMarkupToYText } from '../lib/yjs/dom-text-runs.js'
-import { promoteHostInlineFormatsToYText } from '../lib/yjs/reconcile.js'
+import { applyLocalDomFormatsToYText } from '../lib/yjs/dom-to-ytext.js'
 import {
   createExampleArrayStructuralAdapter,
   createExampleBlocksArray
@@ -149,7 +149,7 @@ function ensureFormatOpInYText(client, host, op) {
 
   if (hostDomHasBold(host)) {
     client.doc.transact(() => {
-      promoteHostInlineFormatsToYText(yText, host, document)
+      applyLocalDomFormatsToYText(yText, host, document)
     }, origin)
     if (deltaHasBold(yText.toDelta())) return
   }

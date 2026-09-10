@@ -228,7 +228,7 @@ describe('Yjs rich-text sync', function () {
     peer.editable.unload()
   })
 
-  it('detects DOM-only bold as mismatch and promotes host markup into Y.Text on reconcile', function () {
+  it('detects DOM-only bold as mismatch and adopts host markup via explicit local format sync', function () {
     const peer = createRichPeer('dom-markup-mismatch')
     const binding = bindRichPeer(peer)
 
@@ -237,12 +237,8 @@ describe('Yjs rich-text sync', function () {
 
     expect(hostRichTextMatchesYText(peer.host, peer.yText, document)).toBe(false)
 
-    const result = reconcileHostToCanonicalYText(peer.editable, peer.host, peer.yText, 'test', {
-      richText: true,
-      doc: document
-    })
+    binding.syncRichHostRunsToYText()
 
-    expect(result.action).toBe('promoted-host-to-y')
     expect(deltaHasBold(peer.yText.toDelta())).toBe(true)
 
     binding.destroy()

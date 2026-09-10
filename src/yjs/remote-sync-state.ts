@@ -12,7 +12,7 @@ export interface CanonicalSnapshot {
   runs?: TextRun[]
 }
 
-export type RemoteSyncPath = 'incremental' | 'reconcile' | 'none'
+export type RemoteSyncPath = 'incremental' | 'reconcile' | 'deferred' | 'none'
 
 /** Diagnostic record of the last foreign {@link Y.Text} observer handling. */
 export interface RemoteSyncDiagnostics {

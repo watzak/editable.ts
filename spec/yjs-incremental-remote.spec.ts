@@ -294,7 +294,7 @@ describe('Yjs incremental remote sync', function () {
       b.editable.unload()
     })
 
-    it('reconciles during composition', function () {
+    it('defers host recovery during synthetic composition', function () {
       const a = createPlainPeer('inc-comp')
       const b = createPlainPeer('inc-comp')
       bindPlain(a)
@@ -314,8 +314,9 @@ describe('Yjs incremental remote sync', function () {
       applyRemoteYText(a.doc, a.yText, () => a.yText.insert(4, 'X'))
       syncPlain(a.doc, b.doc)
 
-      expect(bindingB.getRemoteSyncDiagnostics()?.path).toBe('reconcile')
+      expect(bindingB.getRemoteSyncDiagnostics()?.path).toBe('deferred')
       expect(bindingB.getRemoteSyncDiagnostics()?.reason).toBe('remote-during-composition')
+      expect(getBlockOperationText(b.host)).toBe('base')
       b.editable.dispatcher.operationCapture.clearComposition(b.host)
       a.editable.unload()
       b.editable.unload()

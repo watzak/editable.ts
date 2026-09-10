@@ -10,6 +10,9 @@ export interface InitialSyncConflictResolver {
   resolve(context: InitialSyncConflictContext): InitialSyncConflictResolution
 }
 
+/** Rich-text: plain text matches but inline attributes differ at initial sync. */
+export type InitialIdenticalTextFormatResolution = 'copy-host-to-y' | 'copy-y-to-host' | 'error'
+
 /** Explicit initial-sync policy — no scenario may silently discard content. */
 export interface InitialSyncPolicy {
   /** Y.Text empty, host has operation text. */
@@ -18,6 +21,12 @@ export interface InitialSyncPolicy {
   hostEmptyYFilled: 'copy-y-to-host'
   /** Both sides non-empty and text differs. */
   bothFilledDiffer: 'error' | InitialSyncConflictResolver
+  /**
+   * Rich-text only: host and Y.Text plain text match but inline attributes differ.
+   * When omitted: host-only formatting → `copy-host-to-y`, Y-only → `copy-y-to-host`,
+   * both formatted but different → `error`.
+   */
+  bothIdenticalFormatsDiffer?: InitialIdenticalTextFormatResolution
 }
 
 export type InitialSyncScenario =
@@ -44,6 +53,20 @@ export class InitialSyncConflictError extends Error {
   constructor(hostText: string, yText: string) {
     super('Initial sync conflict: host and Y.Text both contain different content')
     this.name = 'InitialSyncConflictError'
+    this.hostText = hostText
+    this.yText = yText
+  }
+}
+
+export class InitialSyncFormatConflictError extends Error {
+  readonly hostText: string
+  readonly yText: string
+
+  constructor(hostText: string, yText: string) {
+    super(
+      'Initial sync format conflict: host and Y.Text plain text match but inline attributes differ'
+    )
+    this.name = 'InitialSyncFormatConflictError'
     this.hostText = hostText
     this.yText = yText
   }

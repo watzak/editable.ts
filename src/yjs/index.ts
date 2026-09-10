@@ -1,7 +1,10 @@
 export { EditableYjsBinding } from './editable-yjs-binding.js'
 export type { EditableYjsBindingOptions } from './editable-yjs-binding.js'
 export { EditableYjsDocumentBinding } from './editable-yjs-document-binding.js'
-export type { EditableYjsDocumentBindingOptions } from './editable-yjs-document-binding.js'
+export type {
+  DocumentBindingLifecycleState,
+  EditableYjsDocumentBindingOptions
+} from './editable-yjs-document-binding.js'
 export {
   directiveBindingKey,
   type DocumentBindingRuntime,
@@ -17,9 +20,16 @@ export {
   type DocumentStructureDiagnostic
 } from './document-structure-sync.js'
 export {
+  directiveStructureSignature,
+  hasDocumentStructureChanges
+} from './document-structure-reconcile.js'
+export {
   captureActiveDirectiveSelection,
+  captureFocusedDirectiveHost,
   repositionElementAtIndex,
   resolveFocusFallbackAfterRemove,
+  resolveFocusFallbackAfterTypeChange,
+  resolveFocusFallbackAmongDirectives,
   restoreDirectiveSelectionFromRelative
 } from './document-selection-sync.js'
 export { applyEditableOperationsToYText } from './apply-operations-to-ytext.js'
@@ -60,6 +70,8 @@ export type { YTextDeltaSegment } from './structural-ytext.js'
 export {
   classifyInitialSync,
   InitialSyncConflictError,
+  InitialSyncFormatConflictError,
+  type InitialIdenticalTextFormatResolution,
   type InitialSyncConflictContext,
   type InitialSyncConflictResolution,
   type InitialSyncConflictResolver,
@@ -74,10 +86,13 @@ export {
   hostHasInlineAttributes,
   hostRichTextMatchesYText,
   promoteHostInlineFormatsToYText,
+  adoptLocalHostFormatsToYText,
+  reconcileInitialRichTextFormats,
+  recoverHostFromCanonicalYText,
   reconcileHostToCanonicalYText,
   yTextHasInlineAttributes
 } from './reconcile.js'
-export type { ReconcileDiagnostics, ReconcileHostOptions } from './reconcile.js'
+export type { ReconcileAction, ReconcileDiagnostics, ReconcileHostOptions } from './reconcile.js'
 export { yTextDeltaToOperations } from './ytext-delta-to-operations.js'
 export type { YTextDeltaOp, YTextDeltaToOperationsOptions } from './ytext-delta-to-operations.js'
 export {
@@ -116,9 +131,11 @@ export {
 } from './dom-text-runs.js'
 export type { TextRun } from './dom-text-runs.js'
 export {
+  applyLocalDomFormatsToYText,
+  buildYTextFormatMapFromHostAttributes,
+  hostTextMatchesYText,
   insertHostRunsIntoYText,
-  yTextSnapshotToOperations,
-  hostTextMatchesYText
+  yTextSnapshotToOperations
 } from './dom-to-ytext.js'
 export {
   buildToggleFormatOperation,
@@ -138,7 +155,24 @@ export {
   PRESENCE_PAYLOAD_VERSION
 } from './presence-payload.js'
 export type { PresencePayloadV1 } from './presence-payload.js'
-export { offsetsToRelativePositionJson, resolvePresenceSelection } from './relative-position.js'
+export {
+  captureCompositionStartSnapshot,
+  createCompositionBaseline,
+  repairRichHostAfterDeferredRecovery,
+  restoreSelectionFromCompositionRel,
+  resolveCompositionCommitOperations,
+  transformOperationsFromCompositionBaseline
+} from './composition-remote-sync.js'
+export type {
+  CompositionBaseline,
+  CompositionSelectionRel,
+  CompositionStartSnapshot
+} from './composition-remote-sync.js'
+export {
+  offsetsToRelativePositionJson,
+  resolvePresenceSelection,
+  resolveRelativeIndexInText
+} from './relative-position.js'
 export type { ResolvedPresenceSelection } from './relative-position.js'
 export {
   defaultPresenceRenderer,

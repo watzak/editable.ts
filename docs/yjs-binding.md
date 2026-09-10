@@ -38,7 +38,9 @@ import { EditableYjsBinding } from 'editable.ts/yjs'
 - Local `EditableOperationBatch` objects from capture are applied in **one** `Y.Doc` transaction with a binding-specific origin (echo-safe)
 - Foreign `Y.Text` deltas are translated to `EditableOperation`s and applied with **live** DOM patches (insert/delete/replace/attributes) — no `innerHTML` in the hot path
 - Each binding keeps a **canonical pre-update snapshot** (plain text; rich text also stores normalized text runs). Incremental apply runs only when the host still matches that snapshot
-- When incremental apply cannot converge, or the host drifted, **`binding.reconcile(reason?)`** rebuilds from canonical `Y.Text` (recovery only)
+- When incremental apply cannot converge, or the host drifted, **`binding.reconcile(diagnostic?)`** rebuilds the host from canonical `Y.Text` (recovery only — never writes Y.Text)
+- During **IME composition** or pending `beforeinput`, remote updates still land in `Y.Text` but destructive host recovery is **deferred** until the local edit commits; composition operations are re-mapped with Yjs relative positions
+- Explicit local format adoption (DOM → Y.Text when plain text already matches) uses **`binding.syncRichHostRunsToYText()`** or targeted `yText.format()` via `applyLocalDomFormatsToYText` — not recovery
 - **Rich-text hosts** (`data-plaintext="false"`, default): inline formats sync via Y.Text delta attributes through `InlineFormatRegistry`
 - **Plain-text hosts** (`data-plaintext="true"`): character data only; attributed operations are rejected
 - **Not included:** providers (you wire WebSocket/WebRTC yourself)
@@ -415,11 +417,12 @@ The document binding controller manages mount/unmount, per-directive `EditableYj
 
 ### Remote structure sync
 
-`EditableYjsDocumentBinding` observes CRDT structure (`observeStructure` + `afterTransaction`) and applies **batched** reconcile passes:
+`EditableYjsDocumentBinding` observes CRDT structure (`observeStructure` + `afterTransaction`) and applies **batched** reconcile passes when the component tree or directive slots actually change — remote **text-only** `Y.Text` updates are handled by per-directive bindings and do not trigger structure reconcile:
 
 - **Remote insert:** validate component → render view → mount directives at sibling index
 - **Remote remove:** destroy bindings/presence scope → release block ownership → remove DOM → deterministic focus fallback
 - **Remote move:** reuse existing view where possible (`repositionElementAtIndex`); remount bindings only when `Y.Text` identity changes
+- **Component type change:** same `componentId` with a new `componentType` replaces the view (destroy old directive bindings once, render fresh template, remount directives); selection is preserved when the focused directive and `Y.Text` survive the change
 - **Invalid components:** skipped via `listComponentsWithValidation`; reported through `onStructureDiagnostic` (no unchecked HTML)
 - **Echo suppression:** local structural transactions use `runtime.transactionOrigin`; remote `applyUpdate` does not enter the undo stack
 - **Selection:** relative positions preserved across moves; inserts before the active component do not shift the text caret

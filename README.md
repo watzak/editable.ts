@@ -19,7 +19,7 @@
 
 editable.ts wraps the browser's native `contenteditable` with cross-browser Selection/Range handling, a typed event system, and optional highlighting — without imposing a document model. Forked from [editable.js](https://github.com/livingdocsIO/editable.js) and modernized with TypeScript, Vitest, and Vite.
 
-**[GitHub](https://github.com/watzak/editable.ts)** · **[Live demo](https://watzak.github.io/editable.ts/examples/)** · **[npm](https://www.npmjs.com/package/editable.ts)** · **[Migration from editable.js](docs/MIGRATION.md)** · **[Architecture](docs/ARCHITECTURE.md)** · **[Yjs binding (experimental)](docs/yjs-binding.md)**
+**[GitHub](https://github.com/watzak/editable.ts)** · **[Live demo](https://watzak.github.io/editable.ts/examples/)** · **[npm](https://www.npmjs.com/package/editable.ts)** · **[Migration from editable.js](docs/MIGRATION.md)** · **[Architecture](docs/ARCHITECTURE.md)** · **[Architektur (DE)](docs/ARCHITECTURE-DE.md)** · **[Yjs binding (experimental)](docs/yjs-binding.md)**
 
 > **Privacy:** the demo page includes a Matomo image tracker (`matomo.kamod.ch`) for anonymous usage statistics. The npm library contains no analytics.
 

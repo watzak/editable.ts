@@ -93,6 +93,14 @@ If host HTML and `Y.Text` differ at activate time:
 
 Never silently overwrite without an integrator decision.
 
+### 5. Same plain text, different inline formats (rich text)
+
+When operation text matches but inline attributes differ at activate time:
+
+- Default (no `bothIdenticalFormatsDiffer`): host-only formatting → import to `Y.Text`; Y-only → rebuild host; both formatted differently → `InitialSyncFormatConflictError`
+- Set `bothIdenticalFormatsDiffer: 'copy-host-to-y' | 'copy-y-to-host' | 'error'` explicitly when needed
+- After activation, **`binding.reconcile()`** is recovery-only (Y.Text → host). Local DOM → Y.Text adoption uses **`binding.syncRichHostRunsToYText()`**
+
 ## Lifecycle & destroy order
 
 ```typescript

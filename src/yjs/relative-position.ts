@@ -45,8 +45,8 @@ export function resolvePresenceSelection(
   headJson: JsonValue | null
 ): ResolvedPresenceSelection | null {
   const textLength = expectedText.length
-  const anchor = resolveRelativeIndex(doc, expectedText, anchorJson, textLength)
-  const head = resolveRelativeIndex(doc, expectedText, headJson, textLength)
+  const anchor = resolveRelativeIndexInText(doc, expectedText, anchorJson, textLength)
+  const head = resolveRelativeIndexInText(doc, expectedText, headJson, textLength)
 
   if (anchor === null || head === null) return null
   return { anchor, head }
@@ -63,7 +63,8 @@ export function isRelativePositionJson(value: unknown): boolean {
   return obj.type != null || obj.tname != null || obj.item != null
 }
 
-function resolveRelativeIndex(
+/** Resolves one JSON relative position to a UTF-16 index in `expectedText`. */
+export function resolveRelativeIndexInText(
   doc: Y.Doc,
   expectedText: Y.Text,
   relJson: JsonValue | null,

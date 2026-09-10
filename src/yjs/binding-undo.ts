@@ -182,8 +182,13 @@ export class YjsBindingUndoController {
     if (!this.destroyed) this.undoManager.stopCapturing()
   }
 
+  /**
+   * Clears undo/redo history for internally owned managers only.
+   * Externally supplied managers (e.g. document-wide shared scope) are left intact.
+   */
   clearStack(): void {
-    if (!this.destroyed) this.undoManager.clear(true, true)
+    if (this.destroyed || !this.ownsUndoManager) return
+    this.undoManager.clear(true, true)
     this.notifyStatusChange()
   }
 

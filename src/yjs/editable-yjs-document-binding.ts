@@ -19,17 +19,26 @@ import {
 import type { EditableYjsStructuralAdapter } from './structural-adapter.js'
 import {
   captureActiveDirectiveSelection,
+  captureFocusedDirectiveHost,
   repositionElementAtIndex,
   resolveFocusFallbackAfterRemove,
+  resolveFocusFallbackAfterTypeChange,
   restoreDirectiveSelectionFromRelative,
   type ActiveDirectiveSelection
 } from './document-selection-sync.js'
+import {
+  directiveStructureSignature,
+  hasDocumentStructureChanges
+} from './document-structure-reconcile.js'
 import {
   diffStructureSnapshots,
   parseStructureSnapshot,
   type DocumentStructureDiagnostic
 } from './document-structure-sync.js'
 import type { YjsSyncDiagnosticHandler } from './sync-lifecycle.js'
+
+/** Persistent activation state of an {@link EditableYjsDocumentBinding}. */
+export type DocumentBindingLifecycleState = 'deferred' | 'active' | 'destroyed'
 
 export interface EditableYjsDocumentBindingOptions {
   editable: Editable
@@ -41,13 +50,15 @@ export interface EditableYjsDocumentBindingOptions {
   mountContainer: HTMLElement
   initialSync?: InitialSyncPolicy
   /**
-   * When true, per-directive bindings defer initial sync until {@link activate}.
-   * Call after provider `synced` or IndexedDB hydration.
+   * When true, starts in {@link DocumentBindingLifecycleState} `deferred` until
+   * {@link activate}. Call after provider `synced` or IndexedDB hydration.
    */
   deferInitialSync?: boolean
   onSyncDiagnostic?: YjsSyncDiagnosticHandler
   undo?: boolean | { captureTimeout?: number }
   onStructureDiagnostic?: (diagnostic: DocumentStructureDiagnostic) => void
+  /** Invoked when a structure reconcile pass actually runs (not when skipped for text-only updates). */
+  onStructureReconcile?: (reason: string) => void
 }
 
 interface MountedDirective {
@@ -72,7 +83,7 @@ export class EditableYjsDocumentBinding {
   readonly transactionOrigin: BindingTransactionOrigin
   readonly initialSync: InitialSyncPolicy
 
-  private destroyed = false
+  private _lifecycleState: DocumentBindingLifecycleState
   private readonly sharedUndoManager: Y.UndoManager | null
   private readonly structuralAdapter: EditableYjsStructuralAdapter
   private readonly runtime: DocumentBindingRuntime
@@ -83,12 +94,14 @@ export class EditableYjsDocumentBinding {
   private unobserveStructure: (() => void) | null = null
   private unobserveTransactions: (() => void) | null = null
   private reconcileScheduled = false
+  private pendingReconcileReason: string | null = null
   private localStructureDepth = 0
   private lastComponentNodes = new Map<string, DocumentComponentNode>()
+  private lastDirectiveSignature = ''
   private lastStructureDiagnostics: DocumentStructureDiagnostic[] = []
   private pendingActiveSelection: ActiveDirectiveSelection | null = null
-  private readonly deferInitialSync: boolean
   private readonly onSyncDiagnostic?: YjsSyncDiagnosticHandler
+  private readonly onStructureReconcile?: (reason: string) => void
 
   constructor(options: EditableYjsDocumentBindingOptions) {
     this.editable = options.editable
@@ -97,7 +110,8 @@ export class EditableYjsDocumentBinding {
     this.adapter = options.adapter
     this.mountContainer = options.mountContainer
     this.onStructureDiagnostic = options.onStructureDiagnostic
-    this.deferInitialSync = options.deferInitialSync === true
+    this.onStructureReconcile = options.onStructureReconcile
+    this._lifecycleState = options.deferInitialSync === true ? 'deferred' : 'active'
     this.onSyncDiagnostic = options.onSyncDiagnostic
     this.transactionOrigin = createBindingTransactionOrigin()
     this.initialSync = options.initialSync ?? {
@@ -139,23 +153,23 @@ export class EditableYjsDocumentBinding {
     this.structuralAdapter = this.adapter.createStructuralAdapter(this.runtime)
 
     const afterTransaction = (transaction: Y.Transaction) => {
-      if (this.destroyed) return
+      if (this._lifecycleState === 'destroyed') return
       if (transaction.origin === this.transactionOrigin) {
         this.scheduleReconcile('local-structure-transaction')
         return
       }
       if (this.isLocalTrackedOrigin(transaction.origin)) return
-      this.scheduleReconcile('remote-transaction')
+      this.scheduleReconcileIfStructureChanged('remote-transaction')
     }
     this.yDoc.on('afterTransaction', afterTransaction)
     this.unobserveTransactions = () => this.yDoc.off('afterTransaction', afterTransaction)
 
     this.unobserveStructure = this.adapter.observeStructure(this.root, () => {
       if (this.localStructureDepth > 0) return
-      this.scheduleReconcile('remote-structure')
+      this.scheduleReconcileIfStructureChanged('remote-structure')
     })
 
-    if (this.deferInitialSync) {
+    if (this._lifecycleState === 'deferred') {
       this.onSyncDiagnostic?.({
         kind: 'binding-deferred',
         scope: 'document',
@@ -166,35 +180,52 @@ export class EditableYjsDocumentBinding {
     this.reconcile('initial')
   }
 
-  /** Activates all mounted directive bindings (initial sync + listeners). */
+  /**
+   * Persistent lifecycle state. {@link activate} moves `deferred` → `active`;
+   * {@link destroy} moves any state → `destroyed`.
+   */
+  get lifecycleState(): DocumentBindingLifecycleState {
+    return this._lifecycleState
+  }
+
+  /**
+   * Activates the document and all currently mounted directive bindings.
+   * Idempotent — later mounts auto-activate while the document remains `active`.
+   */
   activate(): void {
-    this.assertActive()
+    this.assertNotDestroyed()
+    if (this._lifecycleState === 'active') return
+
     for (const mounted of this.directiveBindings.values()) {
+      if (mounted.binding.isActivated) continue
       mounted.binding.activate()
     }
+
+    this._lifecycleState = 'active'
     this.onSyncDiagnostic?.({
       kind: 'binding-activated',
       scope: 'document',
-      message: 'All directive bindings activated'
+      message: 'Document activated; directive bindings initialized'
     })
   }
 
+  /** True when lifecycle is `active` and every mounted directive binding is activated. */
   get isActivated(): boolean {
-    if (this.directiveBindings.size === 0) return !this.deferInitialSync
+    if (this._lifecycleState !== 'active') return false
     for (const mounted of this.directiveBindings.values()) {
       if (!mounted.binding.isActivated) return false
     }
     return true
   }
 
-  private assertActive(): void {
-    if (this.destroyed) {
+  private assertNotDestroyed(): void {
+    if (this._lifecycleState === 'destroyed') {
       throw new Error('EditableYjsDocumentBinding has been destroyed')
     }
   }
 
   get isDestroyed(): boolean {
-    return this.destroyed
+    return this._lifecycleState === 'destroyed'
   }
 
   get structureDiagnostics(): readonly DocumentStructureDiagnostic[] {
@@ -243,15 +274,13 @@ export class EditableYjsDocumentBinding {
 
   /** Sync mounted views and bindings to the adapter's directive list. */
   reconcile(reason?: string): void {
-    if (this.destroyed) return
-    void reason
-
-    this.reconcileStructure()
+    if (this._lifecycleState === 'destroyed') return
+    this.reconcileStructure(reason ?? 'unspecified')
   }
 
   destroy(): void {
-    if (this.destroyed) return
-    this.destroyed = true
+    if (this._lifecycleState === 'destroyed') return
+    this._lifecycleState = 'destroyed'
 
     this.unobserveStructure?.()
     this.unobserveStructure = null
@@ -278,15 +307,34 @@ export class EditableYjsDocumentBinding {
   }
 
   private scheduleReconcile(reason: string): void {
-    if (this.destroyed || this.reconcileScheduled) return
+    if (this._lifecycleState === 'destroyed' || this.reconcileScheduled) return
     this.reconcileScheduled = true
+    this.pendingReconcileReason = reason
     queueMicrotask(() => {
       this.reconcileScheduled = false
-      if (!this.destroyed) this.reconcile(reason)
+      const pendingReason = this.pendingReconcileReason ?? reason
+      this.pendingReconcileReason = null
+      if (this._lifecycleState !== 'destroyed') this.reconcile(pendingReason)
     })
   }
 
-  private reconcileStructure(): void {
+  private scheduleReconcileIfStructureChanged(reason: string): void {
+    if (this._lifecycleState === 'destroyed') return
+    if (
+      !hasDocumentStructureChanges(
+        this.adapter,
+        this.root,
+        this.lastComponentNodes,
+        this.lastDirectiveSignature
+      )
+    ) {
+      return
+    }
+    this.scheduleReconcile(reason)
+  }
+
+  private reconcileStructure(reason: string): void {
+    this.onStructureReconcile?.(reason)
     const activeSelection = captureActiveDirectiveSelection(
       this.editable,
       (componentId, directiveKey) => this.getDirectiveBinding(componentId, directiveKey)?.yText
@@ -310,13 +358,19 @@ export class EditableYjsDocumentBinding {
     }
 
     for (const entry of diff) {
-      if (entry.kind === 'remove') continue
+      if (entry.kind !== 'typeChange') continue
+      this.replaceComponentView(entry.next!, entry.previous!)
+    }
+
+    for (const entry of diff) {
+      if (entry.kind === 'remove' || entry.kind === 'typeChange') continue
       const node = entry.next!
       this.ensureComponentMounted(node, entry.kind === 'move')
     }
 
     this.syncDirectiveBindings(snapshot.directives, snapshot.nodes)
     this.lastComponentNodes = snapshot.nodes
+    this.lastDirectiveSignature = directiveStructureSignature(snapshot.directives)
 
     this.restorePendingSelection()
   }
@@ -337,12 +391,119 @@ export class EditableYjsDocumentBinding {
       return
     }
 
-    if (repositionOnly) {
+    if (view.componentType !== node.componentType) {
+      this.replaceComponentView(node)
+      return
+    }
+
+    if (repositionOnly || view.rootElement.parentElement !== mountParent) {
       repositionElementAtIndex(view.rootElement, mountParent, node.siblingIndex)
-    } else if (view.rootElement.parentElement !== mountParent) {
-      repositionElementAtIndex(view.rootElement, mountParent, node.siblingIndex)
-    } else {
-      repositionElementAtIndex(view.rootElement, mountParent, node.siblingIndex)
+    }
+  }
+
+  /** Replaces DOM and directive bindings when {@link componentType} changes for a stable id. */
+  private replaceComponentView(
+    node: DocumentComponentNode,
+    previous?: DocumentComponentNode
+  ): void {
+    const existing = this.componentViews.get(node.componentId)
+    if (existing && existing.componentType === node.componentType) {
+      const mountParent = this.adapter.getComponentMountParent(node, this.root, this.componentViews)
+      repositionElementAtIndex(existing.rootElement, mountParent, node.siblingIndex)
+      return
+    }
+
+    this.prepareSelectionForComponentTypeChange(node, previous)
+
+    if (existing) {
+      for (const directiveKey of [...existing.directiveHosts.keys()]) {
+        this.unmountDirective(node.componentId, directiveKey)
+      }
+      this.adapter.destroyComponentView?.(existing)
+      existing.rootElement.remove()
+      this.componentViews.delete(node.componentId)
+    }
+
+    const mountParent = this.adapter.getComponentMountParent(node, this.root, this.componentViews)
+    const view = this.adapter.renderComponent(
+      node.componentId,
+      node.componentType,
+      this.root,
+      mountParent,
+      node.siblingIndex
+    )
+    this.componentViews.set(node.componentId, view)
+  }
+
+  private prepareSelectionForComponentTypeChange(
+    node: DocumentComponentNode,
+    previous?: DocumentComponentNode
+  ): void {
+    const active = this.resolveActiveDirectiveSelection(node.componentId)
+    if (!active) return
+
+    const nextRefs = this.adapter
+      .listDirectives(this.root)
+      .filter((ref) => ref.componentId === node.componentId)
+    const sameDirective = nextRefs.find((ref) => ref.directiveKey === active.directiveKey)
+    if (sameDirective && active.relativeAnchor !== null) {
+      this.pendingActiveSelection = {
+        ...active,
+        yText: sameDirective.yText
+      }
+      return
+    }
+
+    const fallback = resolveFocusFallbackAfterTypeChange({
+      componentId: node.componentId,
+      refs: this.adapter.listDirectives(this.root),
+      views: this.componentViews,
+      previousIndex: previous?.siblingIndex ?? node.siblingIndex,
+      parentComponentId: node.parentComponentId,
+      containerId: node.containerId,
+      lostDirectiveKey: active.directiveKey
+    })
+    if (fallback) {
+      this.pendingActiveSelection = {
+        componentId: fallback.componentId,
+        directiveKey: fallback.directiveKey,
+        host: fallback.host,
+        yText: this.getDirectiveBinding(fallback.componentId, fallback.directiveKey)?.yText ?? null,
+        snapshot: fallback.selection,
+        relativeAnchor: null,
+        relativeHead: null
+      }
+      return
+    }
+
+    this.pendingActiveSelection = null
+  }
+
+  private resolveActiveDirectiveSelection(componentId?: string): ActiveDirectiveSelection | null {
+    const captured =
+      this.pendingActiveSelection ??
+      captureActiveDirectiveSelection(
+        this.editable,
+        (cid, directiveKey) => this.getDirectiveBinding(cid, directiveKey)?.yText
+      )
+    if (captured && (!componentId || captured.componentId === componentId)) {
+      return captured
+    }
+
+    const focused = captureFocusedDirectiveHost(this.componentViews)
+    if (!focused || (componentId && focused.componentId !== componentId)) {
+      return null
+    }
+
+    const yText = this.getDirectiveBinding(focused.componentId, focused.directiveKey)?.yText ?? null
+    return {
+      componentId: focused.componentId,
+      directiveKey: focused.directiveKey,
+      host: focused.host,
+      yText,
+      snapshot: { anchor: 0, head: 0, direction: 'none' },
+      relativeAnchor: null,
+      relativeHead: null
     }
   }
 
@@ -410,7 +571,8 @@ export class EditableYjsDocumentBinding {
       return
     }
 
-    if (document.contains(host)) {
+    const ownerDoc = host.ownerDocument
+    if (ownerDoc?.contains(host)) {
       host.focus()
       setSelectionFromSnapshot(host, pending.snapshot)
     }
@@ -456,7 +618,7 @@ export class EditableYjsDocumentBinding {
       host,
       yText: ref.yText,
       initialSync: this.initialSync,
-      deferInitialSync: this.deferInitialSync,
+      deferInitialSync: this._lifecycleState !== 'active',
       onSyncDiagnostic: this.onSyncDiagnostic,
       undo: this.sharedUndoManager ? { undoManager: this.sharedUndoManager } : false,
       structuralAdapter: this.structuralAdapter
@@ -507,7 +669,8 @@ export class EditableYjsDocumentBinding {
           views: this.componentViews,
           previousIndex: options.removedNode.siblingIndex,
           parentComponentId: options.removedNode.parentComponentId,
-          containerId: options.removedNode.containerId
+          containerId: options.removedNode.containerId,
+          preferredDirectiveKey: active.directiveKey
         })
         if (fallback) {
           this.pendingActiveSelection = {

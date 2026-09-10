@@ -21,22 +21,21 @@ import {
 import {
   classifyInitialSync,
   InitialSyncConflictError,
+  InitialSyncFormatConflictError,
   type InitialSyncPolicy
 } from './initial-sync.js'
 import { insertHostRunsIntoYText } from './dom-to-ytext.js'
 import { PlainTextYjsError } from './plain-text-yjs-error.js'
 import {
+  adoptLocalHostFormatsToYText,
   applyYTextDeltaToHostDom,
-  hostHasInlineAttributes,
   hostRichTextMatchesYText,
-  promoteHostInlineFormatsToYText,
-  reconcileHostToCanonicalYText,
-  yTextHasInlineAttributes,
+  reconcileInitialRichTextFormats,
+  recoverHostFromCanonicalYText,
   type ReconcileDiagnostics
 } from './reconcile.js'
 import { YjsStructuralBridge } from './structural-bridge.js'
 import type { EditableYjsStructuralAdapter } from './structural-adapter.js'
-import { getBlockTextRuns, textRunsToPlainText } from './dom-text-runs.js'
 import { yTextDeltaToOperations } from './ytext-delta-to-operations.js'
 import {
   applyDeltaToText,
@@ -51,6 +50,14 @@ import {
 import { captureSelectionSnapshot } from '../operation-selection.js'
 import type { EditableOperation, EditableOperationBatch } from '../operation-types.js'
 import type { YjsSyncDiagnosticHandler } from './sync-lifecycle.js'
+import {
+  captureCompositionStartSnapshot,
+  repairRichHostAfterDeferredRecovery,
+  resolveCompositionCommitOperations,
+  restoreSelectionFromCompositionRel,
+  type CompositionBaseline,
+  type CompositionSelectionRel
+} from './composition-remote-sync.js'
 
 export interface EditableYjsBindingOptions {
   editable: Editable
@@ -102,6 +109,15 @@ export class EditableYjsBinding {
   private readonly yTextObserver: YTextObserver
   private readonly undoController: YjsBindingUndoController | null
   private readonly structuralBridge: YjsStructuralBridge | null
+  private compositionBaseline: CompositionBaseline | null = null
+  private deferredHostRecovery = false
+  private compositionSelectionRel: CompositionSelectionRel | null = null
+  private readonly onCompositionStart = (): void => {
+    this.handleCompositionStart()
+  }
+  private readonly onCompositionEnd = (): void => {
+    this.handleCompositionEnd()
+  }
 
   constructor(options: EditableYjsBindingOptions) {
     validateBindingOptions(options)
@@ -176,7 +192,10 @@ export class EditableYjsBinding {
     try {
       runInitialSync(this, initialSync)
     } catch (error) {
-      if (error instanceof InitialSyncConflictError) {
+      if (
+        error instanceof InitialSyncConflictError ||
+        error instanceof InitialSyncFormatConflictError
+      ) {
         this.onSyncDiagnostic?.({
           kind: 'initial-sync-conflict',
           scope: 'block',
@@ -244,8 +263,10 @@ export class EditableYjsBinding {
   destroy(): void {
     if (this.destroyed) return
     this.destroyed = true
-    this.editable.off('operation', this.operationHandler)
-    this.yText.unobserve(this.yTextObserver)
+    this.detachSyncListeners()
+    this.compositionBaseline = null
+    this.compositionSelectionRel = null
+    this.deferredHostRecovery = false
     this.structuralBridge?.destroy()
     this.undoController?.destroy()
   }
@@ -262,39 +283,26 @@ export class EditableYjsBinding {
 
   /**
    * Recovery when host operation text diverges from canonical {@link Y.Text}.
-   * Applies Y.Text to the host — never overwrites Y from the host.
+   * Rebuilds the host from Y.Text — never modifies the CRDT.
    */
-  reconcile(reason?: string): ReconcileDiagnostics {
+  reconcile(diagnostic?: string): ReconcileDiagnostics {
     this.assertActive()
-    const run = () =>
-      reconcileHostToCanonicalYText(
-        this.editable,
-        this.host,
-        this.yText,
-        reason,
-        this.yjsApplyOptions()
-      )
-
-    // Rich-text reconcile may promote host formatting into Y.Text. Running it under the
-    // binding origin keeps that write from re-entering our own Y.Text observer.
-    const doc = this.yText.doc
-    let result!: ReconcileDiagnostics
-    if (doc) {
-      doc.transact(() => {
-        result = run()
-      }, this.transactionOrigin)
-    } else {
-      result = run()
-    }
+    const result = recoverHostFromCanonicalYText(
+      this.editable,
+      this.host,
+      this.yText,
+      diagnostic,
+      this.yjsApplyOptions()
+    )
 
     this.refreshCanonicalState()
     this.resetIncrementalRemoteState()
     this.syncEditableConfirmedState()
-    if (reason) {
+    if (diagnostic) {
       this.onSyncDiagnostic?.({
         kind: 'remote-reconcile',
         scope: 'block',
-        message: `Reconciled host from canonical Y.Text (${reason})`
+        message: `Recovered host from canonical Y.Text (${diagnostic})`
       })
     }
     return result
@@ -313,6 +321,71 @@ export class EditableYjsBinding {
   private attachSyncListeners(): void {
     this.editable.on('operation', this.operationHandler)
     this.yText.observe(this.yTextObserver)
+    this.host.addEventListener('compositionstart', this.onCompositionStart, true)
+    this.host.addEventListener('compositionend', this.onCompositionEnd, true)
+  }
+
+  private detachSyncListeners(): void {
+    this.editable.off('operation', this.operationHandler)
+    this.yText.unobserve(this.yTextObserver)
+    this.host.removeEventListener('compositionstart', this.onCompositionStart, true)
+    this.host.removeEventListener('compositionend', this.onCompositionEnd, true)
+  }
+
+  private handleCompositionStart(): void {
+    if (this.destroyed) return
+    const selectionWatcher = this.editable.dispatcher.selectionWatcher
+    const start = captureCompositionStartSnapshot(this.yText, this.host, () =>
+      selectionWatcher.getFreshSelection()
+    )
+    this.compositionBaseline = start.baseline
+    this.compositionSelectionRel = start.selectionRel
+  }
+
+  private handleCompositionEnd(): void {
+    queueMicrotask(() => {
+      if (this.destroyed) return
+      this.flushDeferredHostRecovery('composition-end')
+      this.compositionBaseline = null
+      this.compositionSelectionRel = null
+    })
+  }
+
+  private shouldDeferHostRecovery(): boolean {
+    const capture = this.editable.dispatcher.operationCapture
+    return capture.hasPendingMutation(this.host)
+  }
+
+  private flushDeferredHostRecovery(diagnostic: string): void {
+    if (!this.deferredHostRecovery) return
+    this.deferredHostRecovery = false
+    this.reconcile(diagnostic)
+    this.restoreSelectionAfterDeferredRecovery()
+    if (this.richText) {
+      this.repairRichFormattingAfterRecovery()
+    }
+  }
+
+  private restoreSelectionAfterDeferredRecovery(): void {
+    restoreSelectionFromCompositionRel(
+      this.host,
+      this.editable,
+      this.yText,
+      this.compositionSelectionRel
+    )
+  }
+
+  private repairRichFormattingAfterRecovery(): void {
+    const doc = this.host.ownerDocument
+    if (!doc) return
+    repairRichHostAfterDeferredRecovery({
+      host: this.host,
+      yText: this.yText,
+      doc,
+      registry: getHostFormatRegistry(this.host),
+      reconcile: (diagnostic) => this.reconcile(diagnostic),
+      repairIncrementally: (ownerDoc) => this.repairRichFormattingIncrementally(ownerDoc)
+    })
   }
 
   private syncEditableConfirmedState(): void {
@@ -345,11 +418,24 @@ export class EditableYjsBinding {
 
     this.undoController?.prepareTransaction(batch)
 
+    const commit = resolveCompositionCommitOperations(
+      batch.operations,
+      batch.source,
+      this.compositionBaseline,
+      this.yText,
+      doc
+    )
+    if (commit.clearBaseline) this.compositionBaseline = null
+    const operations = commit.operations
+
     doc.transact(() => {
-      applyEditableOperationsToYText(this.yText, batch.operations, this.yjsApplyOptions())
+      applyEditableOperationsToYText(this.yText, operations, this.yjsApplyOptions())
     }, this.transactionOrigin)
     this.refreshCanonicalState()
     this.resetIncrementalRemoteState()
+    this.flushDeferredHostRecovery(
+      batch.source === 'composition' ? 'composition-commit' : 'local-input-commit'
+    )
     const hostAfterLocal = getBlockOperationText(this.host)
     if (hostAfterLocal !== this.canonicalYText) {
       this.reconcile('post-local-batch')
@@ -365,15 +451,12 @@ export class EditableYjsBinding {
    */
   private syncRichYTextFromHostIfNeeded(): void {
     if (!this.richText) return
-    const doc = this.host.ownerDocument
-    if (!doc) return
-    if (yTextHasInlineAttributes(this.yText)) return
-    if (!hostHasInlineAttributes(this.host)) return
-    if (textRunsToPlainText(getBlockTextRuns(this.host)) !== this.yText.toString()) return
-
-    this.yText.doc?.transact(() => {
-      promoteHostInlineFormatsToYText(this.yText, this.host, doc)
-    }, this.transactionOrigin)
+    adoptLocalHostFormatsToYText(
+      this.yText,
+      this.host,
+      getHostFormatRegistry(this.host),
+      this.transactionOrigin
+    )
     this.refreshCanonicalState()
   }
 
@@ -409,14 +492,12 @@ export class EditableYjsBinding {
     const capture = this.editable.dispatcher.operationCapture
     const doc = this.host.ownerDocument ?? undefined
 
-    if (capture.hasComposition(this.host)) {
-      this.reconcile('remote-during-composition')
-      return { path: 'reconcile', reason: 'remote-during-composition' }
-    }
-
-    if (capture.hasPendingMutation(this.host)) {
-      this.reconcile('remote-during-pending-input')
-      return { path: 'reconcile', reason: 'remote-during-pending-input' }
+    if (this.shouldDeferHostRecovery()) {
+      this.deferredHostRecovery = true
+      const reason = capture.hasComposition(this.host)
+        ? 'remote-during-composition'
+        : 'remote-during-pending-input'
+      return { path: 'deferred', reason }
     }
 
     if (
@@ -495,12 +576,13 @@ export class EditableYjsBinding {
   /** Rebuilds inline formatting from {@link Y.Text} when plain text matches but attributes do not. */
   private ensureRichHostMatchesYText(): void {
     if (!this.richText) return
+    if (this.shouldDeferHostRecovery()) {
+      this.deferredHostRecovery = true
+      return
+    }
     const doc = this.host.ownerDocument
     if (!doc) return
     const registry = getHostFormatRegistry(this.host)
-    if (hostRichTextMatchesYText(this.host, this.yText, doc, registry)) return
-
-    this.syncRichYTextFromHostIfNeeded()
     if (hostRichTextMatchesYText(this.host, this.yText, doc, registry)) return
 
     this.repairRichFormattingIncrementally(doc)
@@ -592,7 +674,14 @@ function runInitialSync(binding: EditableYjsBinding, policy: InitialSyncPolicy):
 
   switch (scenario) {
     case 'both-empty':
+      return
     case 'both-identical':
+      reconcileInitialRichTextFormats(
+        binding.host,
+        binding.yText,
+        policy,
+        getHostFormatRegistry(binding.host)
+      )
       return
     case 'y-empty-host-filled':
       if (policy.yEmptyHostFilled !== 'copy-host-to-y') {

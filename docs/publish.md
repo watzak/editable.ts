@@ -122,12 +122,13 @@ The live demo at [watzak.github.io/editable.ts/examples/](https://watzak.github.
 
 ## Troubleshooting
 
-| Issue                           | Action                                                                                                               |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Publish workflow does not start | Ensure the GitHub Release is **Published**, not draft; check workflow filename matches npm trusted publisher config. |
-| `403` / provenance errors       | Re-check Trusted Publisher settings on npm; confirm `id-token: write` permission in workflow.                        |
-| Verify fails on size            | Run `npm run build && npm run size`; adjust bundle or size-limit config intentionally if the UMD grew.               |
-| E2E red in CI                   | Fix cross-browser tests before publishing; do not skip the E2E job for releases.                                     |
+| Issue                           | Action                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Publish workflow does not start | Ensure the GitHub Release is **Published**, not draft; check workflow filename matches npm trusted publisher config.           |
+| `403` / provenance errors       | Re-check Trusted Publisher settings on npm; confirm `id-token: write` permission in workflow.                                  |
+| Verify fails on size            | Run `npm run build && npm run size`; adjust bundle or size-limit config intentionally if the UMD grew.                         |
+| `publint` / `spawn pnpm ENOENT` | This repo uses **npm** only (`npm ci` in CI). Keep `publint --pack npm` in `validate:package`; do not commit `pnpm-lock.yaml`. |
+| E2E red in CI                   | Fix cross-browser tests before publishing; do not skip the E2E job for releases.                                               |
 
 ## Legacy token publishing (deprecated here)
 

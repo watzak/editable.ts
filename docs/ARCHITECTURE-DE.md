@@ -6,13 +6,13 @@ editable.ts folgt einer geschichteten Architektur mit klaren Erweiterungspunkten
 
 **editable.ts** ist eine schlanke TypeScript-Bibliothek (~2.7 KB gzip Core), die natives `contenteditable` kapselt. Sie abstrahiert browserübergreifende Selection-/Range-Unterschiede, bietet ein typisiertes Event-System und optionale Highlighting-/CRDT-Erweiterungen — **ohne** ein eigenes Dokumentmodell aufzuzwingen.
 
-| Prinzip | Bedeutung |
-| ------- | --------- |
-| **DOM ist das Modell** | Host-HTML bleibt kanonisch, bis eine Yjs-Binding `Y.Text` als Quelle der Wahrheit setzt |
-| **Keine Runtime-Dependencies** | Core und Features haben null Produktions-Dependencies; Yjs ist optionaler Peer |
-| **Tree-shakebare Einstiege** | Core, Features und Yjs sind getrennte Subpaths |
-| **Zwei parallele Pipelines** | Commands (strukturell) und Operations (textuell/sync) — siehe [ADR 0001](./adr/0001-commands-and-operations.md) |
-| **UTF-16 überall** | Offsets entsprechen JavaScript-Strings und DOM `Range#toString()` |
+| Prinzip                        | Bedeutung                                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| **DOM ist das Modell**         | Host-HTML bleibt kanonisch, bis eine Yjs-Binding `Y.Text` als Quelle der Wahrheit setzt                         |
+| **Keine Runtime-Dependencies** | Core und Features haben null Produktions-Dependencies; Yjs ist optionaler Peer                                  |
+| **Tree-shakebare Einstiege**   | Core, Features und Yjs sind getrennte Subpaths                                                                  |
+| **Zwei parallele Pipelines**   | Commands (strukturell) und Operations (textuell/sync) — siehe [ADR 0001](./adr/0001-commands-and-operations.md) |
+| **UTF-16 überall**             | Offsets entsprechen JavaScript-Strings und DOM `Range#toString()`                                               |
 
 **Wann editable.ts:** CMS-Blöcke, Inline-Editing, Kommentare — wenn du dein HTML behalten und Selection/Cursor ohne Editor-Framework nutzen willst.
 
@@ -20,12 +20,12 @@ editable.ts folgt einer geschichteten Architektur mit klaren Erweiterungspunkten
 
 ## Paket-Architektur
 
-| Import | Quelldatei | Zweck |
-| ------ | ---------- | ----- |
-| `editable.ts` | [`src/core.ts`](../src/core.ts) | Kern: `Editable`, Events, Cursor, Operations |
-| `editable.ts/features` | [`src/features.ts`](../src/features.ts) | Highlighting, Spellcheck, Text-Diff (Prototype-Mixin) |
-| `editable.ts/yjs` | [`src/yjs/index.ts`](../src/yjs/index.ts) | Experimentelle CRDT-Sync-Schicht |
-| `editable.ts/dist/editable.umd.cjs` | Vite-UMD | Script-Tag / Legacy (nur Core) |
+| Import                              | Quelldatei                                | Zweck                                                 |
+| ----------------------------------- | ----------------------------------------- | ----------------------------------------------------- |
+| `editable.ts`                       | [`src/core.ts`](../src/core.ts)           | Kern: `Editable`, Events, Cursor, Operations          |
+| `editable.ts/features`              | [`src/features.ts`](../src/features.ts)   | Highlighting, Spellcheck, Text-Diff (Prototype-Mixin) |
+| `editable.ts/yjs`                   | [`src/yjs/index.ts`](../src/yjs/index.ts) | Experimentelle CRDT-Sync-Schicht                      |
+| `editable.ts/dist/editable.umd.cjs` | Vite-UMD                                  | Script-Tag / Legacy (nur Core)                        |
 
 **Build-Pipeline:**
 
@@ -35,12 +35,12 @@ editable.ts folgt einer geschichteten Architektur mit klaren Erweiterungspunkten
 
 `validate:core-bundle` stellt sicher, dass Core **keine** `lib/yjs/`-Imports enthält.
 
-| Artefakt | Größe (ca.) | Hinweis |
-| -------- | ----------- | ------- |
-| `lib/core.js` (ESM) | ~2.7 KB gzip | Haupt-Einstieg |
-| `lib/features.js` | ~0.9 KB gzip | Optional |
+| Artefakt                          | Größe (ca.)  | Hinweis         |
+| --------------------------------- | ------------ | --------------- |
+| `lib/core.js` (ESM)               | ~2.7 KB gzip | Haupt-Einstieg  |
+| `lib/features.js`                 | ~0.9 KB gzip | Optional        |
 | `lib/yjs/editable-yjs-binding.js` | ~3.2 KB gzip | Yjs bleibt Peer |
-| `dist/editable.umd.cjs` | ~26 KB gzip | Nur Core |
+| `dist/editable.umd.cjs`           | ~26 KB gzip  | Nur Core        |
 
 ## Schichtenmodell
 
@@ -129,23 +129,23 @@ Leichtgewichtiges Pub/Sub-Mixin: `on`, `off`, `notify`. Wird auf `Dispatcher` un
 
 ### Block und Content
 
-| Modul | Rolle |
-| ----- | ----- |
-| [`block.ts`](../src/block.ts) | Block-Lifecycle, `contenteditable`, Plain-Text-Erkennung |
-| [`content.ts`](../src/content.ts) | HTML-Normalisierung, Extraktion, Wrap/Unwrap |
-| [`parser.ts`](../src/parser.ts) | DOM-Parsing, Void-Elemente |
-| [`clipboard.ts`](../src/clipboard.ts) | Paste mit Sanitisierung |
-| [`paste-rules.ts`](../src/paste-rules.ts) | Kompilierte Allowlists aus der Config |
+| Modul                                     | Rolle                                                    |
+| ----------------------------------------- | -------------------------------------------------------- |
+| [`block.ts`](../src/block.ts)             | Block-Lifecycle, `contenteditable`, Plain-Text-Erkennung |
+| [`content.ts`](../src/content.ts)         | HTML-Normalisierung, Extraktion, Wrap/Unwrap             |
+| [`parser.ts`](../src/parser.ts)           | DOM-Parsing, Void-Elemente                               |
+| [`clipboard.ts`](../src/clipboard.ts)     | Paste mit Sanitisierung                                  |
+| [`paste-rules.ts`](../src/paste-rules.ts) | Kompilierte Allowlists aus der Config                    |
 
 ## Selection und Cursor
 
-| Modul | Rolle |
-| ----- | ----- |
-| [`selection-watcher.ts`](../src/selection-watcher.ts) | Beobachtet die Browser-Selection → interne Objekte |
-| [`cursor.ts`](../src/cursor.ts) | Collapsed Selection: Position, Insert, Tag-Erkennung, Koordinaten |
-| [`selection.ts`](../src/selection.ts) | Non-collapsed: Text/HTML, Wrapping, Multi-Rect |
-| [`range-container.ts`](../src/range-container.ts) | Range-Buchhaltung |
-| [`range-save-restore.ts`](../src/range-save-restore.ts) | Selection über DOM-Mutationen hinweg |
+| Modul                                                   | Rolle                                                             |
+| ------------------------------------------------------- | ----------------------------------------------------------------- |
+| [`selection-watcher.ts`](../src/selection-watcher.ts)   | Beobachtet die Browser-Selection → interne Objekte                |
+| [`cursor.ts`](../src/cursor.ts)                         | Collapsed Selection: Position, Insert, Tag-Erkennung, Koordinaten |
+| [`selection.ts`](../src/selection.ts)                   | Non-collapsed: Text/HTML, Wrapping, Multi-Rect                    |
+| [`range-container.ts`](../src/range-container.ts)       | Range-Buchhaltung                                                 |
+| [`range-save-restore.ts`](../src/range-save-restore.ts) | Selection über DOM-Mutationen hinweg                              |
 
 Alle Cursor-/Selection-Offsets in Commands und Operations nutzen **UTF-16 Code Units** (wie JS-Strings und DOM `Range`). Emoji-Surrogate-Paare zählen als zwei Einheiten.
 
@@ -186,15 +186,15 @@ sequenceDiagram
 
 Strukturelle Browser-Eingaben werden zu einer diskriminierenden Union (`EditableCommand`) normalisiert.
 
-| Command-Typ | Legacy-Event(s) |
-| ----------- | --------------- |
-| `insertBlock` | `insert` |
-| `splitBlock` | `split` |
-| `mergeBlock` | `merge` |
-| `insertLineBreak` | `newline` |
-| `paste` | `paste` |
-| `format` | `toggleBold` / `toggleEmphasis` |
-| `input` | nur Metadaten (Plain-Text-Input) |
+| Command-Typ       | Legacy-Event(s)                  |
+| ----------------- | -------------------------------- |
+| `insertBlock`     | `insert`                         |
+| `splitBlock`      | `split`                          |
+| `mergeBlock`      | `merge`                          |
+| `insertLineBreak` | `newline`                        |
+| `paste`           | `paste`                          |
+| `format`          | `toggleBold` / `toggleEmphasis`  |
+| `input`           | nur Metadaten (Plain-Text-Input) |
 
 **Event-Reihenfolge:**
 
@@ -214,12 +214,12 @@ flowchart LR
 
 Parallele Schicht für deterministische, serialisierbare Text-Mutationen (Sync-Adapter, Replay, Yjs).
 
-| Operation | Felder |
-| --------- | ------ |
-| `insertText` | `index`, `text`, optional `attributes` |
-| `deleteText` | `index`, `length` |
-| `replaceText` | `index`, `length`, `text`, optional `attributes` |
-| `setTextAttributes` | `index`, `length`, `attributes` |
+| Operation           | Felder                                           |
+| ------------------- | ------------------------------------------------ |
+| `insertText`        | `index`, `text`, optional `attributes`           |
+| `deleteText`        | `index`, `length`                                |
+| `replaceText`       | `index`, `length`, `text`, optional `attributes` |
+| `setTextAttributes` | `index`, `length`, `attributes`                  |
 
 - Zeilenumbrüche: DOM `<br>` → `\n` (`OPERATION_LINE_BREAK`) im Operationstext; kein HTML in Ops
 - Events: `beforeOperation(host, context)` → `operation(host, batch)`
@@ -248,12 +248,12 @@ Details: [apply-operations.md](./apply-operations.md), [browser-operation-fallba
 
 ## Host-Policy und Rich Text
 
-| Modul | Rolle |
-| ----- | ----- |
-| [`host-policy.ts`](../src/host-policy.ts) | Pro Block: `allowedFormats`, `maxLength`, `plainText`, Placeholder |
+| Modul                                                     | Rolle                                                                                      |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [`host-policy.ts`](../src/host-policy.ts)                 | Pro Block: `allowedFormats`, `maxLength`, `plainText`, Placeholder                         |
 | [`inline-format-codec.ts`](../src/inline-format-codec.ts) | `InlineFormatRegistry` — DOM ↔ Operation-/Y.Text-Attribute (**Core**, nicht unter `./yjs`) |
-| [`format-operations.ts`](../src/format-operations.ts) | Toggle-/Link-/Unlink-Operations |
-| [`dom-text-runs.ts`](../src/dom-text-runs.ts) | Text-Runs mit Inline-Format-Metadaten |
+| [`format-operations.ts`](../src/format-operations.ts)     | Toggle-/Link-/Unlink-Operations                                                            |
+| [`dom-text-runs.ts`](../src/dom-text-runs.ts)             | Text-Runs mit Inline-Format-Metadaten                                                      |
 
 Die gleiche Registry fließt durch Capture → Apply → optionale Yjs-Delta-Konversion / Reconcile. Unbekannte oder unsichere Remote-Keys/URLs erreichen das DOM nicht.
 
@@ -273,11 +273,11 @@ editable.add(host, {
 
 Import `editable.ts/features` registriert Methoden auf demselben `Editable`-Prototype (Side-Effect).
 
-| Bereich | Module |
-| ------- | ------ |
+| Bereich      | Module                                                                                                                 |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | Highlighting | [`highlight-support.ts`](../src/highlight-support.ts), [`monitored-highlighting.ts`](../src/monitored-highlighting.ts) |
-| Plugins | [`plugins/highlighting/`](../src/plugins/highlighting/) — Textsuche, Spellcheck, Whitespace |
-| Text-Diff | [`plugins/text-diff/`](../src/plugins/text-diff/) — Insert-/Delete-Overlays |
+| Plugins      | [`plugins/highlighting/`](../src/plugins/highlighting/) — Textsuche, Spellcheck, Whitespace                            |
+| Text-Diff    | [`plugins/text-diff/`](../src/plugins/text-diff/) — Insert-/Delete-Overlays                                            |
 
 Öffentliche Events u. a.: `spellcheckUpdated`.
 
@@ -356,13 +356,13 @@ graph LR
 
 ### Optionale Yjs-Erweiterungen
 
-| Modul | Zweck |
-| ----- | ----- |
-| [`editable-yjs-presence.ts`](../src/yjs/editable-yjs-presence.ts) | Remote-Cursors via Awareness (`y-protocols`) |
-| [`binding-undo.ts`](../src/yjs/binding-undo.ts) | `Y.UndoManager` scoped auf Binding-Origin |
+| Modul                                                                   | Zweck                                                       |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [`editable-yjs-presence.ts`](../src/yjs/editable-yjs-presence.ts)       | Remote-Cursors via Awareness (`y-protocols`)                |
+| [`binding-undo.ts`](../src/yjs/binding-undo.ts)                         | `Y.UndoManager` scoped auf Binding-Origin                   |
 | [`editable-yjs-annotations.ts`](../src/yjs/editable-yjs-annotations.ts) | Kommentare/Issues in separatem `Y.Map` (nicht Y.Text-Attrs) |
-| [`structural-bridge.ts`](../src/yjs/structural-bridge.ts) | Hooks für Split/Merge/Paste → Host-Blockbaum |
-| [`sync-lifecycle.ts`](../src/yjs/sync-lifecycle.ts) | `deferInitialSync` + `activate()` nach Provider-Ready |
+| [`structural-bridge.ts`](../src/yjs/structural-bridge.ts)               | Hooks für Split/Merge/Paste → Host-Blockbaum                |
+| [`sync-lifecycle.ts`](../src/yjs/sync-lifecycle.ts)                     | `deferInitialSync` + `activate()` nach Provider-Ready       |
 
 Ausführlich: [yjs-binding.md](./yjs-binding.md), [YJS_PROVIDER_INTEGRATION.md](./YJS_PROVIDER_INTEGRATION.md).
 
@@ -383,33 +383,33 @@ src/  --Vite--> dist/editable.umd.cjs
 examples/ --Vite--> examples/dist/ (GitHub Pages)
 ```
 
-| Ebene | Tooling | Ort |
-| ----- | ------- | --- |
-| Unit | Vitest + jsdom | [`spec/`](../spec/) |
-| E2E | Playwright (Chromium, Firefox, WebKit) | [`e2e/`](../e2e/) |
-| Lint / Format | oxlint, oxfmt | Root |
-| Package | publint, attw, size-limit, `validate:core-bundle` | Scripts |
-| CI | Quality-Job + E2E-Matrix | `.github/workflows/` |
+| Ebene         | Tooling                                           | Ort                  |
+| ------------- | ------------------------------------------------- | -------------------- |
+| Unit          | Vitest + jsdom                                    | [`spec/`](../spec/)  |
+| E2E           | Playwright (Chromium, Firefox, WebKit)            | [`e2e/`](../e2e/)    |
+| Lint / Format | oxlint, oxfmt                                     | Root                 |
+| Package       | publint, attw, size-limit, `validate:core-bundle` | Scripts              |
+| CI            | Quality-Job + E2E-Matrix                          | `.github/workflows/` |
 
 Yjs-Tests umfassen Binding, Rich-Sync, Presence, Annotations, Document-Collab und Convergence-Fuzz.
 
 ## Modul-Referenz
 
-| Modul | Rolle |
-| ----- | ----- |
-| [`core.ts`](../src/core.ts) | Hauptklasse `Editable`, npm-Einstieg |
-| [`features.ts`](../src/features.ts) | Optionaler Einstieg: Highlighting / Spellcheck / Text-Diff |
-| [`dispatcher.ts`](../src/dispatcher.ts) | Event-Koordination, Input-Pipelines |
-| [`eventable.ts`](../src/eventable.ts) | Pub/Sub-Mixin |
-| [`cursor.ts`](../src/cursor.ts) / [`selection.ts`](../src/selection.ts) | Selection-API |
-| [`command-pipeline.ts`](../src/command-pipeline.ts) | Strukturelle Commands |
-| [`operation-pipeline.ts`](../src/operation-pipeline.ts) | Text-Operations |
-| [`host-policy.ts`](../src/host-policy.ts) | Per-Block-Policy |
-| [`inline-format-codec.ts`](../src/inline-format-codec.ts) | Format-Registry (Core) |
-| [`instance-registry.ts`](../src/instance-registry.ts) | Block-Ownership |
-| [`create-default-behavior.ts`](../src/create-default-behavior.ts) | Default Split/Merge/Insert/Format |
-| [`yjs/editable-yjs-binding.ts`](../src/yjs/editable-yjs-binding.ts) | Single-Block Y.Text-Binding |
-| [`yjs/editable-yjs-document-binding.ts`](../src/yjs/editable-yjs-document-binding.ts) | Multi-Block / CMS (experimentell) |
+| Modul                                                                                 | Rolle                                                      |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [`core.ts`](../src/core.ts)                                                           | Hauptklasse `Editable`, npm-Einstieg                       |
+| [`features.ts`](../src/features.ts)                                                   | Optionaler Einstieg: Highlighting / Spellcheck / Text-Diff |
+| [`dispatcher.ts`](../src/dispatcher.ts)                                               | Event-Koordination, Input-Pipelines                        |
+| [`eventable.ts`](../src/eventable.ts)                                                 | Pub/Sub-Mixin                                              |
+| [`cursor.ts`](../src/cursor.ts) / [`selection.ts`](../src/selection.ts)               | Selection-API                                              |
+| [`command-pipeline.ts`](../src/command-pipeline.ts)                                   | Strukturelle Commands                                      |
+| [`operation-pipeline.ts`](../src/operation-pipeline.ts)                               | Text-Operations                                            |
+| [`host-policy.ts`](../src/host-policy.ts)                                             | Per-Block-Policy                                           |
+| [`inline-format-codec.ts`](../src/inline-format-codec.ts)                             | Format-Registry (Core)                                     |
+| [`instance-registry.ts`](../src/instance-registry.ts)                                 | Block-Ownership                                            |
+| [`create-default-behavior.ts`](../src/create-default-behavior.ts)                     | Default Split/Merge/Insert/Format                          |
+| [`yjs/editable-yjs-binding.ts`](../src/yjs/editable-yjs-binding.ts)                   | Single-Block Y.Text-Binding                                |
+| [`yjs/editable-yjs-document-binding.ts`](../src/yjs/editable-yjs-document-binding.ts) | Multi-Block / CMS (experimentell)                          |
 
 ### Quellverzeichnis (Überblick)
 

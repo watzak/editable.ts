@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -75,6 +75,25 @@ console.log('yjs-subpath-unresolved-without-peer-ok')
   )
   execSync('node yjs-import.mjs', { cwd: tempDir, stdio: 'pipe' })
 
+  const corePath = join(nodeModules, 'editable.ts', 'lib', 'core.js')
+  const yjsPath = join(nodeModules, 'editable.ts', 'lib', 'yjs', 'index.js')
+  const coreBytes = statSync(corePath).size
+  const yjsBytes = statSync(yjsPath).size
+
+  writeFileSync(
+    join(tempDir, 'ssr-esm-boundary.mjs'),
+    `/** Node ESM: core entry must load without optional yjs peer. */
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+const require = createRequire(import.meta.url)
+const pkgPath = require.resolve('editable.ts/package.json')
+const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+if (pkg.exports?.['.']?.import?.includes('yjs')) throw new Error('core export must not point at yjs')
+console.log('ssr-esm-boundary-ok')
+`
+  )
+  execSync('node ssr-esm-boundary.mjs', { cwd: tempDir, stdio: 'pipe' })
+
   const pkg = JSON.parse(readFileSync(join(tempDir, 'package.json'), 'utf8'))
   pkg.dependencies.yjs = '^13.6.0'
   writeFileSync(join(tempDir, 'package.json'), JSON.stringify(pkg, null, 2))
@@ -97,7 +116,12 @@ console.log('yjs-import-ok')
   }
 
   console.log(
-    'Packed consumer checks passed: core import works without yjs; yjs subpath requires peer.'
+    JSON.stringify({
+      message: 'Packed consumer checks passed',
+      coreEntryBytes: coreBytes,
+      yjsBarrelBytes: yjsBytes,
+      yjsPeerInstalled: true
+    })
   )
 } finally {
   rmSync(tempDir, { recursive: true, force: true })

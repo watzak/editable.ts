@@ -1,20 +1,35 @@
 # Release readiness — Yjs experimental RC (local audit)
 
-**Date:** 2026-09-09  
+**Date (latest local audit):** 2026-09-18  
+**Git HEAD:** `58b3840ce22ea3c64c9fd108211de191ece564f8`  
 **Package version audited:** `1.2.1` (unchanged — no publish performed)  
-**Recommended next version:** `1.3.0-beta.1`
+**Recommended next version:** `1.3.0-beta.2` (document only — **not published**)
+
+**Repro baseline (current):** [REPRO_BASELINE.md](./REPRO_BASELINE.md), P0 matrix [YJS_P0_BASELINE.md](./YJS_P0_BASELINE.md), integration tarball [INTEGRATION_ARTIFACT.md](./INTEGRATION_ARTIFACT.md).
 
 ## Executive summary
 
-The optional `./yjs` subpath is ready for an **experimental** release candidate. Core, Features, and UMD remain Yjs-free.
+The optional `./yjs` subpath remains **experimental**. Core, Features, and UMD stay Yjs-free.
 
-**CI fix applied:** Removed duplicate `examples/yjs-array-structural-adapter.js` (lib imports) that shadowed the TypeScript source during Vitest resolution. Tests and the collab demo now use the single `.ts` example (src imports); Vitest `extensionAlias` resolves `.js` specifiers to `.ts` when no competing `.js` file exists.
+**Prompt 04 (integration readiness):** [PUBLIC_API_TIERS.md](./PUBLIC_API_TIERS.md), [DOCUMENT_ADAPTER_CONTRACT.md](./DOCUMENT_ADAPTER_CONTRACT.md), [PROVIDER_LIFECYCLE_CONTRACT.md](./PROVIDER_LIFECYCLE_CONTRACT.md), [MANUAL_IME_ACCEPTANCE.md](./MANUAL_IME_ACCEPTANCE.md). Packed consumer + kamod-edit fixture (`npm run integration:artifact`, `integration/kamod-edit-consumer/`).
 
-Local verification passes after the fix: `npm ci`, `npm run verify` (742 unit tests, typecheck, lint, format, knip, publint, ATTW, packed consumer, size limits), and Playwright e2e (90 passed, 3 skipped) across Chromium/Firefox/WebKit including the collab RC demo.
+**Open gates (3× `it.fails`):** CMS move clone vs remote text; v1 reply LWW; structural integrator lock (ADR 002). v2 annotation replies merge under default store.
 
-**Recommendation:** Publish `1.3.0-beta.1` with `./yjs` documented as experimental; gather integrator feedback and run manual OS IME before promoting to stable `1.3.0`.
+**P0 gate:** **Gesperrt** for stable `./yjs` and kamod-edit “all clear” until gates closed or explicitly accepted.
+
+**Manual IME:** macOS/Windows sign-off required per [MANUAL_IME_ACCEPTANCE.md](./MANUAL_IME_ACCEPTANCE.md) — Playwright three-browser matrix does **not** substitute.
+
+**Not performed:** npm publish, git tag, version bump in `package.json`.
 
 **Not performed (per scope):** version bump, git tag, push, GitHub release, npm publish.
+
+---
+
+## Historical audit (2026-09-09)
+
+**CI fix applied:** Removed duplicate `examples/yjs-array-structural-adapter.js` (lib imports) that shadowed the TypeScript source during Vitest resolution.
+
+Local verification at that time: `npm run verify` (742 unit tests, …), Playwright e2e (90 passed, 3 skipped).
 
 ## Audit results
 
@@ -34,6 +49,20 @@ Local verification passes after the fix: `npm ci`, `npm run verify` (742 unit te
 | Packed consumer                      | Pass   | Core without yjs; `./yjs` + `./features` from packed tarball                                                                                                                           |
 | npm audit (prod deps)                | Pass   | `0 vulnerabilities` (`npm audit --omit=dev`)                                                                                                                                           |
 | Test/build artifact isolation        | Pass   | Unit tests import `src/` and `examples/*.ts`; no pre-build `lib/` dependency                                                                                                           |
+
+## Verification log (2026-09-18)
+
+| Command                 | Result                                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------- |
+| `npm ci`                | Pass                                                                                      |
+| `npm run typecheck`     | Pass                                                                                      |
+| `npm test`              | Pass — 65 files, 881 passed, 3 expected fail (P0 gate), 884 total                         |
+| `npm run test:coverage` | **Fail** — timeout `text-diff-edge-cases` “very long text strings” (8s); unrelated to Yjs |
+| `npm run lint`          | Pass                                                                                      |
+| `npm run format:check`  | Pass (after formatting P0 spec)                                                           |
+| `npm run verify`        | **Not green** — blocked by coverage step above                                            |
+| `npm run test:e2e`      | **122** passed, **3** skipped, **1** failed (Chromium collab bold test init timeout)      |
+| P0 spec                 | `spec/yjs-p0-baseline.spec.ts` — 7 pass, 3 `it.fails` gate                                |
 
 ## Verification log (2026-09-09, post-fix)
 

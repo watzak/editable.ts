@@ -55,12 +55,17 @@ export function applyOperationsForEditable(
 export function flushQueuedOperations(editable: Editable, host: HTMLElement): void {
   const pending = remoteQueues.drain(host)
   for (const entry of pending) {
-    const result = applyOperationsNow(editable, host, entry.batch, {
-      preserveSelection: entry.options.preserveSelection !== false,
-      emitChange: entry.options.emitChange !== false,
-      origin: entry.options.origin
-    })
-    entry.resolve(result)
+    try {
+      const result = applyOperationsNow(editable, host, entry.batch, {
+        preserveSelection: entry.options.preserveSelection !== false,
+        emitChange: entry.options.emitChange !== false,
+        origin: entry.options.origin
+      })
+      entry.resolve(result)
+    } catch (error) {
+      entry.resolve({ applied: false })
+      throw error
+    }
   }
 }
 

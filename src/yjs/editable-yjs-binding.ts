@@ -5,7 +5,11 @@ import { getHostFormatRegistry } from '../host-policy.js'
 import { applyLiveOperationBatchToDom } from '../operation-apply.js'
 import { getBlockOperationText } from '../operation-text-model.js'
 import { getOperationTextLength } from '../operation-offset.js'
-import { applyEditableOperationsToYText } from './apply-operations-to-ytext.js'
+import {
+  applyEditableOperationsToYText,
+  validateEditableOperationsForYText
+} from './apply-operations-to-ytext.js'
+import { OperationValidationError } from '../operation-validate.js'
 import {
   createBindingTransactionOrigin,
   INITIAL_SYNC_ORIGIN,
@@ -407,41 +411,70 @@ export class EditableYjsBinding {
     if (this.destroyed || host !== this.host) return
     if (batch.operations.length === 0) return
 
-    if (!this.richText) {
-      assertPlainTextBatch(batch)
-    }
+    try {
+      if (!this.richText) {
+        assertPlainTextBatch(batch)
+      }
 
-    const doc = this.yText.doc
-    if (!doc) {
-      throw new PlainTextYjsError('EditableYjsBinding: Y.Text must belong to a Y.Doc')
-    }
+      const doc = this.yText.doc
+      if (!doc) {
+        throw new PlainTextYjsError('EditableYjsBinding: Y.Text must belong to a Y.Doc')
+      }
 
-    this.undoController?.prepareTransaction(batch)
+      this.undoController?.prepareTransaction(batch)
 
-    const commit = resolveCompositionCommitOperations(
-      batch.operations,
-      batch.source,
-      this.compositionBaseline,
-      this.yText,
-      doc
-    )
-    if (commit.clearBaseline) this.compositionBaseline = null
-    const operations = commit.operations
+      const commit = resolveCompositionCommitOperations(
+        batch.operations,
+        batch.source,
+        this.compositionBaseline,
+        this.yText,
+        doc
+      )
+      if (commit.clearBaseline) this.compositionBaseline = null
+      const operations = commit.operations
 
-    doc.transact(() => {
-      applyEditableOperationsToYText(this.yText, operations, this.yjsApplyOptions())
-    }, this.transactionOrigin)
-    this.refreshCanonicalState()
-    this.resetIncrementalRemoteState()
-    this.flushDeferredHostRecovery(
-      batch.source === 'composition' ? 'composition-commit' : 'local-input-commit'
-    )
-    const hostAfterLocal = getBlockOperationText(this.host)
-    if (hostAfterLocal !== this.canonicalYText) {
-      this.reconcile('post-local-batch')
+      if (
+        batch.source === 'composition' &&
+        batch.operations.length > 0 &&
+        operations.length === 0
+      ) {
+        this.onSyncDiagnostic?.({
+          kind: 'composition-aborted',
+          scope: 'block',
+          message:
+            'Composition commit produced no mappable operations after baseline remap — CRDT apply skipped'
+        })
+        return
+      }
+
+      // DOM for confirmed capture batches is already updated; validate CRDT apply only.
+      validateEditableOperationsForYText(this.yText, operations, this.yjsApplyOptions())
+
+      doc.transact(() => {
+        applyEditableOperationsToYText(this.yText, operations, this.yjsApplyOptions())
+      }, this.transactionOrigin)
       this.refreshCanonicalState()
+      this.resetIncrementalRemoteState()
+      this.flushDeferredHostRecovery(
+        batch.source === 'composition' ? 'composition-commit' : 'local-input-commit'
+      )
+      const hostAfterLocal = getBlockOperationText(this.host)
+      if (hostAfterLocal !== this.canonicalYText) {
+        this.reconcile('post-local-batch')
+        this.refreshCanonicalState()
+      }
+      this.syncRichYTextFromHostIfNeeded()
+    } catch (error) {
+      if (error instanceof OperationValidationError || error instanceof PlainTextYjsError) {
+        this.onSyncDiagnostic?.({
+          kind: 'sync-error',
+          scope: 'block',
+          message: error.message
+        })
+        return
+      }
+      throw error
     }
-    this.syncRichYTextFromHostIfNeeded()
   }
 
   /**

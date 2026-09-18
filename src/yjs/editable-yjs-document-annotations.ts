@@ -64,6 +64,17 @@ export class EditableYjsDocumentAnnotations {
       nextKeys.add(key)
 
       let annotations = this.perDirective.get(key)
+      if (
+        annotations &&
+        (annotations.host !== host ||
+          annotations.yText !== binding.yText ||
+          annotations.isDestroyed)
+      ) {
+        annotations.destroy()
+        this.perDirective.delete(key)
+        annotations = undefined
+      }
+
       if (!annotations) {
         annotations = new EditableYjsAnnotations({
           editable: this.documentBinding.editable,

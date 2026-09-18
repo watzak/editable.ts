@@ -1,0 +1,24 @@
+{
+  "name": "editable.ts",
+  "version": "1.2.1",
+  "recommendedNextVersion": "1.3.0-beta.2",
+  "gitHead": "58b3840ce22ea3c64c9fd108211de191ece564f8",
+  "gitShort": "58b3840",
+  "workingTreeDirty": true,
+  "tarball": "editable.ts-1.2.1+58b3840.tgz",
+  "sha256": "1cbbd4e422e8a131c9f0f98c9ec9dc55a739e14d63dec7f80a7f438efccf6b04",
+  "createdAt": "2026-09-17T22:37:09.591Z",
+  "consume": {
+    "npm": "npm install file:/home/watzak/master/kamod/editable.ts/integration-artifacts/editable.ts-1.2.1+58b3840.tgz",
+    "peersForYjs": {
+      "yjs": "^13.6.0",
+      "y-protocols": "^1.0.6"
+    }
+  },
+  "readiness": "experimental-yjs-beta",
+  "openGates": [
+    "spec/yjs-p0-baseline.spec.ts move vs remote Y.Text clone",
+    "spec/yjs-p0-baseline.spec.ts v1 reply LWW (writeVersion 1 only)",
+    "spec/yjs-structural-concurrency-gate.spec.ts integrator structural lock"
+  ]
+}

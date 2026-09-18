@@ -47,6 +47,22 @@ describe('EditableHostPolicy', function () {
     expect(isFormatAllowed(host, 'italic')).toBe(false)
   })
 
+  it('treats allowedFormats:[] as explicit empty allowlist', function () {
+    const host = richHost()
+    installHostPolicy(host, resolveHostPolicy({ allowedFormats: [] }))
+    expect(isFormatAllowed(host, 'bold')).toBe(false)
+    expect(() =>
+      applyOperationBatchToDom(host, {
+        source: 'api',
+        operations: [
+          { type: 'insertText', index: 0, text: 'x' },
+          { type: 'setTextAttributes', index: 0, length: 1, attributes: { bold: true } }
+        ]
+      })
+    ).toThrow(OperationValidationError)
+    expect(host.querySelector('strong')).toBeNull()
+  })
+
   it('filters formats by denylist', function () {
     const host = richHost()
     installHostPolicy(host, resolveHostPolicy({ deniedFormats: ['link'] }))

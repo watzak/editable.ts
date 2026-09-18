@@ -6,6 +6,7 @@ import {
   AnnotationStore,
   EditableYjsAnnotations,
   getOrCreateAnnotationsMap,
+  captureAnnotationSnapshotsBeforeSplit,
   migrateAnnotationsOnMerge,
   migrateAnnotationsOnSplit,
   parseAnnotationRecord
@@ -176,6 +177,14 @@ describe('Yjs collaborative annotations', function () {
     const id = annotations.createAtOffsets('comment', 4, 8, { body: 'tail note' })
     expect(id).toBeTruthy()
 
+    const secondBindingEntry = [...fixture.registryMap.values()][1]
+    const snapshots = captureAnnotationSnapshotsBeforeSplit({
+      store,
+      splitOffset: 4,
+      sourceYText: fixture.body,
+      targetYText: secondBindingEntry?.binding.yText ?? fixture.body
+    })
+
     simulateSplitAt(fixture.host, fixture.editable, 4)
 
     const secondHost = fixture.container.querySelectorAll('[contenteditable]')[1] as HTMLElement
@@ -189,7 +198,8 @@ describe('Yjs collaborative annotations', function () {
       sourceYText: fixture.body,
       targetYText: secondBinding!.yText,
       sourceDirectiveId: 'body',
-      targetDirectiveId: 'body'
+      targetDirectiveId: 'body',
+      snapshots
     })
 
     const record = store.get(id!)

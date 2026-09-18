@@ -100,6 +100,20 @@ const editable = new Editable({
 - [ ] Verify toolbar positioning with `selection.getCoordinates()` (native DOM)
 - [ ] Remove any reliance on global `Editable` unless using the UMD bundle
 
+## Host policy: `allowedFormats: []` (1.2.x patch)
+
+**Behavior change:** Passing `allowedFormats: []` (or enabling with `{ allowedFormats: [] }`) now means an **explicit empty allowlist** — no inline formats are allowed, and `setTextAttributes` / attributed inserts fail validation.
+
+Previously, `[]` was treated like “unset” and fell back to the full format registry (unintentionally).
+
+| Configuration                 | Meaning                          |
+| ----------------------------- | -------------------------------- |
+| `allowedFormats` omitted      | Default registry codecs apply    |
+| `allowedFormats: ['bold', …]` | Allowlist                        |
+| `allowedFormats: []`          | **No** inline formats (explicit) |
+
+No new option name is required; document integrators who relied on the old `[]` behavior and switch to omitting the property.
+
 ## Need help?
 
 Open a [GitHub issue](https://github.com/watzak/editable.ts/issues) with the label `migration` and describe your editable.js setup.

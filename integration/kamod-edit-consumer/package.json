@@ -1,0 +1,12 @@
+{
+  "name": "editable-kamod-edit-consumer-fixture",
+  "private": true,
+  "description": "Local consumer smoke test — run create-integration-artifact.mjs first",
+  "type": "module",
+  "scripts": {
+    "verify": "node verify-imports.mjs"
+  },
+  "dependencies": {
+    "editable.ts": "file:../../integration-artifacts/editable.ts-1.2.1+58b3840.tgz"
+  }
+}

@@ -7,6 +7,7 @@ export type YjsSyncDiagnosticKind =
   | 'initial-sync-conflict'
   | 'initial-sync-complete'
   | 'remote-reconcile'
+  | 'composition-aborted'
   | 'sync-error'
 
 export interface YjsSyncDiagnostic {

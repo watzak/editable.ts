@@ -61,10 +61,20 @@ export function applyDeltaSegments(target: Y.Text, segments: YTextDeltaSegment[]
   }
 }
 
+/** Moves the tail segment to `target` without deleting/reinserting the unchanged source prefix. */
 export function moveYTextTailToTarget(source: Y.Text, offset: number, target: Y.Text): void {
-  const { before, after } = splitYTextDeltaAt(source, offset)
-  applyDeltaSegments(source, before)
-  applyDeltaSegments(target, after)
+  const clamped = Math.max(0, Math.min(offset, source.length))
+  const { after } = splitYTextDeltaAt(source, clamped)
+  const tailLength = source.length - clamped
+  if (tailLength > 0) {
+    source.delete(clamped, tailLength)
+  }
+  let index = target.length
+  for (const segment of after) {
+    if (!segment.insert) continue
+    target.insert(index, segment.insert, segment.attributes ?? undefined)
+    index += segment.insert.length
+  }
 }
 
 export function mergeYTextIntoTarget(target: Y.Text, source: Y.Text): void {

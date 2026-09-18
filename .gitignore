@@ -11,5 +11,7 @@ docs/dist
 .autopilot.json
 .cursor
 tmp/
+integration-artifacts/*.tgz
+integration-artifacts/*.sha256
 test-results/
 playwright-report/

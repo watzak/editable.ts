@@ -19,7 +19,7 @@
 
 editable.ts wraps the browser's native `contenteditable` with cross-browser Selection/Range handling, a typed event system, and optional highlighting — without imposing a document model. Forked from [editable.js](https://github.com/livingdocsIO/editable.js) and modernized with TypeScript, Vitest, and Vite.
 
-**[GitHub](https://github.com/watzak/editable.ts)** · **[Live demo](https://watzak.github.io/editable.ts/examples/)** · **[npm](https://www.npmjs.com/package/editable.ts)** · **[Migration from editable.js](docs/MIGRATION.md)** · **[Architecture](docs/ARCHITECTURE.md)** · **[Architektur (DE)](docs/ARCHITECTURE-DE.md)** · **[Yjs binding (experimental)](docs/yjs-binding.md)**
+**[GitHub](https://github.com/watzak/editable.ts)** · **[Live demo](https://watzak.github.io/editable.ts/examples/)** · **[npm](https://www.npmjs.com/package/editable.ts)** · **[Migration from editable.js](docs/MIGRATION.md)** · **[Architecture](docs/ARCHITECTURE.md)** · **[Architektur (DE)](docs/ARCHITECTURE-DE.md)** · **[Yjs binding (experimental)](docs/yjs-binding.md)** · **[API tiers](docs/PUBLIC_API_TIERS.md)** · **[Integration artifact (kamod-edit)](integration/kamod-edit-consumer/README.md)**
 
 > **Privacy:** the demo page includes a Matomo image tracker (`matomo.kamod.ch`) for anonymous usage statistics. The npm library contains no analytics.
 
@@ -444,7 +444,7 @@ Optional modules on the same subpath:
 
 Live demos: [rich-text sync](examples/yjs-rich-editor.html) · [presence](examples/yjs-presence-editor.html) · [full collab RC](examples/yjs-collab-demo.html) · [document binding (experimental)](examples/yjs-document-collab-demo.html)
 
-Full API, security notes, and lifecycle: [docs/yjs-binding.md](docs/yjs-binding.md) · provider sketch: [docs/yjs-provider-example.md](docs/yjs-provider-example.md)
+Full API, security notes, and lifecycle: [docs/yjs-binding.md](docs/yjs-binding.md) · provider sketch: [docs/yjs-provider-example.md](docs/yjs-provider-example.md) · repro baseline: [docs/REPRO_BASELINE.md](docs/REPRO_BASELINE.md) · P0 matrix: [docs/YJS_P0_BASELINE.md](docs/YJS_P0_BASELINE.md)
 
 > **Experimental:** the `./yjs` API may change before stable `1.3.0`. Core, features, and UMD remain Yjs-free.
 

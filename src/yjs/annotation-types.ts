@@ -1,7 +1,10 @@
 import type { JsonValue } from '../operation-types.js'
 
 export const ANNOTATIONS_ROOT_KEY = 'editable.ts:annotations:v1'
+/** Wire/API record version (JSON and v2 map entries expose this in {@link CollaborativeAnnotationRecord.v}). */
 export const ANNOTATION_PAYLOAD_VERSION = 1 as const
+/** CRDT storage version when the map value is a nested {@link Y.Map} (see docs/adr/001-annotation-v2-crdt-storage.md). */
+export const ANNOTATION_STORAGE_VERSION_V2 = 2 as const
 
 export type AnnotationType = 'comment' | 'issue' | 'suggestion'
 

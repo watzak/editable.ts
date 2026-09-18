@@ -2,12 +2,18 @@
 
 `Editable#applyOperations()` applies an external `EditableOperationBatch` atomically to a single block host. It is the **adapter foundation** for remote sync (Yjs, WebSocket replay, etc.) — not a complete collaboration solution.
 
+See [OPERATION_CONTRACT.md](./OPERATION_CONTRACT.md) for how capture, `operation`, `applyOperations`, and Yjs local apply differ.
+
 ```typescript
 editable.applyOperations(host, batch, {
   preserveSelection: true,
   emitChange: true
 })
 ```
+
+## Multi-operation batches
+
+Operations use **face indices** in the initial text plus a **cumulative delta** while applying (see [OPERATION_CONTRACT.md](./OPERATION_CONTRACT.md)). Example: on `abcdef`, `[insertText index 6 "X", deleteText index 0 length 1]` → `bcdefX`.
 
 ## Guarantees
 

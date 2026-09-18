@@ -81,6 +81,7 @@
     "typecheck:consumer": "tsc -p tsconfig.consumer.json",
     "validate:core-bundle": "node scripts/validate-core-bundle.mjs",
     "validate:packed-consumer": "node scripts/validate-packed-consumer.mjs",
+    "integration:artifact": "node scripts/create-integration-artifact.mjs",
     "validate:package": "npm run build -s && npm run validate:core-bundle && npm run typecheck:consumer && publint --pack npm && attw --pack . && npm run validate:packed-consumer && npm run validate:beta-consumers",
     "pack:check": "npm pack --dry-run",
     "verify": "npm run typecheck && npm run test:coverage && npm run lint && npm run format:check && npm run knip && npm run validate:package && npm run pack:check && npm run size",

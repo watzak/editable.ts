@@ -515,6 +515,8 @@ Demo: `examples/yjs-annotations-demo.html` (two clients via `Y.applyUpdate`).
 
 Document-wide wiring: `EditableYjsDocumentAnnotations` — call `sync()` after `EditableYjsDocumentBinding.reconcile()`.
 
+Integrator contracts: [DOCUMENT_ADAPTER_CONTRACT.md](./DOCUMENT_ADAPTER_CONTRACT.md), [PROVIDER_LIFECYCLE_CONTRACT.md](./PROVIDER_LIFECYCLE_CONTRACT.md), [PUBLIC_API_TIERS.md](./PUBLIC_API_TIERS.md).
+
 ## Bundle size
 
 | Artifact                              | Raw    | Brotli (approx.) |

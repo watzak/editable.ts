@@ -4,6 +4,9 @@
  * Demonstrates component/directive/container model:
  *   root: Y.Array<Component>
  *   Component: Y.Map { id, type, content: Y.Map<string, Y.Text>, properties, containers }
+ *
+ *   `properties` (e.g. heading level) are read only in renderComponent — remote property
+ *   changes do not auto-update DOM; integrator must remount or patch (see DOCUMENT_ADAPTER_CONTRACT.md).
  */
 import * as Y from 'yjs'
 import * as content from '../src/content.js'
@@ -21,9 +24,23 @@ import type {
   StructuralBlockContext,
   StructuralIntentResult
 } from '../src/yjs/structural-adapter.js'
+import { insertHostRunsIntoYText } from '../src/yjs/dom-to-ytext.js'
 import { mergeYTextIntoTarget, moveYTextTailToTarget } from '../src/yjs/structural-ytext.js'
 
 export const CMS_DOCUMENT_ROOT_KEY = 'editable.ts:example:cms-document'
+
+/** Parses one pasted HTML block into {@link Y.Text} runs (no regex tag stripping). */
+function insertPastedHtmlIntoYText(yText: Y.Text, html: string, doc: Document): void {
+  const sandbox = doc.createElement('div')
+  sandbox.setAttribute('data-plaintext', 'false')
+  const fragment = content.createFragmentFromString(html, doc)
+  sandbox.appendChild(fragment)
+  content.tidyHtml(sandbox)
+  if (yText.length > 0) {
+    yText.delete(0, yText.length)
+  }
+  insertHostRunsIntoYText(yText, sandbox, doc)
+}
 
 export type CmsComponentType = 'paragraph' | 'heading' | 'quote' | 'two-column'
 
@@ -691,20 +708,31 @@ export function createCmsDocumentAdapter(
 
         runtime.stopUndoCapturing()
         const newMaps: Y.Map<unknown>[] = []
+        const doc = ctx.host.ownerDocument!
         ctx.doc.transact(() => {
+          if (intent.offset < ctx.yText.length) {
+            ctx.yText.delete(intent.offset, ctx.yText.length - intent.offset)
+          }
+
           let insertAt = record.index + 1
           for (const blockHtml of intent.blocks) {
             const created = createCmsComponentHandles('paragraph')
-            const plain = blockHtml.replace(/<[^>]+>/g, '').trim()
-            if (plain && created.body) created.body.insert(0, plain)
+            if (created.body) {
+              insertPastedHtmlIntoYText(created.body, blockHtml, doc)
+            }
             record.array.insert(insertAt, [created.map])
             newMaps.push(created.map)
             insertAt += 1
           }
-          if (intent.offset < ctx.yText.length) {
-            ctx.yText.delete(intent.offset, ctx.yText.length - intent.offset)
-          }
         }, runtime.transactionOrigin)
+
+        const prefixFragment = content.createFragmentFromString(
+          intent.command.htmlBefore ?? '',
+          doc
+        )
+        ctx.host.innerHTML = ''
+        ctx.host.appendChild(prefixFragment)
+        content.tidyHtml(ctx.host)
 
         runtime.remountStructure()
         const first = newMaps[0]
@@ -786,7 +814,15 @@ export function createCmsDocumentAdapter(
   }
 }
 
-/** Example API helpers — move/delete are app-level CRDT ops, not core library commands. */
+/**
+ * Example API helpers — move/delete are app-level CRDT ops, not core library commands.
+ *
+ * **Warning:** This move implementation **clones** the component map and deletes the source
+ * entry, which creates **new** `Y.Text` instances. Concurrent edits targeting the pre-move body
+ * will not appear on the moved component after sync. Production CMS code must preserve shared
+ * `Y.Text` identity or merge explicitly — see `docs/adr/002-structural-edit-concurrency.md`
+ * and `spec/yjs-p0-baseline.spec.ts` (move gate).
+ */
 export function moveCmsComponent(
   root: Y.Array<Y.Map<unknown>>,
   componentId: string,

@@ -3,7 +3,21 @@ import type { JsonValue } from '../operation-types.js'
 import type { CollaborativeAnnotationRecord } from './annotation-types.js'
 import { buildAnnotationRecord } from './annotation-payload.js'
 import type { AnnotationStore } from './annotation-store.js'
+import {
+  DEFAULT_ANNOTATION_SPLIT_POLICY,
+  normalizeAnnotationSpan,
+  shouldMigrateAnnotationToSplitTarget,
+  sourceSpanAfterSplit,
+  targetSpanAfterSplit,
+  type AnnotationSplitMigrationPolicy
+} from './annotation-split-policy.js'
 import { offsetsToRelativePositionJson, resolvePresenceSelection } from './relative-position.js'
+
+export interface AnnotationSplitSnapshot {
+  record: CollaborativeAnnotationRecord
+  anchor: number
+  head: number
+}
 
 export interface AnnotationSplitMigrationContext {
   store: AnnotationStore
@@ -14,49 +28,90 @@ export interface AnnotationSplitMigrationContext {
   sourceDirectiveId?: string
   targetComponentId?: string
   targetDirectiveId?: string
+  /** Pre-captured offsets — required when {@link sourceYText} may already be truncated. */
+  snapshots?: AnnotationSplitSnapshot[]
+  policy?: AnnotationSplitMigrationPolicy
 }
 
 /**
- * After a block split, annotations whose anchor lies at/after `splitOffset`
- * migrate to the new directive's Y.Text. Spanning ranges follow the anchor side.
+ * Captures UTF-16 anchor/head **before** structural {@link Y.Text} mutation (split/merge).
  */
-export function migrateAnnotationsOnSplit(ctx: AnnotationSplitMigrationContext): number {
+export function captureAnnotationSnapshotsBeforeSplit(
+  ctx: Omit<AnnotationSplitMigrationContext, 'snapshots'>
+): AnnotationSplitSnapshot[] {
   const doc = ctx.sourceYText.doc
-  if (!doc || ctx.sourceYText.doc !== doc || ctx.targetYText.doc !== doc) return 0
+  if (!doc) return []
 
-  let migrated = 0
+  const snapshots: AnnotationSplitSnapshot[] = []
   for (const record of ctx.store.list()) {
     if (!matchesDirective(record, ctx.sourceComponentId, ctx.sourceDirectiveId)) continue
     if (record.status === 'orphaned') continue
 
     const resolved = resolvePresenceSelection(doc, ctx.sourceYText, record.anchor, record.head)
     if (!resolved) continue
+    snapshots.push({ record, anchor: resolved.anchor, head: resolved.head })
+  }
+  return snapshots
+}
 
-    const anchor = resolved.anchor
-    const head = resolved.head
-    if (anchor < ctx.splitOffset) continue
+/**
+ * After a block split, annotations migrate per {@link DEFAULT_ANNOTATION_SPLIT_POLICY}.
+ * Spanning ranges clip on the source block unless the anchor lies in the tail segment.
+ */
+export function migrateAnnotationsOnSplit(ctx: AnnotationSplitMigrationContext): number {
+  const doc = ctx.sourceYText.doc
+  if (!doc || ctx.sourceYText.doc !== doc || ctx.targetYText.doc !== doc) return 0
 
-    const targetLength = ctx.targetYText.length
-    const nextAnchor = anchor - ctx.splitOffset
-    const nextHead = head - ctx.splitOffset
+  const policy = ctx.policy ?? DEFAULT_ANNOTATION_SPLIT_POLICY
+  const snapshots = ctx.snapshots ?? captureAnnotationSnapshotsBeforeSplit(ctx)
+
+  let migrated = 0
+  for (const snap of snapshots) {
+    const span = normalizeAnnotationSpan(snap.anchor, snap.head, ctx.splitOffset)
+    const migrate = shouldMigrateAnnotationToSplitTarget(span, ctx.splitOffset, policy)
+
+    if (migrate) {
+      const targetOffsets = targetSpanAfterSplit(span, ctx.splitOffset, policy)
+      if (!targetOffsets) continue
+      const targetLength = ctx.targetYText.length
+      const positions = offsetsToRelativePositionJson(
+        ctx.targetYText,
+        targetOffsets.anchor,
+        targetOffsets.head,
+        targetLength
+      )
+      ctx.store.replaceRecord(
+        snap.record.id,
+        buildAnnotationRecord({
+          ...snap.record,
+          componentId: ctx.targetComponentId ?? snap.record.componentId,
+          directiveId: ctx.targetDirectiveId ?? snap.record.directiveId,
+          anchor: positions.anchor,
+          head: positions.head
+        })
+      )
+      migrated += 1
+      continue
+    }
+
+    const sourceOffsets = sourceSpanAfterSplit(span, ctx.splitOffset, policy)
+    if (!sourceOffsets) continue
+
+    const sourceLength = ctx.sourceYText.length
     const positions = offsetsToRelativePositionJson(
-      ctx.targetYText,
-      nextAnchor,
-      nextHead,
-      targetLength
+      ctx.sourceYText,
+      sourceOffsets.anchor,
+      sourceOffsets.head,
+      sourceLength
     )
-
     ctx.store.replaceRecord(
-      record.id,
+      snap.record.id,
       buildAnnotationRecord({
-        ...record,
-        componentId: ctx.targetComponentId ?? record.componentId,
-        directiveId: ctx.targetDirectiveId ?? record.directiveId,
+        ...snap.record,
         anchor: positions.anchor,
         head: positions.head
       })
     )
-    migrated += 1
   }
 
   return migrated

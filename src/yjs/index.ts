@@ -32,7 +32,10 @@ export {
   resolveFocusFallbackAmongDirectives,
   restoreDirectiveSelectionFromRelative
 } from './document-selection-sync.js'
-export { applyEditableOperationsToYText } from './apply-operations-to-ytext.js'
+export {
+  applyEditableOperationsToYText,
+  validateEditableOperationsForYText
+} from './apply-operations-to-ytext.js'
 export {
   createBindingTransactionOrigin,
   INITIAL_SYNC_ORIGIN,
@@ -206,11 +209,27 @@ export {
   sanitizeIsoTimestamp
 } from './annotation-payload.js'
 export { AnnotationStore, getOrCreateAnnotationsMap } from './annotation-store.js'
+export type { AnnotationStoreOptions } from './annotation-store.js'
 export {
+  coordinatedMigrateAnnotationsV1ToV2,
+  type CoordinatedAnnotationMigrationOptions
+} from './annotation-coordinated-migration.js'
+export {
+  captureAnnotationSnapshotsBeforeSplit,
   migrateAnnotationsOnMerge,
   migrateAnnotationsOnSplit,
-  reencodeAnnotationPositions
+  reencodeAnnotationPositions,
+  type AnnotationSplitMigrationContext,
+  type AnnotationSplitSnapshot
 } from './annotation-migration.js'
+export {
+  DEFAULT_ANNOTATION_SPLIT_POLICY,
+  normalizeAnnotationSpan,
+  shouldMigrateAnnotationToSplitTarget,
+  type AnnotationSplitMigrationPolicy
+} from './annotation-split-policy.js'
+export { parseAnnotationStorageValue } from './annotation-storage-parse.js'
+export { isV2AnnotationMap, parseAnnotationRecordFromV2Map } from './annotation-crdt.js'
 export { resolveAnnotationRange, resolveAnnotationsForHost } from './annotation-resolver.js'
 export {
   defaultAnnotationRenderer,

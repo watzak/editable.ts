@@ -12,7 +12,10 @@ export interface EditableHostPolicy {
   plainText?: boolean
   /** Inline format registry for this host (defaults to {@link defaultInlineFormatRegistry}). */
   formatRegistry?: InlineFormatRegistry
-  /** Allow only these format keys (mutually exclusive with {@link deniedFormats}). */
+  /**
+   * Allow only these format keys (mutually exclusive with {@link deniedFormats}).
+   * Omit for default registry allowlist. Pass `[]` for an **explicit empty allowlist** (no inline formats).
+   */
   allowedFormats?: readonly string[]
   /** Deny these format keys (mutually exclusive with {@link allowedFormats}). */
   deniedFormats?: readonly string[]
@@ -71,7 +74,7 @@ export function resolveHostPolicy(options: EditableHostPolicy = {}): ResolvedHos
   return {
     plainText: Boolean(options.plainText),
     formatRegistry: options.formatRegistry ?? defaultInlineFormatRegistry,
-    allowedFormats: options.allowedFormats?.length ? [...options.allowedFormats] : undefined,
+    allowedFormats: options.allowedFormats !== undefined ? [...options.allowedFormats] : undefined,
     deniedFormats: options.deniedFormats?.length ? [...options.deniedFormats] : undefined,
     allowLineBreaks: options.allowLineBreaks !== false,
     minLength: options.minLength,
@@ -105,7 +108,7 @@ export function getHostFormatRegistry(host: HTMLElement): InlineFormatRegistry {
 export function isFormatAllowed(host: HTMLElement, key: FormatKey): boolean {
   const policy = getHostPolicy(host)
   if (policy.plainText) return false
-  if (policy.allowedFormats) return policy.allowedFormats.includes(key)
+  if (policy.allowedFormats !== undefined) return policy.allowedFormats.includes(key)
   if (policy.deniedFormats) return !policy.deniedFormats.includes(key)
   return Boolean(policy.formatRegistry.getCodec(key))
 }

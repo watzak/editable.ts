@@ -118,13 +118,9 @@ export function parseAnnotationRecordFromV2Map(
     id,
     type,
     componentId:
-      typeof meta.get('componentId') === 'string'
-        ? (meta.get('componentId') as string)
-        : undefined,
+      typeof meta.get('componentId') === 'string' ? (meta.get('componentId') as string) : undefined,
     directiveId:
-      typeof meta.get('directiveId') === 'string'
-        ? (meta.get('directiveId') as string)
-        : undefined,
+      typeof meta.get('directiveId') === 'string' ? (meta.get('directiveId') as string) : undefined,
     anchor: (anchor ?? null) as JsonValue | null,
     head: (head ?? null) as JsonValue | null,
     authorId,

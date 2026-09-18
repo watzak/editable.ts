@@ -31,7 +31,7 @@ describe('EditableYjsBinding local apply (exactly-once, no partial CRDT)', funct
     transactSpy.mockClear()
 
     dispatchEditableOperations(editable.dispatcher.notify, host, {
-      source: 'input',
+      source: 'api',
       operations: [{ type: 'insertText', index: 2, text: '!' }]
     })
 
@@ -61,7 +61,7 @@ describe('EditableYjsBinding local apply (exactly-once, no partial CRDT)', funct
     })
 
     dispatchEditableOperations(editable.dispatcher.notify, host, {
-      source: 'input',
+      source: 'api',
       operations: [{ type: 'deleteText', index: 0, length: 99 }]
     })
 

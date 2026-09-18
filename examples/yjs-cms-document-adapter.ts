@@ -727,7 +727,7 @@ export function createCmsDocumentAdapter(
         }, runtime.transactionOrigin)
 
         const prefixFragment = content.createFragmentFromString(
-          intent.command.htmlBefore ?? '',
+          intent.command.cursor.htmlBefore ?? '',
           doc
         )
         ctx.host.innerHTML = ''

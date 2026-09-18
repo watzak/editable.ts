@@ -47,8 +47,8 @@ describe('CMS example adapter pasteBlocks', function () {
       undefined,
       undefined
     )
-    pasteCmd.htmlBefore = 'prefix'
-    pasteCmd.htmlAfter = 'SUFFIX'
+    pasteCmd.cursor.htmlBefore = 'prefix'
+    pasteCmd.cursor.htmlAfter = 'SUFFIX'
 
     dispatchEditableCommand(editable.dispatcher.notify, pasteCmd, { cursor: cursor! })
     binding.reconcile('paste-rich')

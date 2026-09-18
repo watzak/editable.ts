@@ -45,16 +45,16 @@ Dev-only: `y-websocket`, `y-indexeddb`, `ws` (demos / e2e).
 
 ## Local verification (2026-09-18)
 
-| Command             | Result                                                                                                                                                                                                                         |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npm ci`            | Pass (1 high-severity prod advisory reported by npm audit; not auto-fixed)                                                                                                                                                     |
-| `npm test`          | Pass — **72** files, **905** passed, **3** expected fail (gates), **908** total                                                                                                                                                |
-| `npm run lint`      | Pass                                                                                                                                                                                                                           |
-| `npm run typecheck` | Pass                                                                                                                                                                                                                           |
-| `npm run verify`    | **Partial** — fails on `test:coverage` timeout in `spec/text-diff/text-diff-edge-cases.spec.ts` (“very long text strings”, 8s limit). Same suite passes under `npm test` without coverage overhead.                            |
-| `npm run test:e2e`  | **123 passed**, **3 skipped** (native undo), **0 failed** — chromium / firefox / webkit (2026-09-18 local). IME: [MANUAL_IME_ACCEPTANCE.md](./MANUAL_IME_ACCEPTANCE.md) only.                                                  |
-| `npm run integration:artifact` | Produces `integration-artifacts/*.tgz` + `MANIFEST.json` (SHA256) for kamod-edit pin                                                                                                                          |
-| `npm run validate:packed-consumer` | Pass — core/yjs peer boundary, barrel byte metrics                                                                                                                                                        |
+| Command                            | Result                                                                                                                                                                                              |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm ci`                           | Pass (1 high-severity prod advisory reported by npm audit; not auto-fixed)                                                                                                                          |
+| `npm test`                         | Pass — **72** files, **905** passed, **3** expected fail (gates), **908** total                                                                                                                     |
+| `npm run lint`                     | Pass                                                                                                                                                                                                |
+| `npm run typecheck`                | Pass                                                                                                                                                                                                |
+| `npm run verify`                   | **Partial** — fails on `test:coverage` timeout in `spec/text-diff/text-diff-edge-cases.spec.ts` (“very long text strings”, 8s limit). Same suite passes under `npm test` without coverage overhead. |
+| `npm run test:e2e`                 | **123 passed**, **3 skipped** (native undo), **0 failed** — chromium / firefox / webkit (2026-09-18 local). IME: [MANUAL_IME_ACCEPTANCE.md](./MANUAL_IME_ACCEPTANCE.md) only.                       |
+| `npm run integration:artifact`     | Produces `integration-artifacts/*.tgz` + `MANIFEST.json` (SHA256) for kamod-edit pin                                                                                                                |
+| `npm run validate:packed-consumer` | Pass — core/yjs peer boundary, barrel byte metrics                                                                                                                                                  |
 
 Re-run P0 matrix only:
 

@@ -37,6 +37,7 @@
     "*.config.{js,ts}"
   ],
   "ignore": ["spec/test-globals.d.ts"],
+  "ignoreBinaries": ["ffmpeg"],
   "ignoreDependencies": [
     "@vitest/coverage-v8",
     "@vitest/ui",
